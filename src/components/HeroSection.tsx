@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Sparkles, ArrowRight, Globe, Users, Heart } from "lucide-react";
+import { Link } from "react-router-dom";
 import AnimatedCounter from "./AnimatedCounter";
 import heroBg from "@/assets/hero-bg.jpg";
 
@@ -17,7 +18,7 @@ const HeroSection = () => {
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan/15 rounded-full blur-[120px] animate-float" style={{ animationDelay: "2s" }} />
       <div className="absolute top-1/3 right-1/3 w-64 h-64 bg-neon-purple/15 rounded-full blur-[120px] animate-float" style={{ animationDelay: "4s" }} />
 
-      <div className="relative z-10 container mx-auto px-6 text-center">
+      <div className="relative z-10 container mx-auto px-6 text-center max-w-7xl">
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
@@ -46,23 +47,25 @@ const HeroSection = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.98 }}
-              className="px-8 py-4 rounded-2xl font-semibold text-primary-foreground relative overflow-hidden group"
-              style={{ background: "var(--gradient-primary)" }}
-            >
-              <span className="relative z-10 flex items-center gap-2 justify-center">
+            <Link to="/opportunities">
+              <motion.span
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
+                className="inline-flex items-center gap-2 justify-center px-8 py-4 rounded-2xl font-semibold text-primary-foreground relative overflow-hidden group cursor-pointer"
+                style={{ background: "var(--gradient-primary)" }}
+              >
                 Start Volunteering <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-              </span>
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.98 }}
-              className="px-8 py-4 rounded-2xl font-semibold glass-card text-foreground hover:border-cyan/30 transition-colors"
-            >
-              Explore Causes
-            </motion.button>
+              </motion.span>
+            </Link>
+            <Link to="/opportunities">
+              <motion.span
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
+                className="inline-flex items-center justify-center px-8 py-4 rounded-2xl font-semibold glass-card text-foreground hover:border-cyan/30 transition-colors cursor-pointer"
+              >
+                Explore Causes
+              </motion.span>
+            </Link>
           </div>
 
           {/* Impact Stats */}

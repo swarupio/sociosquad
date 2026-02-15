@@ -14,7 +14,7 @@ const GlobalImpact = () => {
     <section className="py-24 relative">
       <div className="absolute inset-0 bg-gradient-to-b from-background via-secondary/30 to-background" />
 
-      <div className="container mx-auto px-6 relative z-10">
+      <div className="container mx-auto px-6 relative z-10 max-w-7xl">
         <ScrollReveal>
           <div className="text-center mb-16">
             <span className="text-sm font-semibold text-cyan uppercase tracking-wider">Global Impact</span>

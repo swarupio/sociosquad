@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Sparkles, ArrowRight, Star } from "lucide-react";
+import { Link } from "react-router-dom";
 import ScrollReveal from "./ScrollReveal";
 
 const recommendations = [
@@ -34,7 +35,7 @@ const AIRecommendations = () => {
     <section className="py-24 relative">
       <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-neon-purple/5 rounded-full blur-[200px]" />
 
-      <div className="container mx-auto px-6 relative z-10">
+      <div className="container mx-auto px-6 relative z-10 max-w-7xl">
         <ScrollReveal>
           <div className="flex items-center gap-3 mb-3">
             <Sparkles className="w-5 h-5 text-cyan" />
@@ -101,9 +102,9 @@ const AIRecommendations = () => {
                   {rec.reason}
                 </p>
 
-                <button className="w-full py-2.5 rounded-xl text-sm font-semibold text-primary-foreground flex items-center justify-center gap-2 group" style={{ background: "var(--gradient-primary)" }}>
+                <Link to="/opportunities/1" className="w-full py-2.5 rounded-xl text-sm font-semibold text-primary-foreground flex items-center justify-center gap-2 group" style={{ background: "var(--gradient-primary)" }}>
                   Apply Now <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </button>
+                </Link>
               </motion.div>
             </ScrollReveal>
           ))}

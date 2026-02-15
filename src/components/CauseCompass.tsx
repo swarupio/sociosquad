@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Link } from "react-router-dom";
 import { Heart, Leaf, GraduationCap, Stethoscope, Home, Palette } from "lucide-react";
 import ScrollReveal from "./ScrollReveal";
 
@@ -19,7 +20,7 @@ const CauseCompass = () => {
     <section className="py-24 relative overflow-hidden">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan/3 rounded-full blur-[200px]" />
 
-      <div className="container mx-auto px-6 relative z-10">
+      <div className="container mx-auto px-6 relative z-10 max-w-7xl">
         <ScrollReveal>
           <div className="text-center mb-16">
             <span className="text-sm font-semibold text-cyan uppercase tracking-wider">Cause Compass</span>
@@ -104,12 +105,13 @@ const CauseCompass = () => {
                 </div>
                 <p className="text-muted-foreground mb-4 text-lg">{causes[selected].desc}</p>
                 <div className="text-sm text-cyan font-semibold mb-6">{causes[selected].count}</div>
-                <button
-                  className="px-6 py-3 rounded-xl font-semibold text-primary-foreground"
+                <Link
+                  to="/opportunities"
+                  className="inline-block px-6 py-3 rounded-xl font-semibold text-primary-foreground"
                   style={{ background: "var(--gradient-primary)" }}
                 >
                   Explore {causes[selected].label}
-                </button>
+                </Link>
               </motion.div>
             </AnimatePresence>
           </ScrollReveal>

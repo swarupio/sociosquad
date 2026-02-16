@@ -42,7 +42,7 @@ const HeroSection = () => {
           </h1>
 
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
-            Join a global community of changemakers. AI matches your skills to causes that need you most — turning good intentions into real-world results.
+            Join a global community of changemakers in Mumbai. AI matches your skills to causes that need you most — turning good intentions into real-world results.
           </p>
 
           {/* CTA Buttons */}

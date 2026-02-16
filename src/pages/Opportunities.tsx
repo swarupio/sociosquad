@@ -7,12 +7,12 @@ import Footer from "@/components/Footer";
 import ScrollReveal from "@/components/ScrollReveal";
 
 const opportunities = [
-  { id: 1, title: "Ocean Cleanup Drive", org: "Blue Planet Foundation", location: "Bali, Indonesia", type: "On-Site", category: "Environment", urgency: "High", spots: 12, hours: "8h", match: 94 },
-  { id: 2, title: "Code for Good Hackathon", org: "Tech4Impact", location: "Remote", type: "Remote", category: "Technology", urgency: "Medium", spots: 50, hours: "48h", match: 91 },
-  { id: 3, title: "Youth Mentorship Program", org: "Future Leaders", location: "New York, USA", type: "Hybrid", category: "Education", urgency: "Low", spots: 20, hours: "4h/week", match: 87 },
-  { id: 4, title: "Medical Camp Volunteer", org: "Doctors Without Borders", location: "Nairobi, Kenya", type: "On-Site", category: "Healthcare", urgency: "High", spots: 8, hours: "2 weeks", match: 82 },
-  { id: 5, title: "Community Garden Project", org: "Green Roots", location: "London, UK", type: "On-Site", category: "Environment", urgency: "Low", spots: 30, hours: "6h", match: 78 },
-  { id: 6, title: "Disaster Relief Coordination", org: "Red Cross", location: "Remote", type: "Remote", category: "Humanitarian", urgency: "High", spots: 5, hours: "Flexible", match: 85 },
+  { id: 1, title: "Community Garden Cleanup", org: "Green Earth Initiative", location: "Ghatkopar West, Mumbai", type: "On-Site", category: "Environment", urgency: "High", spots: 15, hours: "Oct 15, 9:00 AM", match: 94 },
+  { id: 2, title: "Blood Donation Camp", org: "Helping Hands", location: "DBIT Mumbai", type: "On-Site", category: "Healthcare", urgency: "High", spots: 20, hours: "Oct 18, 2:00 PM", match: 91 },
+  { id: 3, title: "Beach Cleanup Drive", org: "Ocean Warriors", location: "Versova Beach", type: "On-Site", category: "Environment", urgency: "Medium", spots: 30, hours: "Oct 22, 7:00 AM", match: 87 },
+  { id: 4, title: "Youth Mentorship Program", org: "Future Leaders", location: "Virtual", type: "Remote", category: "Education", urgency: "Low", spots: 20, hours: "4h/week", match: 82 },
+  { id: 5, title: "Senior Care Companionship", org: "Care Connect", location: "Andheri East, Mumbai", type: "On-Site", category: "Healthcare", urgency: "Medium", spots: 10, hours: "Weekends", match: 78 },
+  { id: 6, title: "Animal Shelter Support", org: "Paws & Hearts", location: "Parel, Mumbai", type: "On-Site", category: "Humanitarian", urgency: "Low", spots: 15, hours: "Flexible", match: 85 },
 ];
 
 const categories = ["All", "Environment", "Technology", "Education", "Healthcare", "Humanitarian"];

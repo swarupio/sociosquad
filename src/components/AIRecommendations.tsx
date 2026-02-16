@@ -5,27 +5,27 @@ import ScrollReveal from "./ScrollReveal";
 
 const recommendations = [
   {
-    title: "Ocean Cleanup Drive",
-    org: "Blue Planet Foundation",
+    title: "Community Garden Cleanup",
+    org: "Green Earth Initiative",
     match: 94,
     tags: ["Environment", "On-Site"],
-    reason: "Matches your marine biology skills and weekend availability",
+    reason: "Ghatkopar West, Mumbai · Oct 15, 9:00 AM · 8/15 spots filled",
     urgent: false,
   },
   {
-    title: "Code for Good Hackathon",
-    org: "Tech4Impact",
+    title: "Blood Donation Camp",
+    org: "Helping Hands",
     match: 91,
-    tags: ["Technology", "Remote"],
-    reason: "Your React expertise is needed for nonprofit tools",
+    tags: ["Health", "On-Site"],
+    reason: "DBIT Mumbai · Oct 18, 2:00 PM · 12/20 spots filled",
     urgent: true,
   },
   {
-    title: "Youth Mentorship Program",
-    org: "Future Leaders",
+    title: "Beach Cleanup Drive",
+    org: "Ocean Warriors",
     match: 87,
-    tags: ["Education", "Hybrid"],
-    reason: "Aligns with your teaching experience and growth goals",
+    tags: ["Environment", "On-Site"],
+    reason: "Versova Beach · Oct 22, 7:00 AM · 20/30 spots filled",
     urgent: false,
   },
 ];

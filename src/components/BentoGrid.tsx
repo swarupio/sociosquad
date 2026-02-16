@@ -55,7 +55,7 @@ const BentoGrid = () => {
         <ScrollReveal>
           <div className="text-center mb-16">
             <span className="text-sm font-semibold text-cyan uppercase tracking-wider">Features</span>
-            <h2 className="text-4xl md:text-5xl font-bold mt-3 mb-4">
+            <h2 className="text-4xl md:text-5xl font-bold mt-3 mb-4 leading-tight">
               Everything You Need to <span className="gradient-text">Make a Difference</span>
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">

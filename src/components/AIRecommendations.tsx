@@ -115,7 +115,7 @@ const AIRecommendations = () => {
             <motion.button
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.98 }}
-              className="px-8 py-4 rounded-2xl font-semibold glass-card text-foreground gradient-border hover:shadow-glow-purple transition-shadow"
+              className="px-8 py-4 rounded-2xl font-semibold glass-card text-foreground gradient-border hover:shadow-glow-purple transition-shadow glow-pulse"
             >
               🎲 Surprise Me — Find a Random Match
             </motion.button>

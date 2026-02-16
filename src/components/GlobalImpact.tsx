@@ -29,7 +29,7 @@ const GlobalImpact = () => {
             <ScrollReveal key={i} delay={i * 0.1}>
               <div className="glass-card-hover p-8 text-center">
                 <stat.icon className={`w-8 h-8 ${stat.color} mx-auto mb-4`} />
-                <div className="text-3xl md:text-4xl font-extrabold gradient-text mb-2">
+                <div className={`font-extrabold gradient-text mb-2 ${stat.value >= 1000000 ? 'text-2xl md:text-3xl' : 'text-3xl md:text-4xl'}`}>
                   <AnimatedCounter target={stat.value} suffix={stat.suffix} />
                 </div>
                 <div className="text-sm text-muted-foreground font-medium">{stat.label}</div>

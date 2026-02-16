@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, ArrowRight, Star } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Sparkles, ArrowRight, Star, Shuffle } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import ScrollReveal from "./ScrollReveal";
 
 const recommendations = [
@@ -30,7 +31,28 @@ const recommendations = [
   },
 ];
 
+const allOpportunities = [
+  { id: 1, title: "Community Garden Cleanup" },
+  { id: 2, title: "Blood Donation Camp" },
+  { id: 3, title: "Beach Cleanup Drive" },
+  { id: 4, title: "Youth Mentorship Program" },
+  { id: 5, title: "Senior Care Companionship" },
+  { id: 6, title: "Animal Shelter Support" },
+];
+
 const AIRecommendations = () => {
+  const navigate = useNavigate();
+  const [isSpinning, setIsSpinning] = useState(false);
+
+  const handleSurpriseMe = () => {
+    setIsSpinning(true);
+    setTimeout(() => {
+      const random = allOpportunities[Math.floor(Math.random() * allOpportunities.length)];
+      setIsSpinning(false);
+      navigate(`/opportunities/${random.id}`);
+    }, 800);
+  };
+
   return (
     <section className="py-24 relative">
       <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-neon-purple/5 rounded-full blur-[200px]" />
@@ -113,11 +135,15 @@ const AIRecommendations = () => {
         <ScrollReveal>
           <div className="text-center">
             <motion.button
+              onClick={handleSurpriseMe}
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.98 }}
-              className="px-8 py-4 rounded-2xl font-semibold glass-card text-foreground gradient-border hover:shadow-glow-purple transition-shadow glow-pulse"
+              animate={isSpinning ? { rotate: 360 } : {}}
+              transition={{ duration: 0.6 }}
+              className="px-8 py-4 rounded-2xl font-semibold glass-card text-foreground gradient-border hover:shadow-glow-purple transition-shadow glow-pulse inline-flex items-center gap-2"
             >
-              🎲 Surprise Me — Find a Random Match
+              <Shuffle className={`w-5 h-5 ${isSpinning ? 'animate-spin' : ''}`} />
+              {isSpinning ? "Finding your match..." : "Surprise Me — Find a Random Match"}
             </motion.button>
           </div>
         </ScrollReveal>

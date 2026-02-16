@@ -17,7 +17,7 @@ const Navbar = () => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-xl border-b border-border/50">
       <div className="container mx-auto px-6 h-16 flex items-center justify-between max-w-7xl">
-        <Link to="/" className="text-xl font-bold gradient-text">ImpactFlow</Link>
+        <Link to="/" className="text-xl font-bold gradient-text">SocioSquad</Link>
 
         <div className="hidden md:flex items-center gap-8">
           {navLinks.map((item) => (

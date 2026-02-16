@@ -34,7 +34,7 @@ const features = [
     icon: Shield,
     title: "Skill-to-Impact Converter",
     description: "Map your expertise to real NGO needs and maximize your contribution potential.",
-    span: "col-span-1",
+    span: "col-span-1 md:col-span-2",
     gradient: "from-primary/20 to-neon-purple/10",
   },
   {
@@ -55,7 +55,7 @@ const BentoGrid = () => {
         <ScrollReveal>
           <div className="text-center mb-16">
             <span className="text-sm font-semibold text-cyan uppercase tracking-wider">Features</span>
-            <h2 className="text-4xl md:text-5xl font-bold mt-3 mb-4 leading-tight">
+            <h2 className="text-4xl md:text-5xl font-bold mt-3 mb-6 leading-relaxed">
               Everything You Need to <span className="gradient-text">Make a Difference</span>
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">

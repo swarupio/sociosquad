@@ -27,9 +27,9 @@ const GlobalImpact = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {stats.map((stat, i) => (
             <ScrollReveal key={i} delay={i * 0.1}>
-              <div className="glass-card-hover p-8 text-center h-full flex flex-col items-center justify-center">
+              <div className="glass-card-hover p-8 text-center h-full flex flex-col items-center justify-center min-w-0 overflow-hidden">
                 <stat.icon className={`w-8 h-8 ${stat.color} mx-auto mb-4`} />
-                <div className="text-2xl sm:text-3xl md:text-4xl font-extrabold gradient-text mb-2 whitespace-nowrap">
+                <div className={`${stat.value >= 1000000 ? 'text-xl sm:text-2xl md:text-3xl' : stat.value >= 10000 ? 'text-2xl sm:text-3xl md:text-4xl' : 'text-3xl sm:text-4xl md:text-5xl'} font-extrabold gradient-text mb-2`}>
                   <AnimatedCounter target={stat.value} suffix={stat.suffix} />
                 </div>
                 <div className="text-sm text-muted-foreground font-medium">{stat.label}</div>

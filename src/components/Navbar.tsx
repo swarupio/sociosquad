@@ -32,17 +32,17 @@ const Navbar = () => {
         </div>
 
         <div className="hidden md:flex items-center gap-3">
-          <Link to="/profile" className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-            Profile
+          <Link to="/auth" className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            Sign In
           </Link>
-          <Link to="/opportunities">
+          <Link to="/auth">
             <motion.span
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.98 }}
               className="px-5 py-2 rounded-xl text-sm font-semibold text-primary-foreground flex items-center gap-1.5 cursor-pointer"
               style={{ background: "var(--gradient-primary)" }}
             >
-              Get Started <ArrowRight className="w-3.5 h-3.5" />
+              Sign Up <ArrowRight className="w-3.5 h-3.5" />
             </motion.span>
           </Link>
         </div>
@@ -69,19 +69,19 @@ const Navbar = () => {
             </Link>
           ))}
           <Link
-            to="/profile"
+            to="/auth"
             onClick={() => setOpen(false)}
             className="block text-muted-foreground hover:text-foreground transition-colors"
           >
-            Profile
+            Sign In
           </Link>
           <Link
-            to="/opportunities"
+            to="/auth"
             onClick={() => setOpen(false)}
             className="block w-full py-3 rounded-xl text-sm font-semibold text-primary-foreground text-center mt-4"
             style={{ background: "var(--gradient-primary)" }}
           >
-            Get Started
+            Sign Up
           </Link>
         </motion.div>
       )}

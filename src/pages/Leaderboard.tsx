@@ -6,20 +6,16 @@ import Footer from "@/components/Footer";
 import ScrollReveal from "@/components/ScrollReveal";
 
 const globalLeaders = [
-  { rank: 1, name: "Swarup", city: "Mumbai", xp: 12400, hours: 580, level: 24 },
-  { rank: 2, name: "Suhani", city: "Mumbai", xp: 11200, hours: 520, level: 22 },
-  { rank: 3, name: "Gururaj", city: "Mumbai", xp: 10800, hours: 490, level: 21 },
-  { rank: 4, name: "Phillon", city: "Mumbai", xp: 9600, hours: 440, level: 19 },
-  { rank: 5, name: "Aayush N", city: "Mumbai", xp: 9200, hours: 410, level: 18 },
-  { rank: 6, name: "Pramit", city: "Mumbai", xp: 8800, hours: 390, level: 17 },
-  { rank: 7, name: "Chaitanya", city: "Mumbai", xp: 8400, hours: 370, level: 17 },
-  { rank: 8, name: "Aayush B", city: "Mumbai", xp: 7900, hours: 350, level: 16 },
-  { rank: 9, name: "Pushkar", city: "Mumbai", xp: 7500, hours: 330, level: 15 },
-  { rank: 10, name: "Jeevan", city: "Mumbai", xp: 7100, hours: 310, level: 14 },
-  { rank: 11, name: "Nilay", city: "Mumbai", xp: 6800, hours: 290, level: 13 },
-  { rank: 12, name: "Jishnu", city: "Mumbai", xp: 6400, hours: 270, level: 12 },
-  { rank: 13, name: "Tanmay", city: "Mumbai", xp: 6000, hours: 250, level: 11 },
-  { rank: 14, name: "Soham", city: "Mumbai", xp: 5600, hours: 230, level: 10 },
+  { rank: 1, name: "Aisha Patel", city: "Mumbai", xp: 12400, hours: 580, level: 24 },
+  { rank: 2, name: "Marcus Johnson", city: "NYC", xp: 11200, hours: 520, level: 22 },
+  { rank: 3, name: "Sarah Chen", city: "Singapore", xp: 10800, hours: 490, level: 21 },
+  { rank: 4, name: "Carlos Rivera", city: "São Paulo", xp: 9600, hours: 440, level: 19 },
+  { rank: 5, name: "Yuki Tanaka", city: "Tokyo", xp: 9200, hours: 410, level: 18 },
+  { rank: 6, name: "Elena Volkov", city: "Berlin", xp: 8800, hours: 390, level: 17 },
+  { rank: 7, name: "David Kim", city: "Seoul", xp: 8400, hours: 370, level: 17 },
+  { rank: 8, name: "Fatima Hassan", city: "Dubai", xp: 7900, hours: 350, level: 16 },
+  { rank: 9, name: "James Wright", city: "London", xp: 7500, hours: 330, level: 15 },
+  { rank: 10, name: "Volunteer K.", city: "San Francisco", xp: 2840, hours: 342, level: 12, isUser: true },
 ];
 
 const Leaderboard = () => {
@@ -99,11 +95,11 @@ const Leaderboard = () => {
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className={`grid grid-cols-[auto_1fr_auto_auto] md:grid-cols-[auto_1fr_auto_auto_auto] gap-4 p-4 items-center border-b border-border/30 last:border-0 transition-colors hover:bg-secondary/30`}
+                  className={`grid grid-cols-[auto_1fr_auto_auto] md:grid-cols-[auto_1fr_auto_auto_auto] gap-4 p-4 items-center border-b border-border/30 last:border-0 transition-colors ${leader.isUser ? "bg-cyan/5 border-cyan/20" : "hover:bg-secondary/30"}`}
                 >
                   <div className="w-8 flex justify-center">{getRankIcon(leader.rank)}</div>
                   <div>
-                    <p className="text-sm font-medium text-foreground">{leader.name}</p>
+                    <p className={`text-sm font-medium ${leader.isUser ? "gradient-text" : "text-foreground"}`}>{leader.name}</p>
                     <p className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" />{leader.city}</p>
                   </div>
                   <span className="hidden md:block text-sm text-muted-foreground">{leader.hours}h</span>

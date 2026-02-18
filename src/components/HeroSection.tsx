@@ -3,7 +3,7 @@ import { Sparkles, ArrowRight, Globe, Users, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
 import AnimatedCounter from "./AnimatedCounter";
 import heroBg from "@/assets/hero-bg.jpg";
-import heroPlant from "@/assets/hero-plant.jpg";
+import heroVolunteers from "@/assets/hero-volunteers.jpg";
 
 const HeroSection = () => {
   return (
@@ -102,14 +102,15 @@ const HeroSection = () => {
             className="hidden lg:flex items-center justify-center"
           >
             <div className="relative w-full max-w-lg">
-              <div className="absolute -inset-4 bg-gradient-to-br from-primary/20 via-cyan/10 to-neon-purple/20 rounded-3xl blur-2xl" />
+              <div className="absolute -inset-4 bg-gradient-to-br from-primary/20 via-cyan/10 to-neon-purple/20 rounded-3xl blur-2xl opacity-70" />
               <img
-                src={heroPlant}
-                alt="Hands holding soil with a young green plant sprouting, symbolizing growth and environmental care"
+                src={heroVolunteers}
+                alt="Volunteers gathered at a beach cleanup drive in Mumbai"
                 className="relative w-full rounded-3xl object-cover shadow-glow-cyan"
-                style={{ aspectRatio: "1/1" }}
+                style={{ aspectRatio: "4/3" }}
               />
-              <div className="absolute inset-0 rounded-3xl bg-gradient-to-t from-background/40 via-transparent to-transparent pointer-events-none" />
+              <div className="absolute inset-0 rounded-3xl bg-gradient-to-t from-background/60 via-background/10 to-transparent pointer-events-none" />
+              <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-background/30 via-transparent to-transparent pointer-events-none" />
             </div>
           </motion.div>
         </div>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, ArrowRight, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
@@ -41,7 +41,15 @@ const Auth = () => {
   const inputClass = "w-full pl-10 pr-4 py-3 rounded-xl bg-secondary/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-cyan/40 transition-all text-sm border border-glass-border/30";
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-background">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-background relative">
+      {/* Back to Home link */}
+      <Link
+        to="/"
+        className="absolute top-6 left-6 z-20 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to Home
+      </Link>
       {/* Left Side - Visual */}
       <div className="hidden lg:flex lg:w-1/2 relative items-center justify-center overflow-hidden">
         <div className="absolute inset-0" style={{ background: "var(--gradient-glow)" }} />

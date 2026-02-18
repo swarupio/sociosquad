@@ -105,7 +105,7 @@ const HeroSection = () => {
               <div className="absolute -inset-4 bg-gradient-to-br from-primary/20 via-cyan/10 to-neon-purple/20 rounded-3xl blur-2xl opacity-70" />
               <img
                 src={heroVolunteers}
-                alt="Volunteers gathered at a beach cleanup drive in Mumbai"
+                alt="Volunteers gathered at a beach cleanup drive in Versova, Mumbai"
                 className="relative w-full rounded-3xl object-cover shadow-glow-cyan"
                 style={{ aspectRatio: "4/3" }}
               />

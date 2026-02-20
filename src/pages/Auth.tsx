@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, Mail, Lock, ArrowRight, ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Eye, EyeOff, Mail, Lock, ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { supabase } from "@/integrations/supabase/client";
 
 const Auth = () => {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [signInEmail, setSignInEmail] = useState("");
   const [signInPassword, setSignInPassword] = useState("");
@@ -14,21 +16,42 @@ const Auth = () => {
 
   const [signInErrors, setSignInErrors] = useState<{ email?: string; password?: string }>({});
   const [signUpErrors, setSignUpErrors] = useState<{ name?: string; email?: string; password?: string }>({});
+  const [signInApiError, setSignInApiError] = useState("");
+  const [signUpApiError, setSignUpApiError] = useState("");
+  const [signInLoading, setSignInLoading] = useState(false);
+  const [signUpLoading, setSignUpLoading] = useState(false);
+  const [signUpSuccess, setSignUpSuccess] = useState(false);
 
   const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-  const handleSignIn = (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSignInApiError("");
     const errors: typeof signInErrors = {};
     if (!signInEmail.trim()) errors.email = "Email is required";
     else if (!validateEmail(signInEmail)) errors.email = "Enter a valid email address";
     if (!signInPassword) errors.password = "Password is required";
     else if (signInPassword.length < 6) errors.password = "Password must be at least 6 characters";
     setSignInErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    setSignInLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email: signInEmail.trim(),
+      password: signInPassword,
+    });
+    setSignInLoading(false);
+
+    if (error) {
+      setSignInApiError(error.message);
+    } else {
+      navigate("/dashboard");
+    }
   };
 
-  const handleSignUp = (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSignUpApiError("");
     const errors: typeof signUpErrors = {};
     if (!signUpName.trim()) errors.name = "Name is required";
     if (!signUpEmail.trim()) errors.email = "Email is required";
@@ -36,6 +59,24 @@ const Auth = () => {
     if (!signUpPassword) errors.password = "Password is required";
     else if (signUpPassword.length < 6) errors.password = "Password must be at least 6 characters";
     setSignUpErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+
+    setSignUpLoading(true);
+    const { error } = await supabase.auth.signUp({
+      email: signUpEmail.trim(),
+      password: signUpPassword,
+      options: {
+        data: { full_name: signUpName.trim() },
+        emailRedirectTo: window.location.origin,
+      },
+    });
+    setSignUpLoading(false);
+
+    if (error) {
+      setSignUpApiError(error.message);
+    } else {
+      setSignUpSuccess(true);
+    }
   };
 
   const inputClass = "w-full pl-10 pr-4 py-3 rounded-xl bg-secondary/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-cyan/40 transition-all text-sm border border-glass-border/30";
@@ -50,11 +91,11 @@ const Auth = () => {
         <ArrowLeft className="w-4 h-4" />
         Back to Home
       </Link>
+
       {/* Left Side - Visual */}
       <div className="hidden lg:flex lg:w-1/2 relative items-center justify-center overflow-hidden">
         <div className="absolute inset-0" style={{ background: "var(--gradient-glow)" }} />
         <div className="absolute inset-0 bg-background/40 backdrop-blur-sm" />
-        {/* Floating circles */}
         <div className="absolute top-20 left-20 w-64 h-64 rounded-full bg-cyan/10 blur-3xl animate-float" />
         <div className="absolute bottom-32 right-16 w-48 h-48 rounded-full bg-accent/10 blur-3xl animate-float" style={{ animationDelay: "2s" }} />
 
@@ -65,7 +106,7 @@ const Auth = () => {
             </Link>
             <p className="text-xl font-semibold text-foreground">Make Your Impact Count</p>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Join thousands of volunteers making a difference in communities across India. 
+              Join thousands of volunteers making a difference in communities across India.
               Track your impact, connect with causes, and grow together.
             </p>
             <div className="flex justify-center gap-8 pt-4">
@@ -174,77 +215,93 @@ const Auth = () => {
                   <div className="flex justify-end">
                     <button type="button" className="text-xs text-cyan hover:underline">Forgot Password?</button>
                   </div>
+                  {signInApiError && (
+                    <p className="text-destructive text-xs text-center">{signInApiError}</p>
+                  )}
                   <motion.button
                     whileHover={{ scale: 1.01 }}
                     whileTap={{ scale: 0.99 }}
                     type="submit"
-                    className="w-full py-3 rounded-xl text-sm font-semibold text-primary-foreground flex items-center justify-center gap-2"
+                    disabled={signInLoading}
+                    className="w-full py-3 rounded-xl text-sm font-semibold text-primary-foreground flex items-center justify-center gap-2 disabled:opacity-70"
                     style={{ background: "var(--gradient-primary)" }}
                   >
-                    Sign In <ArrowRight className="w-4 h-4" />
+                    {signInLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Sign In <ArrowRight className="w-4 h-4" /></>}
                   </motion.button>
                 </form>
               </TabsContent>
 
               {/* Sign Up */}
               <TabsContent value="signup">
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  <div>
-                    <div className="relative">
-                      <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                      <input
-                        type="text"
-                        placeholder="Full name"
-                        value={signUpName}
-                        onChange={(e) => { setSignUpName(e.target.value); setSignUpErrors(p => ({ ...p, name: undefined })); }}
-                        className={inputClass}
-                        maxLength={100}
-                      />
-                    </div>
-                    {signUpErrors.name && <p className="text-destructive text-xs mt-1">{signUpErrors.name}</p>}
+                {signUpSuccess ? (
+                  <div className="text-center space-y-3 py-6">
+                    <div className="text-3xl">📧</div>
+                    <p className="text-foreground font-semibold">Check your email!</p>
+                    <p className="text-muted-foreground text-sm">We've sent a confirmation link to <strong>{signUpEmail}</strong>. Click it to activate your account.</p>
                   </div>
-                  <div>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <input
-                        type="email"
-                        placeholder="Email address"
-                        value={signUpEmail}
-                        onChange={(e) => { setSignUpEmail(e.target.value); setSignUpErrors(p => ({ ...p, email: undefined })); }}
-                        className={inputClass}
-                        maxLength={255}
-                      />
+                ) : (
+                  <form onSubmit={handleSignUp} className="space-y-4">
+                    <div>
+                      <div className="relative">
+                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        <input
+                          type="text"
+                          placeholder="Full name"
+                          value={signUpName}
+                          onChange={(e) => { setSignUpName(e.target.value); setSignUpErrors(p => ({ ...p, name: undefined })); }}
+                          className={inputClass}
+                          maxLength={100}
+                        />
+                      </div>
+                      {signUpErrors.name && <p className="text-destructive text-xs mt-1">{signUpErrors.name}</p>}
                     </div>
-                    {signUpErrors.email && <p className="text-destructive text-xs mt-1">{signUpErrors.email}</p>}
-                  </div>
-                  <div>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Password (min. 6 characters)"
-                        value={signUpPassword}
-                        onChange={(e) => { setSignUpPassword(e.target.value); setSignUpErrors(p => ({ ...p, password: undefined })); }}
-                        className={inputClass}
-                      />
-                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
+                    <div>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <input
+                          type="email"
+                          placeholder="Email address"
+                          value={signUpEmail}
+                          onChange={(e) => { setSignUpEmail(e.target.value); setSignUpErrors(p => ({ ...p, email: undefined })); }}
+                          className={inputClass}
+                          maxLength={255}
+                        />
+                      </div>
+                      {signUpErrors.email && <p className="text-destructive text-xs mt-1">{signUpErrors.email}</p>}
                     </div>
-                    {signUpErrors.password && <p className="text-destructive text-xs mt-1">{signUpErrors.password}</p>}
-                  </div>
-                  <motion.button
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
-                    type="submit"
-                    className="w-full py-3 rounded-xl text-sm font-semibold text-primary-foreground flex items-center justify-center gap-2"
-                    style={{ background: "var(--gradient-primary)" }}
-                  >
-                    Create Account <ArrowRight className="w-4 h-4" />
-                  </motion.button>
-                </form>
+                    <div>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Password (min. 6 characters)"
+                          value={signUpPassword}
+                          onChange={(e) => { setSignUpPassword(e.target.value); setSignUpErrors(p => ({ ...p, password: undefined })); }}
+                          className={inputClass}
+                        />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      {signUpErrors.password && <p className="text-destructive text-xs mt-1">{signUpErrors.password}</p>}
+                    </div>
+                    {signUpApiError && (
+                      <p className="text-destructive text-xs text-center">{signUpApiError}</p>
+                    )}
+                    <motion.button
+                      whileHover={{ scale: 1.01 }}
+                      whileTap={{ scale: 0.99 }}
+                      type="submit"
+                      disabled={signUpLoading}
+                      className="w-full py-3 rounded-xl text-sm font-semibold text-primary-foreground flex items-center justify-center gap-2 disabled:opacity-70"
+                      style={{ background: "var(--gradient-primary)" }}
+                    >
+                      {signUpLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Create Account <ArrowRight className="w-4 h-4" /></>}
+                    </motion.button>
+                  </form>
+                )}
               </TabsContent>
             </Tabs>
 

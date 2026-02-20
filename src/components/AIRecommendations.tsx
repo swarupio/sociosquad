@@ -7,7 +7,7 @@ import ScrollReveal from "./ScrollReveal";
 const recommendations = [
   {
     title: "Community Garden Cleanup",
-    org: "Green Earth Initiative",
+    org: "Phillon's Green Initiative",
     match: 94,
     tags: ["Environment", "On-Site"],
     reason: "Ghatkopar West, Mumbai · Oct 15, 9:00 AM · 8/15 spots filled",
@@ -15,7 +15,7 @@ const recommendations = [
   },
   {
     title: "Blood Donation Camp",
-    org: "Helping Hands",
+    org: "Pramit's Helping Hands",
     match: 91,
     tags: ["Health", "On-Site"],
     reason: "DBIT Mumbai · Oct 18, 2:00 PM · 12/20 spots filled",
@@ -23,7 +23,7 @@ const recommendations = [
   },
   {
     title: "Beach Cleanup Drive",
-    org: "Ocean Warriors",
+    org: "Chaitanya's Ocean Warriors",
     match: 87,
     tags: ["Environment", "On-Site"],
     reason: "Versova Beach · Oct 22, 7:00 AM · 20/30 spots filled",

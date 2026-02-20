@@ -7,17 +7,17 @@ import ScrollReveal from "@/components/ScrollReveal";
 
 const posts = [
   {
-    id: 1, author: "Sarah Chen", avatar: "SC", time: "2h ago",
+    id: 1, author: "Swarup", avatar: "SW", time: "2h ago",
     content: "Just completed a 12-hour beach cleanup in Bali! 🌊 Over 200kg of plastic collected with an amazing team. Every small action counts!",
     likes: 142, comments: 23, tags: ["Environment", "Beach Cleanup"],
   },
   {
-    id: 2, author: "Marcus Johnson", avatar: "MJ", time: "5h ago",
+    id: 2, author: "Gururaj", avatar: "GR", time: "5h ago",
     content: "Our Code for Good hackathon built 3 apps for local nonprofits this weekend. So proud of what we achieved together! 💻🎉",
     likes: 98, comments: 15, tags: ["Technology", "Hackathon"],
   },
   {
-    id: 3, author: "Aisha Patel", avatar: "AP", time: "1d ago",
+    id: 3, author: "Suhani", avatar: "SU", time: "1d ago",
     content: "Mentored 5 students today in STEM subjects. Seeing their eyes light up when concepts click — that's the real reward. ✨",
     likes: 231, comments: 34, tags: ["Education", "Mentorship"],
   },
@@ -140,7 +140,7 @@ const Community = () => {
                     <Users className="w-4 h-4 text-cyan" /> Active Members
                   </h3>
                   <div className="flex -space-x-2">
-                    {["AL", "BK", "CM", "DS", "EF", "GH"].map((initials, i) => (
+                    {["SW", "SU", "GR", "PH", "AN", "PR"].map((initials, i) => (
                       <div
                         key={i}
                         className="w-9 h-9 rounded-full border-2 border-background flex items-center justify-center text-xs font-bold text-primary-foreground"

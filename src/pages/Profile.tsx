@@ -32,7 +32,7 @@ const Profile = () => {
                 </div>
                 <div className="flex-1 text-center sm:text-left">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
-                    <h1 className="text-2xl font-bold text-foreground">Volunteer K.</h1>
+                    <h1 className="text-2xl font-bold text-foreground">Soham</h1>
                     <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full text-primary-foreground" style={{ background: "var(--gradient-primary)" }}>
                       <Zap className="w-3 h-3" /> Level 12
                     </span>

@@ -55,67 +55,69 @@ const NSSImpactGallery = () => {
         </ScrollReveal>
 
         <ScrollReveal delay={0.15}>
-          <div className="relative group">
+          <div className="relative group overflow-hidden">
             {/* Custom navigation arrows */}
             <button
               onClick={() => swiperRef.current?.slidePrev()}
-              className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center bg-card/60 backdrop-blur-sm border border-cyan/30 text-cyan hover:bg-cyan/20 hover:shadow-glow-cyan transition-all duration-300"
+              className="absolute left-2 md:left-4 top-[45%] -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center bg-card/60 backdrop-blur-sm border border-cyan/30 text-cyan hover:bg-cyan/20 hover:shadow-glow-cyan transition-all duration-300"
               aria-label="Previous slide"
             >
               <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
             </button>
             <button
               onClick={() => swiperRef.current?.slideNext()}
-              className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center bg-card/60 backdrop-blur-sm border border-cyan/30 text-cyan hover:bg-cyan/20 hover:shadow-glow-cyan transition-all duration-300"
+              className="absolute right-2 md:right-4 top-[45%] -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center bg-card/60 backdrop-blur-sm border border-cyan/30 text-cyan hover:bg-cyan/20 hover:shadow-glow-cyan transition-all duration-300"
               aria-label="Next slide"
             >
               <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
             </button>
 
-            <Swiper
-              onSwiper={(swiper) => { swiperRef.current = swiper; }}
-              onSlideChange={(swiper) => setActiveIndex(swiper.realIndex)}
-              modules={[EffectCoverflow, Navigation, Pagination]}
-              effect="coverflow"
-              grabCursor
-              centeredSlides
-              loop
-              slidesPerView="auto"
-              coverflowEffect={{
-                rotate: 0,
-                stretch: 0,
-                depth: 220,
-                modifier: 2.5,
-                slideShadows: false,
-              }}
-              pagination={{ clickable: true, el: ".nss-pagination" }}
-              className="nss-swiper"
-            >
-              {galleryItems.map((item, i) => (
-                <SwiperSlide key={i} className="!w-[280px] sm:!w-[380px] md:!w-[480px]">
-                  {({ isActive }) => (
-                    <div
-                      className="transition-all duration-500 ease-out rounded-2xl overflow-hidden"
-                      style={{
-                        transform: isActive ? "scale(1)" : "scale(0.75) rotateY(0deg)",
-                        opacity: isActive ? 1 : 0.5,
-                        boxShadow: isActive ? "0 0 40px -5px hsl(185 90% 55% / 0.4), 0 0 80px -10px hsl(185 90% 55% / 0.15)" : "none",
-                        border: isActive ? "2px solid hsl(185 90% 55% / 0.5)" : "2px solid transparent",
-                      }}
-                    >
-                      <div className="aspect-[4/3] overflow-hidden">
-                        <img
-                          src={item.image}
-                          alt={item.title}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
+            <div className="flex justify-center">
+              <Swiper
+                onSwiper={(swiper) => { swiperRef.current = swiper; }}
+                onSlideChange={(swiper) => setActiveIndex(swiper.realIndex)}
+                modules={[EffectCoverflow, Navigation, Pagination]}
+                effect="coverflow"
+                grabCursor
+                centeredSlides
+                loop
+                slidesPerView="auto"
+                coverflowEffect={{
+                  rotate: 0,
+                  stretch: 0,
+                  depth: 220,
+                  modifier: 2.5,
+                  slideShadows: false,
+                }}
+                pagination={{ clickable: true, el: ".nss-pagination" }}
+                className="nss-swiper w-full"
+              >
+                {galleryItems.map((item, i) => (
+                  <SwiperSlide key={i} className="!w-[280px] sm:!w-[380px] md:!w-[480px]">
+                    {({ isActive }) => (
+                      <div
+                        className="transition-all duration-500 ease-out rounded-2xl overflow-hidden mx-auto"
+                        style={{
+                          transform: isActive ? "scale(1)" : "scale(0.75)",
+                          opacity: isActive ? 1 : 0.5,
+                          boxShadow: isActive ? "0 0 40px -5px hsl(185 90% 55% / 0.4), 0 0 80px -10px hsl(185 90% 55% / 0.15)" : "none",
+                          border: isActive ? "2px solid hsl(185 90% 55% / 0.5)" : "2px solid transparent",
+                        }}
+                      >
+                        <div className="aspect-[4/3] overflow-hidden">
+                          <img
+                            src={item.image}
+                            alt={item.title}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </SwiperSlide>
-              ))}
-            </Swiper>
+                    )}
+                  </SwiperSlide>
+                ))}
+              </Swiper>
+            </div>
 
             {/* Active caption */}
             <div className="text-center mt-8">

@@ -1,5 +1,6 @@
 import Navbar from "@/components/Navbar";
 import HeroSection from "@/components/HeroSection";
+import NSSImpactGallery from "@/components/NSSImpactGallery";
 import BentoGrid from "@/components/BentoGrid";
 import AIRecommendations from "@/components/AIRecommendations";
 import CauseCompass from "@/components/CauseCompass";
@@ -11,6 +12,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <HeroSection />
+      <NSSImpactGallery />
       <BentoGrid />
       <AIRecommendations />
       <CauseCompass />

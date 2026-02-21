@@ -5,21 +5,31 @@ import type { Swiper as SwiperType } from "swiper";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import ScrollReveal from "./ScrollReveal";
 
+import nss7daysCamp from "@/assets/nss-7days-camp.jpeg";
+import nssChristmas from "@/assets/nss-christmas.jpeg";
+import nssMobileRepair from "@/assets/nss-mobile-repair.jpeg";
+import nssSolarJal from "@/assets/nss-solar-jal.jpeg";
+import nssFinancial from "@/assets/nss-financial.jpeg";
+import nssDiwali from "@/assets/nss-diwali.jpeg";
+import nssChulla from "@/assets/nss-chulla.jpeg";
+import nssWarli from "@/assets/nss-warli.jpeg";
+import nssTeachingZp from "@/assets/nss-teaching-zp.jpeg";
+
 import "swiper/css";
 import "swiper/css/effect-coverflow";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 
 const galleryItems = [
-  { title: "7 Days Annual NSS Camp at Palghar", image: "https://images.unsplash.com/photo-1559027615-cd4628902d4a?w=800&q=80" },
-  { title: "Christmas Celebration at Oratory", image: "https://images.unsplash.com/photo-1576919228236-a097c32a5cd4?w=800&q=80" },
-  { title: "Mobile Repairing Workshop for ITI Students", image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&q=80" },
-  { title: "Solar Jal Jyoti Project", image: "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=800&q=80" },
-  { title: "Financial Planning and Management Session", image: "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=800&q=80" },
-  { title: "Diwali Mela 2024", image: "https://images.unsplash.com/photo-1605810230434-7631ac76ec81?w=800&q=80" },
-  { title: "Chulla Project in Walvanda", image: "https://images.unsplash.com/photo-1532629345422-7515f3d16bb6?w=800&q=80" },
-  { title: "Warli Painting Workshop", image: "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&q=80" },
-  { title: "Teaching at ZP School", image: "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=800&q=80" },
+  { title: "7 Days Annual NSS Camp at Palghar", image: nss7daysCamp },
+  { title: "Christmas Celebration at Oratory", image: nssChristmas },
+  { title: "Mobile Repairing Workshop for ITI Students", image: nssMobileRepair },
+  { title: "Solar Jal Jyoti Project", image: nssSolarJal },
+  { title: "Financial Planning and Management Session", image: nssFinancial },
+  { title: "Diwali Mela 2024", image: nssDiwali },
+  { title: "Chulla Project in Walvanda", image: nssChulla },
+  { title: "Warli Painting Workshop", image: nssWarli },
+  { title: "Teaching at ZP School", image: nssTeachingZp },
 ];
 
 const NSSImpactGallery = () => {

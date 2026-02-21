@@ -89,15 +89,10 @@ const NSSImpactGallery = () => {
                 slideShadows: false,
               }}
               pagination={{ clickable: true, el: ".nss-pagination" }}
-              breakpoints={{
-                0: { slidesPerView: 1.2 },
-                640: { slidesPerView: 1.6 },
-                1024: { slidesPerView: 2.4 },
-              }}
-              className="nss-swiper !overflow-visible"
+              className="nss-swiper"
             >
               {galleryItems.map((item, i) => (
-                <SwiperSlide key={i} className="!w-[300px] sm:!w-[400px] md:!w-[500px]">
+                <SwiperSlide key={i} className="!w-[280px] sm:!w-[380px] md:!w-[480px]">
                   {({ isActive }) => (
                     <div
                       className="transition-all duration-500 ease-out rounded-2xl overflow-hidden"

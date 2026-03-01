@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { EffectCoverflow, Navigation, Pagination } from "swiper/modules";
+import { Autoplay, EffectCoverflow, Navigation, Pagination } from "swiper/modules";
 import type { Swiper as SwiperType } from "swiper";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import ScrollReveal from "./ScrollReveal";
@@ -76,17 +76,19 @@ const NSSImpactGallery = () => {
               <Swiper
                 onSwiper={(swiper) => { swiperRef.current = swiper; }}
                 onSlideChange={(swiper) => setActiveIndex(swiper.realIndex)}
-                modules={[EffectCoverflow, Navigation, Pagination]}
+                modules={[Autoplay, EffectCoverflow, Navigation, Pagination]}
                 effect="coverflow"
                 grabCursor
                 centeredSlides
                 loop
                 slidesPerView="auto"
+                speed={800}
+                autoplay={{ delay: 3000, disableOnInteraction: false }}
                 coverflowEffect={{
-                  rotate: 0,
-                  stretch: 0,
-                  depth: 220,
-                  modifier: 2.5,
+                  rotate: 40,
+                  stretch: -30,
+                  depth: 350,
+                  modifier: 1,
                   slideShadows: false,
                 }}
                 pagination={{ clickable: true, el: ".nss-pagination" }}
@@ -99,9 +101,9 @@ const NSSImpactGallery = () => {
                         className="transition-all duration-500 ease-out rounded-2xl overflow-hidden mx-auto"
                         style={{
                           transform: isActive ? "scale(1)" : "scale(0.75)",
-                          opacity: isActive ? 1 : 0.5,
-                          boxShadow: isActive ? "0 0 40px -5px hsl(185 90% 55% / 0.4), 0 0 80px -10px hsl(185 90% 55% / 0.15)" : "none",
-                          border: isActive ? "2px solid hsl(185 90% 55% / 0.5)" : "2px solid transparent",
+                          opacity: isActive ? 1 : 0.4,
+                          boxShadow: isActive ? "0px 0px 25px rgba(34, 211, 238, 0.3)" : "none",
+                          border: isActive ? "1px solid rgba(34, 211, 238, 0.15)" : "1px solid transparent",
                         }}
                       >
                         <div className="h-[300px] sm:h-[380px] md:h-[460px] flex items-center justify-center" style={{ backgroundColor: "#0a0a0a" }}>

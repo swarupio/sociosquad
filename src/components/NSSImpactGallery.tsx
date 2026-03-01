@@ -104,11 +104,11 @@ const NSSImpactGallery = () => {
                           border: isActive ? "2px solid hsl(185 90% 55% / 0.5)" : "2px solid transparent",
                         }}
                       >
-                        <div className="aspect-[4/3] overflow-hidden">
+                        <div className="h-[300px] sm:h-[380px] md:h-[460px] flex items-center justify-center" style={{ backgroundColor: "#0a0a0a" }}>
                           <img
                             src={item.image}
                             alt={item.title}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-contain"
                             loading="lazy"
                           />
                         </div>

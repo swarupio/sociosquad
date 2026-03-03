@@ -2,14 +2,15 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Home, CalendarDays, MessageSquare, Settings,
   ChevronLeft, ChevronRight, Sparkles, Clock,
-  TreePine, Utensils, Users, Waves, Bus,
+  TreePine, Utensils, Users, Waves, Bus, Loader2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import EventDetailModal from "@/components/schedule/EventDetailModal";
 import ScheduleSidebar from "@/components/schedule/ScheduleSidebar";
-import type { CalEvent, CalendarCategory, Task } from "@/components/schedule/types";
-import { DAYS, HOURS, pad, initialEvents, initialTasks } from "@/components/schedule/data";
+import type { CalEvent, CalendarCategory } from "@/components/schedule/types";
+import { DAYS, HOURS, pad } from "@/components/schedule/data";
+import { useScheduleData } from "@/hooks/useScheduleData";
 
 const iconMap: Record<string, React.ReactNode> = {
   Waves: <Waves className="w-3.5 h-3.5" />,
@@ -29,10 +30,15 @@ const Schedule = () => {
     "Personal Calendar": true, "SocioSquad Events": true, "NSS Camps": true, "Urgent Relief": true,
   });
 
-  const [events, setEvents] = useState<CalEvent[]>(() =>
-    initialEvents.map((e) => ({ ...e, icon: iconMap[e.iconName] }))
+  const {
+    loading, rawEvents, tasks,
+    toggleTask, addTask, editTask, deleteTask, deleteEvent,
+  } = useScheduleData();
+
+  const events: CalEvent[] = useMemo(
+    () => rawEvents.map((e) => ({ ...e, icon: iconMap[e.iconName] })),
+    [rawEvents]
   );
-  const [tasks, setTasks] = useState<Record<"today" | "tomorrow", Task[]>>(initialTasks);
 
   const [selectedEvent, setSelectedEvent] = useState<CalEvent | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -54,10 +60,6 @@ const Schedule = () => {
 
   const toggleCategory = useCallback((label: CalendarCategory) => {
     setActiveCategories((prev) => ({ ...prev, [label]: !prev[label] }));
-  }, []);
-
-  const deleteEvent = useCallback((id: string) => {
-    setEvents((prev) => prev.filter((e) => e.id !== id));
   }, []);
 
   const resetToToday = useCallback(() => {
@@ -87,7 +89,10 @@ const Schedule = () => {
         activeCategories={activeCategories}
         onToggleCategory={toggleCategory}
         tasks={tasks}
-        onTasksChange={setTasks}
+        onToggleTask={toggleTask}
+        onAddTask={addTask}
+        onEditTask={editTask}
+        onDeleteTask={deleteTask}
       />
 
       {/* Main calendar */}
@@ -112,7 +117,11 @@ const Schedule = () => {
           </div>
         </header>
 
-        {view === "Month" ? (
+        {loading ? (
+          <div className="flex-1 flex items-center justify-center">
+            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+          </div>
+        ) : view === "Month" ? (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center space-y-2">
               <CalendarDays className="w-12 h-12 text-muted-foreground mx-auto" />

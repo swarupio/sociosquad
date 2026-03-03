@@ -68,6 +68,90 @@ export type Database = {
         }
         Relationships: []
       }
+      user_events: {
+        Row: {
+          badge: string | null
+          bg: string
+          border: string
+          category: string
+          color: string
+          created_at: string
+          day: number
+          description: string
+          end_hour: number
+          end_min: number
+          icon_name: string
+          id: string
+          start_hour: number
+          start_min: number
+          title: string
+          user_id: string
+        }
+        Insert: {
+          badge?: string | null
+          bg?: string
+          border?: string
+          category?: string
+          color?: string
+          created_at?: string
+          day?: number
+          description?: string
+          end_hour: number
+          end_min?: number
+          icon_name?: string
+          id?: string
+          start_hour: number
+          start_min?: number
+          title: string
+          user_id: string
+        }
+        Update: {
+          badge?: string | null
+          bg?: string
+          border?: string
+          category?: string
+          color?: string
+          created_at?: string
+          day?: number
+          description?: string
+          end_hour?: number
+          end_min?: number
+          icon_name?: string
+          id?: string
+          start_hour?: number
+          start_min?: number
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_tasks: {
+        Row: {
+          created_at: string
+          done: boolean
+          id: string
+          period: string
+          text: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          done?: boolean
+          id?: string
+          period?: string
+          text: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          done?: boolean
+          id?: string
+          period?: string
+          text?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

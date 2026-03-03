@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import {
   Search, ChevronLeft, ChevronRight, CheckCircle2, Circle,
   Plus, Pencil, Trash2, X,
@@ -13,18 +13,20 @@ interface Props {
   activeCategories: Record<CalendarCategory, boolean>;
   onToggleCategory: (label: CalendarCategory) => void;
   tasks: Record<"today" | "tomorrow", Task[]>;
-  onTasksChange: (tasks: Record<"today" | "tomorrow", Task[]>) => void;
+  onToggleTask: (period: "today" | "tomorrow", id: string) => void;
+  onAddTask: (period: "today" | "tomorrow", text: string) => void;
+  onEditTask: (period: "today" | "tomorrow", id: string, text: string) => void;
+  onDeleteTask: (period: "today" | "tomorrow", id: string) => void;
 }
 
 const ScheduleSidebar = ({
   activeDate, onSelectDate,
   activeCategories, onToggleCategory,
-  tasks, onTasksChange,
+  tasks, onToggleTask, onAddTask, onEditTask, onDeleteTask,
 }: Props) => {
   const [miniMonth, setMiniMonth] = useState(activeDate.getMonth());
   const [miniYear, setMiniYear] = useState(activeDate.getFullYear());
 
-  // Inline add / edit state
   const [addingIn, setAddingIn] = useState<"today" | "tomorrow" | null>(null);
   const [addText, setAddText] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -33,11 +35,10 @@ const ScheduleSidebar = ({
   const miniDays = buildMiniCal(miniYear, miniMonth);
   const monthName = new Date(miniYear, miniMonth).toLocaleString("default", { month: "long" });
 
-  const handleDateClick = useCallback((day: number | null) => {
+  const handleDateClick = (day: number | null) => {
     if (day === null) return;
-    const newDate = new Date(miniYear, miniMonth, day);
-    onSelectDate(newDate);
-  }, [miniYear, miniMonth, onSelectDate]);
+    onSelectDate(new Date(miniYear, miniMonth, day));
+  };
 
   const prevMonth = () => {
     if (miniMonth === 0) { setMiniMonth(11); setMiniYear(miniYear - 1); }
@@ -49,35 +50,21 @@ const ScheduleSidebar = ({
     else setMiniMonth(miniMonth + 1);
   };
 
-  // ─── Task CRUD ────────────────────────────────────────
-  const toggleTask = useCallback((period: "today" | "tomorrow", id: string) => {
-    onTasksChange({
-      ...tasks,
-      [period]: tasks[period].map((t) => t.id === id ? { ...t, done: !t.done } : t),
-    });
-  }, [tasks, onTasksChange]);
-
-  const addTask = useCallback((period: "today" | "tomorrow") => {
-    if (!addText.trim()) { setAddingIn(null); return; }
-    const newTask: Task = { id: `t-${Date.now()}`, text: addText.trim(), done: false };
-    onTasksChange({ ...tasks, [period]: [...tasks[period], newTask] });
+  const handleAdd = (period: "today" | "tomorrow") => {
+    if (addText.trim()) {
+      onAddTask(period, addText.trim());
+    }
     setAddText("");
     setAddingIn(null);
-  }, [addText, tasks, onTasksChange]);
+  };
 
-  const saveEdit = useCallback((period: "today" | "tomorrow", id: string) => {
-    if (!editText.trim()) { setEditingId(null); return; }
-    onTasksChange({
-      ...tasks,
-      [period]: tasks[period].map((t) => t.id === id ? { ...t, text: editText.trim() } : t),
-    });
+  const handleSaveEdit = (period: "today" | "tomorrow", id: string) => {
+    if (editText.trim()) {
+      onEditTask(period, id, editText.trim());
+    }
     setEditingId(null);
     setEditText("");
-  }, [editText, tasks, onTasksChange]);
-
-  const deleteTask = useCallback((period: "today" | "tomorrow", id: string) => {
-    onTasksChange({ ...tasks, [period]: tasks[period].filter((t) => t.id !== id) });
-  }, [tasks, onTasksChange]);
+  };
 
   return (
     <aside className="w-[260px] shrink-0 border-r flex flex-col overflow-y-auto" style={{ borderColor: "#2a2438" }}>
@@ -151,7 +138,7 @@ const ScheduleSidebar = ({
             <div className="mt-2 space-y-1">
               {tasks[period].map((t) => (
                 <div key={t.id} className="group flex items-center gap-2.5 w-full rounded-md px-1 py-1 hover:bg-secondary/40 transition-colors">
-                  <button onClick={() => toggleTask(period, t.id)} className="shrink-0">
+                  <button onClick={() => onToggleTask(period, t.id)} className="shrink-0">
                     {t.done
                       ? <CheckCircle2 className="w-4 h-4 text-primary" />
                       : <Circle className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -163,8 +150,8 @@ const ScheduleSidebar = ({
                       autoFocus
                       value={editText}
                       onChange={(e) => setEditText(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") saveEdit(period, t.id); if (e.key === "Escape") setEditingId(null); }}
-                      onBlur={() => saveEdit(period, t.id)}
+                      onKeyDown={(e) => { if (e.key === "Enter") handleSaveEdit(period, t.id); if (e.key === "Escape") setEditingId(null); }}
+                      onBlur={() => handleSaveEdit(period, t.id)}
                       className="flex-1 text-sm bg-secondary/80 text-foreground rounded px-2 py-0.5 outline-none ring-1 ring-primary/50"
                     />
                   ) : (
@@ -173,7 +160,6 @@ const ScheduleSidebar = ({
                     </span>
                   )}
 
-                  {/* Hover action icons */}
                   {editingId !== t.id && (
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
@@ -183,7 +169,7 @@ const ScheduleSidebar = ({
                         <Pencil className="w-3 h-3" />
                       </button>
                       <button
-                        onClick={(e) => { e.stopPropagation(); deleteTask(period, t.id); }}
+                        onClick={(e) => { e.stopPropagation(); onDeleteTask(period, t.id); }}
                         className="p-0.5 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
                       >
                         <Trash2 className="w-3 h-3" />
@@ -193,7 +179,6 @@ const ScheduleSidebar = ({
                 </div>
               ))}
 
-              {/* Add task */}
               {addingIn === period ? (
                 <div className="flex items-center gap-2 px-1 py-1">
                   <Plus className="w-4 h-4 text-muted-foreground shrink-0" />
@@ -201,8 +186,8 @@ const ScheduleSidebar = ({
                     autoFocus
                     value={addText}
                     onChange={(e) => setAddText(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") addTask(period); if (e.key === "Escape") { setAddingIn(null); setAddText(""); } }}
-                    onBlur={() => addTask(period)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleAdd(period); if (e.key === "Escape") { setAddingIn(null); setAddText(""); } }}
+                    onBlur={() => handleAdd(period)}
                     placeholder="Type and press Enter…"
                     className="flex-1 text-sm bg-secondary/80 text-foreground rounded px-2 py-0.5 outline-none ring-1 ring-primary/50 placeholder:text-muted-foreground/50"
                   />

@@ -16,16 +16,6 @@ const HeroSection = () => {
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
             className="text-center max-w-3xl mx-auto"
           >
-            {/* Badge */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 mb-8"
-            >
-              <span className="w-2 h-2 rounded-full bg-warm" />
-              <span className="text-sm font-medium text-white/90">AI-Powered Volunteering Platform</span>
-            </motion.div>
 
             <h1 className="text-5xl md:text-7xl xl:text-8xl font-extrabold tracking-tight mb-6 leading-[1.1] text-white">
               Make Your{" "}

@@ -5,12 +5,12 @@ import { Heart, Leaf, GraduationCap, Stethoscope, Home, Palette } from "lucide-r
 import ScrollReveal from "./ScrollReveal";
 
 const causes = [
-  { icon: Leaf, label: "Environment", color: "text-green-400", count: "2.4k opportunities", desc: "Climate action, conservation, and sustainability" },
-  { icon: GraduationCap, label: "Education", color: "text-cyan", count: "1.8k opportunities", desc: "Mentoring, tutoring, and skill development" },
-  { icon: Stethoscope, label: "Healthcare", color: "text-red-400", count: "1.2k opportunities", desc: "Medical aid, mental health, and wellness" },
-  { icon: Home, label: "Housing", color: "text-amber-400", count: "890 opportunities", desc: "Shelter, construction, and community building" },
-  { icon: Palette, label: "Arts & Culture", color: "text-neon-purple", count: "650 opportunities", desc: "Creative programs, heritage, and expression" },
-  { icon: Heart, label: "Humanitarian", color: "text-pink-400", count: "3.1k opportunities", desc: "Crisis relief, food security, and human rights" },
+  { icon: Leaf, label: "Environment", color: "text-teal", count: "2.4k opportunities", desc: "Climate action, conservation, and sustainability" },
+  { icon: GraduationCap, label: "Education", color: "text-navy", count: "1.8k opportunities", desc: "Mentoring, tutoring, and skill development" },
+  { icon: Stethoscope, label: "Healthcare", color: "text-destructive", count: "1.2k opportunities", desc: "Medical aid, mental health, and wellness" },
+  { icon: Home, label: "Housing", color: "text-warm", count: "890 opportunities", desc: "Shelter, construction, and community building" },
+  { icon: Palette, label: "Arts & Culture", color: "text-accent", count: "650 opportunities", desc: "Creative programs, heritage, and expression" },
+  { icon: Heart, label: "Humanitarian", color: "text-destructive", count: "3.1k opportunities", desc: "Crisis relief, food security, and human rights" },
 ];
 
 const CauseCompass = () => {
@@ -18,14 +18,12 @@ const CauseCompass = () => {
 
   return (
     <section className="py-24 relative overflow-hidden">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan/3 rounded-full blur-[200px]" />
-
       <div className="container mx-auto px-6 relative z-10 max-w-7xl">
         <ScrollReveal>
           <div className="text-center mb-16">
-            <span className="text-sm font-semibold text-cyan uppercase tracking-wider">Cause Compass</span>
-            <h2 className="text-4xl md:text-5xl font-bold mt-3 mb-4">
-              Find Your <span className="gradient-text">Calling</span>
+            <span className="text-sm font-semibold text-teal uppercase tracking-wider">Cause Compass</span>
+            <h2 className="text-4xl md:text-5xl font-extrabold mt-3 mb-4 text-foreground">
+              Find Your <span className="text-navy">Calling</span>
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
               Discover the cause that resonates with your passion. Every direction leads to impact.
@@ -37,9 +35,9 @@ const CauseCompass = () => {
           {/* Compass Selector */}
           <ScrollReveal>
             <div className="relative mx-auto w-80 h-80">
-              {/* Center glow */}
+              {/* Center */}
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-24 h-24 rounded-full bg-secondary flex items-center justify-center glow-pulse">
+                <div className="w-24 h-24 rounded-full bg-secondary border border-border flex items-center justify-center shadow-soft">
                   <AnimatePresence mode="wait">
                     <motion.div
                       key={selected}
@@ -71,8 +69,8 @@ const CauseCompass = () => {
                     onClick={() => setSelected(i)}
                     className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 ${
                       isActive
-                        ? "glass-card border-cyan/40 shadow-glow-cyan scale-110"
-                        : "glass-card hover:border-muted-foreground/30"
+                        ? "bg-card border-teal/40 border shadow-lg scale-110"
+                        : "bg-card border border-border hover:border-muted-foreground/30"
                     }`}
                     style={{ transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))` }}
                     whileHover={{ scale: isActive ? 1.1 : 1.15 }}
@@ -94,7 +92,7 @@ const CauseCompass = () => {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3 }}
-                className="glass-card p-8"
+                className="bg-card border border-border rounded-2xl p-8 shadow-soft"
               >
                 <div className="flex items-center gap-3 mb-4">
                   {(() => {
@@ -104,11 +102,10 @@ const CauseCompass = () => {
                   <h3 className="text-2xl font-bold text-foreground">{causes[selected].label}</h3>
                 </div>
                 <p className="text-muted-foreground mb-4 text-lg">{causes[selected].desc}</p>
-                <div className="text-sm text-cyan font-semibold mb-6">{causes[selected].count}</div>
+                <div className="text-sm text-teal font-semibold mb-6">{causes[selected].count}</div>
                 <Link
                   to="/opportunities"
-                  className="inline-block px-6 py-3 rounded-xl font-semibold text-primary-foreground"
-                  style={{ background: "var(--gradient-primary)" }}
+                  className="inline-block px-6 py-3 rounded-full font-semibold bg-warm text-warm-foreground"
                 >
                   Explore {causes[selected].label}
                 </Link>

@@ -6,60 +6,58 @@
 
 @layer base {
   :root {
-    --background: 230 25% 7%;
-    --foreground: 210 40% 96%;
+    --background: 210 40% 98%;
+    --foreground: 215 25% 17%;
 
-    --card: 230 25% 11%;
-    --card-foreground: 210 40% 96%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 17%;
 
-    --popover: 230 25% 11%;
-    --popover-foreground: 210 40% 96%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 17%;
 
-    --primary: 230 80% 60%;
+    --primary: 213 50% 24%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 230 20% 18%;
-    --secondary-foreground: 210 40% 96%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 215 25% 17%;
 
-    --muted: 230 20% 14%;
-    --muted-foreground: 215 20% 55%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
 
-    --accent: 270 80% 65%;
+    --accent: 170 50% 45%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 230 20% 18%;
-    --input: 230 20% 18%;
-    --ring: 190 90% 55%;
+    --border: 214 20% 90%;
+    --input: 214 20% 90%;
+    --ring: 36 95% 55%;
 
     --radius: 1rem;
 
     /* Custom tokens */
-    --cyan: 185 90% 55%;
-    --cyan-foreground: 0 0% 100%;
-    --neon-purple: 270 80% 65%;
-    --neon-purple-foreground: 0 0% 100%;
-    --indigo: 230 80% 60%;
-    --glass: 230 25% 14%;
-    --glass-border: 230 20% 25%;
-    
-    --gradient-primary: linear-gradient(135deg, hsl(230, 80%, 55%), hsl(185, 90%, 55%));
-    --gradient-accent: linear-gradient(135deg, hsl(270, 80%, 60%), hsl(185, 90%, 55%));
-    --gradient-glow: linear-gradient(135deg, hsl(230, 80%, 55%) 0%, hsl(270, 80%, 60%) 50%, hsl(185, 90%, 55%) 100%);
-    --shadow-glow-cyan: 0 0 30px -5px hsl(185 90% 55% / 0.3);
-    --shadow-glow-purple: 0 0 30px -5px hsl(270 80% 65% / 0.3);
-    --shadow-glow-indigo: 0 0 30px -5px hsl(230 80% 60% / 0.3);
+    --warm: 36 95% 55%;
+    --warm-foreground: 215 25% 17%;
+    --teal: 170 50% 45%;
+    --teal-foreground: 0 0% 100%;
+    --navy: 213 50% 24%;
+    --navy-foreground: 0 0% 100%;
 
-    --sidebar-background: 230 25% 9%;
-    --sidebar-foreground: 210 40% 96%;
-    --sidebar-primary: 230 80% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 230 20% 14%;
-    --sidebar-accent-foreground: 210 40% 96%;
-    --sidebar-border: 230 20% 18%;
-    --sidebar-ring: 185 90% 55%;
+    --gradient-primary: linear-gradient(135deg, hsl(213, 50%, 24%), hsl(213, 50%, 35%));
+    --gradient-accent: linear-gradient(135deg, hsl(36, 95%, 55%), hsl(36, 95%, 65%));
+    --gradient-teal: linear-gradient(135deg, hsl(170, 50%, 45%), hsl(170, 50%, 55%));
+    --shadow-soft: 0 4px 30px -5px hsl(215 25% 17% / 0.08);
+    --shadow-warm: 0 4px 30px -5px hsl(36 95% 55% / 0.2);
+
+    --sidebar-background: 213 50% 24%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 36 95% 55%;
+    --sidebar-primary-foreground: 215 25% 17%;
+    --sidebar-accent: 213 50% 30%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 213 50% 30%;
+    --sidebar-ring: 36 95% 55%;
   }
 }
 
@@ -76,11 +74,11 @@
 
 @layer utilities {
   .glass-card {
-    @apply bg-card/60 backdrop-blur-xl border border-glass-border/30 rounded-2xl;
+    @apply bg-card border border-border rounded-2xl shadow-soft;
   }
 
   .glass-card-hover {
-    @apply glass-card transition-all duration-300 hover:border-cyan/30 hover:shadow-glow-cyan;
+    @apply glass-card transition-all duration-300 hover:shadow-lg hover:border-teal/30;
   }
 
   .gradient-text {
@@ -102,21 +100,12 @@
     inset: 0;
     border-radius: inherit;
     padding: 1px;
-    background: var(--gradient-glow);
+    background: var(--gradient-primary);
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     pointer-events: none;
-  }
-
-  .glow-pulse {
-    animation: glowPulse 3s ease-in-out infinite;
-  }
-
-  @keyframes glowPulse {
-    0%, 100% { box-shadow: 0 0 20px -5px hsl(185 90% 55% / 0.2); }
-    50% { box-shadow: 0 0 40px -5px hsl(185 90% 55% / 0.4); }
   }
 
   @keyframes float {
@@ -126,10 +115,5 @@
 
   .animate-float {
     animation: float 6s ease-in-out infinite;
-  }
-
-  @keyframes counter {
-    from { --num: 0; }
-    to { --num: var(--target); }
   }
 }

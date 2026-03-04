@@ -28,22 +28,22 @@ const footerLinks = [
 ];
 
 const Footer = () => (
-  <footer className="py-12 border-t border-border/50">
+  <footer className="py-12 bg-navy text-navy-foreground">
     <div className="container mx-auto px-6 max-w-7xl">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
         <div>
-          <Link to="/" className="font-bold gradient-text text-lg">SocioSquad</Link>
-          <p className="text-sm text-muted-foreground leading-relaxed mt-4">
+          <Link to="/" className="font-extrabold text-lg text-white">SocioSquad</Link>
+          <p className="text-sm text-white/60 leading-relaxed mt-4">
             AI-powered volunteering platform connecting skills to causes that matter most.
           </p>
         </div>
         {footerLinks.map((col) => (
           <div key={col.title}>
-            <h4 className="font-semibold text-foreground mb-4">{col.title}</h4>
+            <h4 className="font-semibold text-white mb-4">{col.title}</h4>
             <ul className="space-y-2">
               {col.links.map((link) => (
                 <li key={link.label}>
-                  <Link to={link.to} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <Link to={link.to} className="text-sm text-white/60 hover:text-white transition-colors">
                     {link.label}
                   </Link>
                 </li>
@@ -52,10 +52,10 @@ const Footer = () => (
           </div>
         ))}
       </div>
-      <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-border/50">
-        <p className="text-sm text-muted-foreground">© 2026 SocioSquad. All rights reserved.</p>
-        <p className="text-sm text-muted-foreground flex items-center gap-1 mt-2 md:mt-0">
-          Made with <Heart className="w-3.5 h-3.5 text-destructive" /> for a better world
+      <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-white/10">
+        <p className="text-sm text-white/50">© 2026 SocioSquad. All rights reserved.</p>
+        <p className="text-sm text-white/50 flex items-center gap-1 mt-2 md:mt-0">
+          Made with <Heart className="w-3.5 h-3.5 text-warm" /> for a better world
         </p>
       </div>
     </div>

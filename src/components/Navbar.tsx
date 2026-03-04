@@ -16,9 +16,9 @@ const Navbar = () => {
   const location = useLocation();
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-xl border-b border-border/50">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-border">
       <div className="container mx-auto px-6 h-16 flex items-center justify-between max-w-7xl">
-        <Link to="/" className="text-xl font-bold gradient-text">SocioSquad</Link>
+        <Link to="/" className="text-xl font-extrabold text-navy">SocioSquad</Link>
 
         <div className="hidden md:flex items-center gap-8">
           {navLinks.map((item) => (
@@ -40,8 +40,7 @@ const Navbar = () => {
             <motion.span
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.98 }}
-              className="px-5 py-2 rounded-xl text-sm font-semibold text-primary-foreground flex items-center gap-1.5 cursor-pointer"
-              style={{ background: "var(--gradient-primary)" }}
+              className="px-5 py-2 rounded-full text-sm font-semibold bg-warm text-warm-foreground flex items-center gap-1.5 cursor-pointer"
             >
               Sign Up <ArrowRight className="w-3.5 h-3.5" />
             </motion.span>
@@ -57,7 +56,7 @@ const Navbar = () => {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="md:hidden bg-card/95 backdrop-blur-xl border-b border-border p-6 space-y-4"
+          className="md:hidden bg-card border-b border-border p-6 space-y-4"
         >
           {navLinks.map((item) => (
             <Link
@@ -69,18 +68,13 @@ const Navbar = () => {
               {item.label}
             </Link>
           ))}
-          <Link
-            to="/auth"
-            onClick={() => setOpen(false)}
-            className="block text-muted-foreground hover:text-foreground transition-colors"
-          >
+          <Link to="/auth" onClick={() => setOpen(false)} className="block text-muted-foreground hover:text-foreground transition-colors">
             Sign In
           </Link>
           <Link
             to="/auth"
             onClick={() => setOpen(false)}
-            className="block w-full py-3 rounded-xl text-sm font-semibold text-primary-foreground text-center mt-4"
-            style={{ background: "var(--gradient-primary)" }}
+            className="block w-full py-3 rounded-full text-sm font-semibold bg-warm text-warm-foreground text-center mt-4"
           >
             Sign Up
           </Link>

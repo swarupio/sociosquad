@@ -54,7 +54,7 @@ const features = [
 
 const BentoGrid = () => {
   return (
-    <section className="py-24 relative">
+    <section className="py-24 relative bg-secondary">
       <div className="container mx-auto px-6 relative z-10 max-w-7xl">
         <ScrollReveal>
           <div className="text-center mb-16">
@@ -71,7 +71,7 @@ const BentoGrid = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {features.map((feature, i) => (
             <ScrollReveal key={i} delay={i * 0.1} className={feature.span}>
-              <div className="bg-card border border-border rounded-2xl p-10 h-full hover:shadow-lg hover:border-teal/20 transition-all duration-300 group cursor-pointer">
+              <div className="bg-card border border-border rounded-2xl p-10 h-full shadow-md hover:shadow-lg hover:border-teal/20 transition-all duration-300 group cursor-pointer">
                 <div className={`w-12 h-12 rounded-xl ${feature.iconBg} flex items-center justify-center mb-5`}>
                   <feature.icon className={`w-6 h-6 ${feature.iconColor}`} />
                 </div>

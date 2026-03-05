@@ -59,8 +59,8 @@ const GlobalImpact = () => {
           </ScrollReveal>
 
           <ScrollReveal delay={0.5}>
-            <div className="rounded-3xl overflow-hidden h-full min-h-[200px]">
-              <img src={nssChristmas} alt="Community celebration" className="w-full h-full object-cover" />
+            <div className="rounded-3xl overflow-hidden h-full min-h-[200px] bg-muted">
+              <img src={nssChristmas} alt="Community celebration" className="w-full h-full object-cover block" />
             </div>
           </ScrollReveal>
 

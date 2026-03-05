@@ -72,14 +72,14 @@ const Schedule = () => {
   }, []);
 
   return (
-    <div className="flex h-screen w-full overflow-hidden" style={{ backgroundColor: "#0f0a1c" }}>
+    <div className="flex h-screen w-full overflow-hidden bg-background">
       {/* Icon rail */}
-      <nav className="w-[56px] shrink-0 flex flex-col items-center py-6 gap-6 border-r" style={{ borderColor: "#2a2438" }}>
-        <button onClick={() => navigate("/")} className="p-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"><Home className="w-5 h-5" /></button>
-        <button className="p-2.5 rounded-xl bg-primary/20 text-primary transition-colors"><CalendarDays className="w-5 h-5" /></button>
-        <button className="p-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"><MessageSquare className="w-5 h-5" /></button>
+      <nav className="w-[56px] shrink-0 flex flex-col items-center py-6 gap-6 border-r border-border bg-card">
+        <button onClick={() => navigate("/")} className="p-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"><Home className="w-5 h-5" /></button>
+        <button className="p-2.5 rounded-xl bg-navy/10 text-navy transition-colors"><CalendarDays className="w-5 h-5" /></button>
+        <button className="p-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"><MessageSquare className="w-5 h-5" /></button>
         <div className="flex-1" />
-        <button className="p-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"><Settings className="w-5 h-5" /></button>
+        <button className="p-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"><Settings className="w-5 h-5" /></button>
       </nav>
 
       {/* Sidebar */}
@@ -96,30 +96,30 @@ const Schedule = () => {
       />
 
       {/* Main calendar */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="shrink-0 flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "#2a2438" }}>
+      <main className="flex-1 flex flex-col overflow-hidden bg-card">
+        <header className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex items-center gap-4">
             <h1 className="text-xl font-bold text-foreground">
               {activeDate.toLocaleString("default", { month: "long" })} {activeDate.getFullYear()}
             </h1>
-            <button onClick={resetToToday} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 transition-colors">Today</button>
+            <button onClick={resetToToday} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-navy/10 text-navy hover:bg-navy/20 transition-colors">Today</button>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex rounded-lg overflow-hidden border border-border/50">
+            <div className="flex rounded-lg overflow-hidden border border-border">
               {(["Week", "Month"] as const).map((v) => (
-                <button key={v} onClick={() => setView(v)} className={`text-xs font-semibold px-4 py-1.5 transition-colors ${view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}>{v}</button>
+                <button key={v} onClick={() => setView(v)} className={`text-xs font-semibold px-4 py-1.5 transition-colors ${view === v ? "bg-navy text-navy-foreground" : "text-muted-foreground hover:text-foreground hover:bg-secondary"}`}>{v}</button>
               ))}
             </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border/50">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-xs font-medium text-foreground/80">Availability</span>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border">
+              <span className="w-2 h-2 rounded-full bg-teal animate-pulse" />
+              <span className="text-xs font-medium text-muted-foreground">Availability</span>
             </div>
           </div>
         </header>
 
         {loading ? (
           <div className="flex-1 flex items-center justify-center">
-            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+            <Loader2 className="w-8 h-8 text-navy animate-spin" />
           </div>
         ) : view === "Month" ? (
           <div className="flex-1 flex items-center justify-center">
@@ -131,18 +131,18 @@ const Schedule = () => {
         ) : (
           <div className="flex-1 overflow-auto relative">
             <div className="grid min-w-[800px]" style={{ gridTemplateColumns: "60px repeat(7, 1fr)" }}>
-              <div className="sticky top-0 z-10" style={{ backgroundColor: "#0f0a1c" }} />
+              <div className="sticky top-0 z-10 bg-card" />
               {DAYS.map((d) => (
-                <div key={d} className="sticky top-0 z-10 py-3 text-center text-xs font-semibold text-muted-foreground border-b" style={{ backgroundColor: "#0f0a1c", borderColor: "#2a2438" }}>{d}</div>
+                <div key={d} className="sticky top-0 z-10 py-3 text-center text-xs font-semibold text-muted-foreground border-b border-border bg-card">{d}</div>
               ))}
               {HOURS.map((h) => (
                 <div key={`row-${h}`} className="contents">
-                  <div className="relative text-[11px] text-muted-foreground text-right pr-3 border-r" style={{ height: 80, borderColor: "#2a2438" }}>
+                  <div className="relative text-[11px] text-muted-foreground text-right pr-3 border-r border-border" style={{ height: 80 }}>
                     <span className="absolute -top-2 right-3">{pad(h)}:00</span>
                   </div>
                   {DAYS.map((_, di) => (
-                    <div key={`cell-${h}-${di}`} className="relative border-b border-r" style={{ height: 80, borderColor: "#2a2438" }}>
-                      <div className="absolute inset-x-0 top-1/2 border-t border-dotted" style={{ borderColor: "#1e1730" }} />
+                    <div key={`cell-${h}-${di}`} className="relative border-b border-r border-border" style={{ height: 80 }}>
+                      <div className="absolute inset-x-0 top-1/2 border-t border-dotted border-border/50" />
                     </div>
                   ))}
                 </div>
@@ -162,7 +162,7 @@ const Schedule = () => {
                     const width = `${colWidth}%`;
                     return (
                       <motion.div key={ev.id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ duration: 0.25 }}
-                        className={`absolute pointer-events-auto cursor-pointer rounded-lg ${ev.bg} border-l-[3px] ${ev.border} backdrop-blur-sm px-2.5 py-2 transition-all duration-200 hover:scale-[1.02] hover:brightness-125`}
+                        className={`absolute pointer-events-auto cursor-pointer rounded-lg ${ev.bg} border-l-[3px] ${ev.border} px-2.5 py-2 transition-all duration-200 hover:scale-[1.02] hover:shadow-md`}
                         style={{ top, left, width, height, paddingRight: 8 }}
                         onClick={() => openEventDetail(ev)}
                       >
@@ -170,12 +170,12 @@ const Schedule = () => {
                           {ev.icon}
                           <span className="text-[11px] font-bold truncate">{ev.title}</span>
                         </div>
-                        <span className="text-[10px] text-foreground/50 flex items-center gap-1">
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                           <Clock className="w-3 h-3" />
                           {pad(ev.startHour)}:{pad(ev.startMin)} – {pad(ev.endHour)}:{pad(ev.endMin)}
                         </span>
                         {ev.badge && (
-                          <span className="mt-1 inline-flex items-center gap-1 text-[9px] font-semibold text-amber-300 bg-amber-400/10 px-1.5 py-0.5 rounded-full">
+                          <span className="mt-1 inline-flex items-center gap-1 text-[9px] font-semibold text-warm bg-warm/10 px-1.5 py-0.5 rounded-full">
                             <Sparkles className="w-3 h-3" /> {ev.badge}
                           </span>
                         )}
@@ -186,9 +186,9 @@ const Schedule = () => {
 
                 {timeInRange && (
                   <div className="absolute left-0 right-0 flex items-center z-20 pointer-events-none" style={{ top: (currentHour - 8) * 80 + (currentMin / 60) * 80 + 36 }}>
-                    <span className="shrink-0 -ml-[60px] w-[60px] text-center text-[10px] font-bold text-neon-purple bg-neon-purple/20 rounded-md px-1.5 py-0.5">{pad(currentHour)}:{pad(currentMin)}</span>
-                    <div className="flex-1 h-[2px] bg-neon-purple shadow-glow-purple" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-neon-purple shadow-glow-purple -ml-1" />
+                    <span className="shrink-0 -ml-[60px] w-[60px] text-center text-[10px] font-bold text-destructive bg-destructive/10 rounded-md px-1.5 py-0.5">{pad(currentHour)}:{pad(currentMin)}</span>
+                    <div className="flex-1 h-[2px] bg-destructive/60" />
+                    <div className="w-2.5 h-2.5 rounded-full bg-destructive -ml-1" />
                   </div>
                 )}
               </div>

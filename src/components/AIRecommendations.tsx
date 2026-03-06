@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, ArrowRight, Star, Shuffle } from "lucide-react";
+import { Sparkles, ArrowRight, Star, Shuffle, Heart } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import ScrollReveal from "./ScrollReveal";
+import nssChulla from "@/assets/nss-chulla.jpeg";
+import nssSolarJal from "@/assets/nss-solar-jal.jpeg";
+import nssFinancial from "@/assets/nss-financial.jpeg";
 
 const recommendations = [
   {
@@ -12,6 +15,7 @@ const recommendations = [
     tags: ["Environment", "On-Site"],
     reason: "Ghatkopar West, Mumbai · Oct 15, 9:00 AM · 8/15 spots filled",
     urgent: false,
+    image: nssChulla,
   },
   {
     title: "Blood Donation Camp",
@@ -20,6 +24,7 @@ const recommendations = [
     tags: ["Health", "On-Site"],
     reason: "DBIT Mumbai · Oct 18, 2:00 PM · 12/20 spots filled",
     urgent: true,
+    image: nssSolarJal,
   },
   {
     title: "Beach Cleanup Drive",
@@ -28,6 +33,7 @@ const recommendations = [
     tags: ["Environment", "On-Site"],
     reason: "Versova Beach · Oct 22, 7:00 AM · 20/30 spots filled",
     urgent: false,
+    image: nssFinancial,
   },
 ];
 
@@ -54,19 +60,23 @@ const AIRecommendations = () => {
   };
 
   return (
-    <section className="py-24 relative">
+    <section className="py-24 relative bg-secondary">
       <div className="container mx-auto px-6 relative z-10 max-w-7xl">
         <ScrollReveal>
-          <div className="flex items-center gap-3 mb-3">
-            <Sparkles className="w-5 h-5 text-warm" />
-            <span className="text-sm font-semibold text-warm uppercase tracking-wider">AI Powered</span>
+          <div className="flex items-center justify-between mb-12">
+            <div>
+              <span className="text-sm font-semibold font-body text-primary uppercase tracking-wider">Campaigns</span>
+              <h2 className="text-4xl md:text-5xl font-display font-bold mt-2 text-foreground">
+                Introduce Our Campaign
+              </h2>
+              <p className="text-muted-foreground max-w-xl mt-3 font-body">
+                Help us do something great to help others
+              </p>
+            </div>
+            <Link to="/opportunities" className="hidden md:inline-flex items-center gap-2 text-sm font-semibold font-body text-primary hover:underline">
+              View All <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
-          <h2 className="text-4xl md:text-5xl font-extrabold mb-4 text-foreground">
-            Recommended <span className="text-teal">For You</span>
-          </h2>
-          <p className="text-muted-foreground max-w-xl mb-12">
-            Our AI analyzes your skills, interests, and schedule to find perfect volunteer matches.
-          </p>
         </ScrollReveal>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -74,50 +84,42 @@ const AIRecommendations = () => {
             <ScrollReveal key={i} delay={i * 0.15}>
               <motion.div
                 whileHover={{ y: -4 }}
-                className="bg-card border border-border rounded-2xl p-6 h-full flex flex-col relative overflow-hidden hover:shadow-lg transition-all duration-300"
+                className="bg-card border border-border rounded-3xl overflow-hidden h-full flex flex-col hover:shadow-lg transition-all duration-300"
               >
-                {rec.urgent && (
-                  <div className="absolute top-4 right-4 px-2 py-1 rounded-full text-xs font-semibold bg-destructive/10 text-destructive">
-                    Urgent
+                {/* Image */}
+                <div className="relative h-52 overflow-hidden">
+                  <img src={rec.image} alt={rec.title} className="w-full h-full object-cover" />
+                  {rec.urgent && (
+                    <div className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-semibold font-body bg-destructive text-destructive-foreground">
+                      Urgent
+                    </div>
+                  )}
+                  <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-card/80 backdrop-blur-sm flex items-center justify-center">
+                    <Heart className="w-4 h-4 text-muted-foreground" />
                   </div>
-                )}
+                </div>
                 
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="relative w-12 h-12">
-                    <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                      <circle cx="18" cy="18" r="15" fill="none" stroke="hsl(var(--border))" strokeWidth="3" />
-                      <circle
-                        cx="18" cy="18" r="15" fill="none" stroke="hsl(var(--teal))" strokeWidth="3"
-                        strokeDasharray={`${rec.match * 0.94} 100`}
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-foreground">
-                      {rec.match}%
-                    </span>
+                <div className="p-6 flex flex-col flex-1">
+                  <div className="flex gap-2 mb-3">
+                    {rec.tags.map((tag) => (
+                      <span key={tag} className="text-xs px-3 py-1 rounded-full bg-primary/10 text-primary font-medium font-body">
+                        {tag}
+                      </span>
+                    ))}
                   </div>
-                  <div>
-                    <h3 className="font-bold text-foreground">{rec.title}</h3>
-                    <p className="text-sm text-muted-foreground">{rec.org}</p>
-                  </div>
+
+                  <h3 className="font-display font-bold text-lg text-foreground mb-2">{rec.title}</h3>
+                  <p className="text-sm text-muted-foreground font-body mb-1">{rec.org}</p>
+
+                  <p className="text-sm text-muted-foreground mb-5 flex-1 font-body">
+                    <Star className="w-3.5 h-3.5 inline mr-1 text-accent" />
+                    {rec.reason}
+                  </p>
+
+                  <Link to="/opportunities/1" className="w-full py-3 rounded-full text-sm font-semibold font-body bg-primary text-primary-foreground flex items-center justify-center gap-2 group">
+                    Apply Now <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </Link>
                 </div>
-
-                <div className="flex gap-2 mb-4">
-                  {rec.tags.map((tag) => (
-                    <span key={tag} className="text-xs px-2.5 py-1 rounded-full bg-secondary text-muted-foreground">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-
-                <p className="text-sm text-muted-foreground mb-5 flex-1">
-                  <Star className="w-3.5 h-3.5 inline mr-1 text-warm" />
-                  {rec.reason}
-                </p>
-
-                <Link to="/opportunities/1" className="w-full py-2.5 rounded-full text-sm font-semibold bg-warm text-warm-foreground flex items-center justify-center gap-2 group">
-                  Apply Now <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </Link>
               </motion.div>
             </ScrollReveal>
           ))}
@@ -131,7 +133,7 @@ const AIRecommendations = () => {
               whileTap={{ scale: 0.98 }}
               animate={isSpinning ? { rotate: 360 } : {}}
               transition={{ duration: 0.6 }}
-              className="px-8 py-4 rounded-full font-semibold bg-navy text-navy-foreground hover:bg-navy/90 transition-colors inline-flex items-center gap-2"
+              className="px-8 py-4 rounded-full font-semibold font-body border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-colors inline-flex items-center gap-2"
             >
               <Shuffle className={`w-5 h-5 ${isSpinning ? 'animate-spin' : ''}`} />
               {isSpinning ? "Finding your match..." : "Surprise Me — Find a Random Match"}

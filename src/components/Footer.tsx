@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 const footerLinks = [
   {
-    title: "Platform",
+    title: "Menu",
     links: [
       { label: "Explore", to: "/opportunities" },
       { label: "Dashboard", to: "/dashboard" },
@@ -11,39 +11,40 @@ const footerLinks = [
     ],
   },
   {
-    title: "Community",
+    title: "Categories",
     links: [
-      { label: "Feed", to: "/community" },
-      { label: "Profile", to: "/profile" },
+      { label: "Environment", to: "/opportunities" },
+      { label: "Education", to: "/opportunities" },
+      { label: "Healthcare", to: "/opportunities" },
     ],
   },
   {
-    title: "Company",
+    title: "About Us",
     links: [
-      { label: "About", to: "/" },
+      { label: "Community", to: "/community" },
+      { label: "Profile", to: "/profile" },
       { label: "Privacy", to: "/" },
-      { label: "Terms", to: "/" },
     ],
   },
 ];
 
 const Footer = () => (
-  <footer className="py-12 bg-navy text-navy-foreground">
+  <footer className="py-16 bg-primary text-primary-foreground">
     <div className="container mx-auto px-6 max-w-7xl">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
         <div>
-          <Link to="/" className="font-extrabold text-lg text-white">SocioSquad</Link>
-          <p className="text-sm text-white/60 leading-relaxed mt-4">
+          <Link to="/" className="font-display font-bold text-xl">SocioSquad</Link>
+          <p className="text-sm leading-relaxed mt-4 font-body opacity-70">
             AI-powered volunteering platform connecting skills to causes that matter most.
           </p>
         </div>
         {footerLinks.map((col) => (
           <div key={col.title}>
-            <h4 className="font-semibold text-white mb-4">{col.title}</h4>
+            <h4 className="font-semibold font-body mb-4">{col.title}</h4>
             <ul className="space-y-2">
               {col.links.map((link) => (
                 <li key={link.label}>
-                  <Link to={link.to} className="text-sm text-white/60 hover:text-white transition-colors">
+                  <Link to={link.to} className="text-sm font-body opacity-70 hover:opacity-100 transition-opacity">
                     {link.label}
                   </Link>
                 </li>
@@ -52,10 +53,10 @@ const Footer = () => (
           </div>
         ))}
       </div>
-      <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-white/10">
-        <p className="text-sm text-white/50">© 2026 SocioSquad. All rights reserved.</p>
-        <p className="text-sm text-white/50 flex items-center gap-1 mt-2 md:mt-0">
-          Made with <Heart className="w-3.5 h-3.5 text-warm" /> for a better world
+      <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-primary-foreground/20">
+        <p className="text-sm font-body opacity-50">© 2026 SocioSquad. All rights reserved.</p>
+        <p className="text-sm font-body opacity-50 flex items-center gap-1 mt-2 md:mt-0">
+          Made with <Heart className="w-3.5 h-3.5 text-accent" /> for a better world
         </p>
       </div>
     </div>

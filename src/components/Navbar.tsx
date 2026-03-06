@@ -16,16 +16,16 @@ const Navbar = () => {
   const location = useLocation();
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-border">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
       <div className="container mx-auto px-6 h-16 flex items-center justify-between max-w-7xl">
-        <Link to="/" className="text-xl font-extrabold text-navy">SocioSquad</Link>
+        <Link to="/" className="text-xl font-display font-bold text-primary">SocioSquad</Link>
 
         <div className="hidden md:flex items-center gap-8">
           {navLinks.map((item) => (
             <Link
               key={item.label}
               to={item.to}
-              className={`text-sm transition-colors ${location.pathname === item.to ? "text-foreground font-semibold" : "text-muted-foreground hover:text-foreground"}`}
+              className={`text-sm font-body transition-colors ${location.pathname === item.to ? "text-foreground font-semibold" : "text-muted-foreground hover:text-foreground"}`}
             >
               {item.label}
             </Link>
@@ -33,14 +33,14 @@ const Navbar = () => {
         </div>
 
         <div className="hidden md:flex items-center gap-3">
-          <Link to="/auth" className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+          <Link to="/auth" className="px-4 py-2 text-sm font-medium font-body text-muted-foreground hover:text-foreground transition-colors">
             Sign In
           </Link>
           <Link to="/auth">
             <motion.span
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.98 }}
-              className="px-5 py-2 rounded-full text-sm font-semibold bg-warm text-warm-foreground flex items-center gap-1.5 cursor-pointer"
+              className="px-5 py-2 rounded-full text-sm font-semibold font-body bg-primary text-primary-foreground flex items-center gap-1.5 cursor-pointer"
             >
               Sign Up <ArrowRight className="w-3.5 h-3.5" />
             </motion.span>
@@ -63,18 +63,18 @@ const Navbar = () => {
               key={item.label}
               to={item.to}
               onClick={() => setOpen(false)}
-              className={`block transition-colors ${location.pathname === item.to ? "text-foreground font-semibold" : "text-muted-foreground hover:text-foreground"}`}
+              className={`block font-body transition-colors ${location.pathname === item.to ? "text-foreground font-semibold" : "text-muted-foreground hover:text-foreground"}`}
             >
               {item.label}
             </Link>
           ))}
-          <Link to="/auth" onClick={() => setOpen(false)} className="block text-muted-foreground hover:text-foreground transition-colors">
+          <Link to="/auth" onClick={() => setOpen(false)} className="block text-muted-foreground hover:text-foreground transition-colors font-body">
             Sign In
           </Link>
           <Link
             to="/auth"
             onClick={() => setOpen(false)}
-            className="block w-full py-3 rounded-full text-sm font-semibold bg-warm text-warm-foreground text-center mt-4"
+            className="block w-full py-3 rounded-full text-sm font-semibold font-body bg-primary text-primary-foreground text-center mt-4"
           >
             Sign Up
           </Link>

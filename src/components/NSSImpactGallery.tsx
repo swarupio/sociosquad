@@ -37,14 +37,13 @@ const NSSImpactGallery = () => {
   const swiperRef = useRef<SwiperType | null>(null);
 
   return (
-    <section className="relative py-20 md:py-28 overflow-hidden bg-secondary">
+    <section className="relative py-20 md:py-28 overflow-hidden">
       <div className="container mx-auto px-4 max-w-7xl relative z-10">
         <ScrollReveal>
           <div className="text-center mb-12 md:mb-16">
-            <span className="text-sm font-semibold text-teal uppercase tracking-wider">NSS Impact Gallery</span>
-            <h2 className="text-4xl md:text-5xl font-extrabold mt-3 text-foreground">
-              Our On-Ground{" "}
-              <span className="text-navy">Impact</span>
+            <span className="text-sm font-semibold font-body text-primary uppercase tracking-wider">NSS Impact Gallery</span>
+            <h2 className="text-4xl md:text-5xl font-display font-bold mt-3 text-foreground">
+              Helping People In Need Around The World
             </h2>
           </div>
         </ScrollReveal>
@@ -97,7 +96,7 @@ const NSSImpactGallery = () => {
                           transform: isActive ? "scale(1)" : "scale(0.75)",
                           opacity: isActive ? 1 : 0.4,
                           boxShadow: isActive ? "0px 8px 30px rgba(0, 0, 0, 0.12)" : "none",
-                          border: isActive ? "2px solid hsl(var(--teal) / 0.3)" : "2px solid transparent",
+                          border: isActive ? "2px solid hsl(var(--primary) / 0.3)" : "2px solid transparent",
                         }}
                       >
                         <div className="h-[300px] sm:h-[380px] md:h-[460px] flex items-center justify-center bg-card">
@@ -116,7 +115,7 @@ const NSSImpactGallery = () => {
             </div>
 
             <div className="text-center mt-8">
-              <p className="text-lg md:text-xl font-semibold text-foreground transition-all duration-300">
+              <p className="text-lg md:text-xl font-display font-semibold text-foreground transition-all duration-300">
                 {galleryItems[activeIndex]?.title}
               </p>
             </div>
@@ -140,7 +139,7 @@ const NSSImpactGallery = () => {
           cursor: pointer;
         }
         .nss-pagination .swiper-pagination-bullet-active {
-          background: hsl(var(--teal));
+          background: hsl(var(--primary));
           opacity: 1;
           width: 28px;
         }

@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Globe, Users, Heart } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import AnimatedCounter from "./AnimatedCounter";
 import heroVolunteers from "@/assets/hero-volunteers.jpg";
@@ -9,9 +9,9 @@ import nssDiwali from "@/assets/nss-diwali.jpeg";
 
 const HeroSection = () => {
   return (
-    <section className="relative pt-20 pb-12">
+    <section className="relative pt-24 pb-16">
       <div className="container mx-auto px-6 max-w-7xl">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center min-h-[70vh]">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Left: Text content */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
@@ -71,34 +71,36 @@ const HeroSection = () => {
             </motion.div>
           </motion.div>
 
-          {/* Right: Image collage */}
+          {/* Right: Image collage with proper circular framing */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="relative hidden lg:block"
+            className="relative hidden lg:flex items-center justify-center"
           >
-            <div className="relative w-full aspect-square max-w-lg mx-auto">
-              {/* Large circular image */}
-              <div className="absolute top-0 right-0 w-64 h-64 rounded-full overflow-hidden border-4 border-background shadow-lg">
+            <div className="relative w-[480px] h-[480px]">
+              {/* Top-right: Large circle */}
+              <div className="absolute top-0 right-0 w-[220px] h-[220px] rounded-full overflow-hidden border-[5px] border-background shadow-xl">
                 <img src={heroVolunteers} alt="Volunteers at beach cleanup" className="w-full h-full object-cover" />
               </div>
-              {/* Medium circular image */}
-              <div className="absolute bottom-8 right-12 w-48 h-48 rounded-full overflow-hidden border-4 border-background shadow-lg">
-                <img src={nssChristmas} alt="Christmas celebration" className="w-full h-full object-cover" />
-              </div>
-              {/* Small circular image */}
-              <div className="absolute top-20 left-0 w-40 h-40 rounded-full overflow-hidden border-4 border-background shadow-lg">
+              {/* Top-left: Medium circle */}
+              <div className="absolute top-12 left-4 w-[170px] h-[170px] rounded-full overflow-hidden border-[5px] border-background shadow-xl">
                 <img src={nss7daysCamp} alt="NSS camp" className="w-full h-full object-cover" />
               </div>
-              {/* Tiny circular image */}
-              <div className="absolute bottom-0 left-16 w-32 h-32 rounded-full overflow-hidden border-4 border-background shadow-lg">
+              {/* Bottom-center-right: Medium circle */}
+              <div className="absolute bottom-12 right-8 w-[190px] h-[190px] rounded-full overflow-hidden border-[5px] border-background shadow-xl">
+                <img src={nssChristmas} alt="Christmas celebration" className="w-full h-full object-cover" />
+              </div>
+              {/* Bottom-left: Smaller circle */}
+              <div className="absolute bottom-4 left-12 w-[150px] h-[150px] rounded-full overflow-hidden border-[5px] border-background shadow-xl">
                 <img src={nssDiwali} alt="Diwali celebration" className="w-full h-full object-cover" />
               </div>
+
               {/* Decorative dots */}
-              <div className="absolute top-4 left-32 w-3 h-3 rounded-full bg-accent" />
-              <div className="absolute bottom-24 right-0 w-4 h-4 rounded-full bg-primary/40" />
-              <div className="absolute top-40 right-16 w-2 h-2 rounded-full bg-accent" />
+              <div className="absolute top-2 left-[45%] w-4 h-4 rounded-full bg-accent" />
+              <div className="absolute bottom-[45%] right-0 w-3 h-3 rounded-full bg-primary/30" />
+              <div className="absolute bottom-0 left-[40%] w-2.5 h-2.5 rounded-full bg-accent/60" />
+              <div className="absolute top-[55%] left-0 w-2 h-2 rounded-full bg-primary/20" />
             </div>
           </motion.div>
         </div>

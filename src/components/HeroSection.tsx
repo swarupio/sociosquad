@@ -3,37 +3,37 @@ import { ArrowRight, Globe, Users, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
 import AnimatedCounter from "./AnimatedCounter";
 import heroVolunteers from "@/assets/hero-volunteers.jpg";
+import nssChristmas from "@/assets/nss-christmas.jpeg";
+import nss7daysCamp from "@/assets/nss-7days-camp.jpeg";
+import nssDiwali from "@/assets/nss-diwali.jpeg";
 
 const HeroSection = () => {
   return (
-    <section className="relative pt-16">
-      {/* Navy arch background */}
-      <div className="relative bg-navy overflow-hidden" style={{ borderRadius: "0 0 50% 50% / 0 0 80px 80px" }}>
-        <div className="container mx-auto px-6 max-w-7xl pt-20 pb-40 md:pb-52 relative z-10">
+    <section className="relative pt-20 pb-12">
+      <div className="container mx-auto px-6 max-w-7xl">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center min-h-[70vh]">
+          {/* Left: Text content */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="text-center max-w-3xl mx-auto"
           >
-
-            <h1 className="text-5xl md:text-7xl xl:text-8xl font-extrabold tracking-tight mb-6 leading-[1.1] text-white">
-              Make Your{" "}
-              <span className="text-warm">Impact</span>{" "}
-              Count
+            <h1 className="text-5xl md:text-6xl xl:text-7xl font-display font-bold tracking-tight mb-6 leading-[1.1] text-foreground">
+              Do Something{" "}
+              <span className="text-primary">Great</span> To Help Others
             </h1>
 
-            <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto mb-10 leading-relaxed">
-              Join a global community of changemakers in Mumbai. AI matches your skills to causes that need you most — turning good intentions into real-world results.
+            <p className="text-lg text-muted-foreground max-w-lg mb-10 leading-relaxed font-body">
+              SocioSquad is a global volunteering platform in Mumbai. AI matches your skills to causes that need you most — turning good intentions into real-world results.
             </p>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-4">
               <Link to="/opportunities">
                 <motion.span
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.98 }}
-                  className="inline-flex items-center gap-2 justify-center px-8 py-4 rounded-full font-semibold bg-warm text-warm-foreground cursor-pointer text-base"
+                  className="inline-flex items-center gap-2 justify-center px-8 py-4 rounded-full font-semibold font-body bg-primary text-primary-foreground cursor-pointer text-base"
                 >
                   Start Volunteering <ArrowRight className="w-5 h-5" />
                 </motion.span>
@@ -42,57 +42,67 @@ const HeroSection = () => {
                 <motion.span
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.98 }}
-                  className="inline-flex items-center justify-center px-8 py-4 rounded-full font-semibold bg-white/10 border border-white/20 text-white hover:bg-white/20 transition-colors cursor-pointer text-base"
+                  className="inline-flex items-center justify-center px-8 py-4 rounded-full font-semibold font-body border-2 border-primary text-primary hover:bg-primary/5 transition-colors cursor-pointer text-base"
                 >
                   Explore Causes
                 </motion.span>
               </Link>
             </div>
+
+            {/* Impact Stats */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="mt-12 flex gap-10"
+            >
+              {[
+                { value: 15, suffix: "K+", label: "Active Volunteers" },
+                { value: 100, suffix: "+", label: "Countries" },
+                { value: 600, suffix: "+", label: "NGO Partners" },
+              ].map((stat, i) => (
+                <div key={i}>
+                  <div className="text-2xl md:text-3xl font-display font-bold text-foreground">
+                    <AnimatedCounter target={stat.value} suffix={stat.suffix} />
+                  </div>
+                  <div className="text-sm text-muted-foreground font-body">{stat.label}</div>
+                </div>
+              ))}
+            </motion.div>
+          </motion.div>
+
+          {/* Right: Image collage */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="relative hidden lg:block"
+          >
+            <div className="relative w-full aspect-square max-w-lg mx-auto">
+              {/* Large circular image */}
+              <div className="absolute top-0 right-0 w-64 h-64 rounded-full overflow-hidden border-4 border-background shadow-lg">
+                <img src={heroVolunteers} alt="Volunteers at beach cleanup" className="w-full h-full object-cover" />
+              </div>
+              {/* Medium circular image */}
+              <div className="absolute bottom-8 right-12 w-48 h-48 rounded-full overflow-hidden border-4 border-background shadow-lg">
+                <img src={nssChristmas} alt="Christmas celebration" className="w-full h-full object-cover" />
+              </div>
+              {/* Small circular image */}
+              <div className="absolute top-20 left-0 w-40 h-40 rounded-full overflow-hidden border-4 border-background shadow-lg">
+                <img src={nss7daysCamp} alt="NSS camp" className="w-full h-full object-cover" />
+              </div>
+              {/* Tiny circular image */}
+              <div className="absolute bottom-0 left-16 w-32 h-32 rounded-full overflow-hidden border-4 border-background shadow-lg">
+                <img src={nssDiwali} alt="Diwali celebration" className="w-full h-full object-cover" />
+              </div>
+              {/* Decorative dots */}
+              <div className="absolute top-4 left-32 w-3 h-3 rounded-full bg-accent" />
+              <div className="absolute bottom-24 right-0 w-4 h-4 rounded-full bg-primary/40" />
+              <div className="absolute top-40 right-16 w-2 h-2 rounded-full bg-accent" />
+            </div>
           </motion.div>
         </div>
       </div>
-
-      {/* Overlapping volunteer image */}
-      <motion.div
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-        className="container mx-auto px-6 max-w-4xl -mt-28 md:-mt-36 relative z-20"
-      >
-        <div className="relative">
-          <img
-            src={heroVolunteers}
-            alt="Volunteers gathered at a beach cleanup drive in Versova, Mumbai"
-            className="w-full rounded-3xl object-cover shadow-2xl"
-            style={{ aspectRatio: "16/9" }}
-          />
-          <div className="absolute inset-0 rounded-3xl bg-gradient-to-t from-navy/30 via-transparent to-transparent pointer-events-none" />
-        </div>
-      </motion.div>
-
-      {/* Impact Stats below image */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-        className="container mx-auto px-6 max-w-3xl mt-12 mb-8"
-      >
-        <div className="grid grid-cols-3 gap-8">
-          {[
-            { icon: Users, value: 50000, suffix: "+", label: "Volunteers" },
-            { icon: Globe, value: 120, suffix: "+", label: "Countries" },
-            { icon: Heart, value: 8500, suffix: "+", label: "Projects" },
-          ].map((stat, i) => (
-            <div key={i} className="text-center">
-              <stat.icon className="w-5 h-5 text-teal mx-auto mb-2" />
-              <div className="text-2xl md:text-3xl font-bold text-navy">
-                <AnimatedCounter target={stat.value} suffix={stat.suffix} />
-              </div>
-              <div className="text-sm text-muted-foreground">{stat.label}</div>
-            </div>
-          ))}
-        </div>
-      </motion.div>
     </section>
   );
 };

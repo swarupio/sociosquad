@@ -1,9 +1,9 @@
 import { Globe, Activity, Users, TrendingUp, ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import ScrollReveal from "./ScrollReveal";
 import AnimatedCounter from "./AnimatedCounter";
 import heroVolunteers from "@/assets/hero-volunteers.jpg";
-import nssChristmas from "@/assets/nss-christmas.jpeg";
 
 const stats = [
   { icon: Globe, value: 120, suffix: "+", label: "Countries Active", bg: "bg-accent", textColor: "text-accent-foreground" },
@@ -40,13 +40,22 @@ const GlobalImpact = () => {
                 Join our community of changemakers and be part of something bigger. Every action counts toward making a difference.
               </p>
               <Link to="/opportunities">
-                <motion.span className="inline-flex items-center gap-2 px-8 py-4 rounded-full font-semibold font-body bg-primary text-primary-foreground cursor-pointer">
+                <motion.span
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="inline-flex items-center gap-2 px-8 py-4 rounded-full font-semibold font-body bg-primary text-primary-foreground cursor-pointer"
+                >
                   Become Volunteer <ArrowRight className="w-5 h-5" />
                 </motion.span>
               </Link>
             </div>
+            {/* Properly framed image - no cropping */}
             <div className="rounded-3xl overflow-hidden shadow-lg">
-              <img src={heroVolunteers} alt="Volunteers in action" className="w-full h-80 object-cover" />
+              <img
+                src={heroVolunteers}
+                alt="Volunteers in action"
+                className="w-full h-auto object-contain"
+              />
             </div>
           </div>
         </ScrollReveal>
@@ -62,8 +71,5 @@ const GlobalImpact = () => {
     </section>
   );
 };
-
-// Need motion import for the Link span
-import { motion } from "framer-motion";
 
 export default GlobalImpact;

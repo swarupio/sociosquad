@@ -361,7 +361,67 @@ function SquadDetailView({ squadId, onDelete, onBack }: { squadId: string; onDel
         </div>
       </div>
 
+      {/* Pending Approvals (Leader only) */}
+      {isLeader && activityLogs.filter(l => l.status === "pending").length > 0 && (
+        <div className="bg-card border border-border rounded-3xl p-6">
+          <h3 className="text-lg font-display font-bold text-foreground mb-4 flex items-center gap-2">
+            <Clock className="w-5 h-5 text-accent" /> Pending Approvals
+          </h3>
+          <div className="space-y-3">
+            {activityLogs.filter(l => l.status === "pending").map((log) => {
+              const challenge = challenges.find(c => c.id === log.challenge_id);
+              return (
+                <div key={log.id} className="flex items-center gap-3 bg-secondary/50 border border-border rounded-xl p-4">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
+                    {log.profile?.full_name?.[0]?.toUpperCase() || "U"}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground">{log.profile?.full_name || "Anonymous"}</p>
+                    <p className="text-xs text-muted-foreground">{log.description} — <span className="font-mono">{log.value} {challenge?.unit || "units"}</span></p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">for: {challenge?.title || "Unknown challenge"}</p>
+                  </div>
+                  <div className="flex gap-1.5">
+                    <Button size="sm" variant="ghost" className="rounded-lg h-8 w-8 p-0 text-primary hover:bg-primary/10" onClick={() => reviewActivity(log.id, true)}>
+                      <CheckCircle className="w-5 h-5" />
+                    </Button>
+                    <Button size="sm" variant="ghost" className="rounded-lg h-8 w-8 p-0 text-destructive hover:bg-destructive/10" onClick={() => reviewActivity(log.id, false)}>
+                      <XCircle className="w-5 h-5" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Recent Activity Feed */}
+      {activityLogs.filter(l => l.status !== "pending").length > 0 && (
+        <div className="bg-card border border-border rounded-3xl p-6">
+          <h3 className="text-lg font-display font-bold text-foreground mb-4">Recent Activity</h3>
+          <div className="space-y-2">
+            {activityLogs.filter(l => l.status !== "pending").slice(0, 10).map((log) => {
+              const challenge = challenges.find(c => c.id === log.challenge_id);
+              return (
+                <div key={log.id} className="flex items-center gap-3 text-sm py-2">
+                  <div className={`w-2 h-2 rounded-full ${log.status === "approved" ? "bg-primary" : "bg-destructive"}`} />
+                  <span className="text-foreground font-medium">{log.profile?.full_name || "Anonymous"}</span>
+                  <span className="text-muted-foreground">{log.description}</span>
+                  <span className="font-mono text-xs text-muted-foreground ml-auto">{log.value} {challenge?.unit}</span>
+                  {log.status === "approved" ? (
+                    <CheckCircle className="w-3.5 h-3.5 text-primary" />
+                  ) : (
+                    <XCircle className="w-3.5 h-3.5 text-destructive" />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <CreateChallengeModal open={showChallenge} onClose={() => setShowChallenge(false)} onCreate={createChallenge} />
+      <SubmitActivityModal open={showSubmit} onClose={() => setShowSubmit(false)} challenges={challenges} onSubmit={submitActivity} />
     </div>
   );
 }

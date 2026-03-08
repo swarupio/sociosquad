@@ -147,7 +147,7 @@ const Schedule = () => {
         <header className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <button onClick={prevWeek} className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
+              <button onClick={prevPeriod} className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <h1 className="text-xl font-bold text-foreground">

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Users, Plus, Hash, ArrowRight, Trophy, Target, Copy, LogOut, Crown, Swords, Trash2 } from "lucide-react";
+import { Users, Plus, Hash, ArrowRight, Trophy, Target, Copy, LogOut, Crown, Swords, Trash2, CheckCircle, XCircle, Clock, Send } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/hooks/useAuth";
@@ -172,9 +172,43 @@ function SquadCard({ squad, onLeave }: { squad: any; onLeave: (id: string) => vo
   );
 }
 
+function SubmitActivityModal({ open, onClose, challenges, onSubmit }: { open: boolean; onClose: () => void; challenges: any[]; onSubmit: (challengeId: string, desc: string, value: number) => void }) {
+  const [challengeId, setChallengeId] = useState(challenges[0]?.id || "");
+  const [desc, setDesc] = useState("");
+  const [value, setValue] = useState("1");
+
+  if (!open) return null;
+  const selectedChallenge = challenges.find((c: any) => c.id === challengeId);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-card border border-border rounded-3xl p-8 w-full max-w-md mx-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-2xl font-display font-bold text-foreground mb-6">Log Activity</h3>
+        <p className="text-xs text-muted-foreground mb-4">Your activity will be submitted for leader approval before counting toward progress.</p>
+        
+        <select value={challengeId} onChange={(e) => setChallengeId(e.target.value)} className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm mb-3">
+          {challenges.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
+        </select>
+        <Input placeholder="What did you do?" value={desc} onChange={(e) => setDesc(e.target.value)} className="mb-3 rounded-xl" />
+        <div className="flex items-center gap-2 mb-6">
+          <Input type="number" min="1" placeholder="Amount" value={value} onChange={(e) => setValue(e.target.value)} className="rounded-xl flex-1" />
+          <span className="text-sm text-muted-foreground">{selectedChallenge?.unit || "units"}</span>
+        </div>
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl">Cancel</Button>
+          <Button onClick={() => { if (desc.trim() && challengeId) { onSubmit(challengeId, desc, parseInt(value) || 1); onClose(); setDesc(""); setValue("1"); } }} className="flex-1 rounded-xl" disabled={!desc.trim()}>
+            Submit <Send className="w-4 h-4 ml-1" />
+          </Button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 function SquadDetailView({ squadId, onDelete, onBack }: { squadId: string; onDelete: (id: string) => void; onBack: () => void }) {
-  const { squad, members, challenges, contributions, loading, createChallenge } = useSquadDetail(squadId);
+  const { squad, members, challenges, contributions, activityLogs, isLeader, loading, createChallenge, submitActivity, reviewActivity } = useSquadDetail(squadId);
   const [showChallenge, setShowChallenge] = useState(false);
+  const [showSubmit, setShowSubmit] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -251,9 +285,16 @@ function SquadDetailView({ squadId, onDelete, onBack }: { squadId: string; onDel
             <h3 className="text-lg font-display font-bold text-foreground flex items-center gap-2">
               <Target className="w-5 h-5 text-primary" /> Challenges
             </h3>
-            <Button size="sm" onClick={() => setShowChallenge(true)} className="rounded-xl">
-              <Plus className="w-4 h-4 mr-1" /> New Challenge
-            </Button>
+            <div className="flex gap-2">
+              {challenges.length > 0 && (
+                <Button size="sm" variant="outline" onClick={() => setShowSubmit(true)} className="rounded-xl">
+                  <Send className="w-4 h-4 mr-1" /> Log Activity
+                </Button>
+              )}
+              <Button size="sm" onClick={() => setShowChallenge(true)} className="rounded-xl">
+                <Plus className="w-4 h-4 mr-1" /> New Challenge
+              </Button>
+            </div>
           </div>
 
           {challenges.length === 0 ? (
@@ -320,7 +361,67 @@ function SquadDetailView({ squadId, onDelete, onBack }: { squadId: string; onDel
         </div>
       </div>
 
+      {/* Pending Approvals (Leader only) */}
+      {isLeader && activityLogs.filter(l => l.status === "pending").length > 0 && (
+        <div className="bg-card border border-border rounded-3xl p-6">
+          <h3 className="text-lg font-display font-bold text-foreground mb-4 flex items-center gap-2">
+            <Clock className="w-5 h-5 text-accent" /> Pending Approvals
+          </h3>
+          <div className="space-y-3">
+            {activityLogs.filter(l => l.status === "pending").map((log) => {
+              const challenge = challenges.find(c => c.id === log.challenge_id);
+              return (
+                <div key={log.id} className="flex items-center gap-3 bg-secondary/50 border border-border rounded-xl p-4">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
+                    {log.profile?.full_name?.[0]?.toUpperCase() || "U"}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground">{log.profile?.full_name || "Anonymous"}</p>
+                    <p className="text-xs text-muted-foreground">{log.description} — <span className="font-mono">{log.value} {challenge?.unit || "units"}</span></p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">for: {challenge?.title || "Unknown challenge"}</p>
+                  </div>
+                  <div className="flex gap-1.5">
+                    <Button size="sm" variant="ghost" className="rounded-lg h-8 w-8 p-0 text-primary hover:bg-primary/10" onClick={() => reviewActivity(log.id, true)}>
+                      <CheckCircle className="w-5 h-5" />
+                    </Button>
+                    <Button size="sm" variant="ghost" className="rounded-lg h-8 w-8 p-0 text-destructive hover:bg-destructive/10" onClick={() => reviewActivity(log.id, false)}>
+                      <XCircle className="w-5 h-5" />
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Recent Activity Feed */}
+      {activityLogs.filter(l => l.status !== "pending").length > 0 && (
+        <div className="bg-card border border-border rounded-3xl p-6">
+          <h3 className="text-lg font-display font-bold text-foreground mb-4">Recent Activity</h3>
+          <div className="space-y-2">
+            {activityLogs.filter(l => l.status !== "pending").slice(0, 10).map((log) => {
+              const challenge = challenges.find(c => c.id === log.challenge_id);
+              return (
+                <div key={log.id} className="flex items-center gap-3 text-sm py-2">
+                  <div className={`w-2 h-2 rounded-full ${log.status === "approved" ? "bg-primary" : "bg-destructive"}`} />
+                  <span className="text-foreground font-medium">{log.profile?.full_name || "Anonymous"}</span>
+                  <span className="text-muted-foreground">{log.description}</span>
+                  <span className="font-mono text-xs text-muted-foreground ml-auto">{log.value} {challenge?.unit}</span>
+                  {log.status === "approved" ? (
+                    <CheckCircle className="w-3.5 h-3.5 text-primary" />
+                  ) : (
+                    <XCircle className="w-3.5 h-3.5 text-destructive" />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <CreateChallengeModal open={showChallenge} onClose={() => setShowChallenge(false)} onCreate={createChallenge} />
+      <SubmitActivityModal open={showSubmit} onClose={() => setShowSubmit(false)} challenges={challenges} onSubmit={submitActivity} />
     </div>
   );
 }

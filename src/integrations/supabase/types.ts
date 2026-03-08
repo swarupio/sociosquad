@@ -68,6 +68,60 @@ export type Database = {
         }
         Relationships: []
       }
+      squad_activity_logs: {
+        Row: {
+          challenge_id: string
+          created_at: string
+          description: string
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          squad_id: string
+          status: string
+          user_id: string
+          value: number
+        }
+        Insert: {
+          challenge_id: string
+          created_at?: string
+          description?: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          squad_id: string
+          status?: string
+          user_id: string
+          value?: number
+        }
+        Update: {
+          challenge_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          squad_id?: string
+          status?: string
+          user_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "squad_activity_logs_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "squad_challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "squad_activity_logs_squad_id_fkey"
+            columns: ["squad_id"]
+            isOneToOne: false
+            referencedRelation: "squads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       squad_challenges: {
         Row: {
           category: string
@@ -354,6 +408,10 @@ export type Database = {
           contribution: number
           user_id: string
         }[]
+      }
+      is_squad_leader: {
+        Args: { p_squad_id: string; p_user_id: string }
+        Returns: boolean
       }
     }
     Enums: {

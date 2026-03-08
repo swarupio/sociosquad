@@ -120,11 +120,13 @@ const Opportunities = () => {
                 <p className="text-muted-foreground">{filtered.length} opportunities available</p>
               </div>
               <div className="flex items-center gap-3">
-                <Link to="/ngo/register">
-                  <Button variant="outline" size="sm" className="rounded-xl text-xs">
-                    <Building2 className="w-3.5 h-3.5 mr-1" /> Post as NGO
-                  </Button>
-                </Link>
+                {isOrg && (
+                  <Link to="/ngo/register">
+                    <Button variant="outline" size="sm" className="rounded-xl text-xs">
+                      <Building2 className="w-3.5 h-3.5 mr-1" /> Post as NGO
+                    </Button>
+                  </Link>
+                )}
                 <div className="flex items-center gap-1">
                   <button onClick={() => setView("grid")} className={`p-2 rounded-lg transition-colors ${view === "grid" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
                     <Map className="w-5 h-5" />

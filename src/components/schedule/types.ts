@@ -1,8 +1,4 @@
-export type CalendarCategory =
-  | "Personal Calendar"
-  | "SocioSquad Events"
-  | "NSS Camps"
-  | "Urgent Relief";
+export type CalendarCategory = string;
 
 export interface CalEvent {
   id: string;

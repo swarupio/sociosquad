@@ -32,6 +32,11 @@ interface Props {
 const EventDetailModal = ({ event, open, onClose, onDelete, onToggleRegistration, onChangeCategory, availableCategories = [] }: Props) => {
   const [editingCategory, setEditingCategory] = useState(false);
 
+  const start = event ? new Date(event.startTime) : new Date();
+  const end = event ? new Date(event.endTime) : new Date();
+  const dateStr = event ? start.toLocaleDateString("default", { weekday: "long", month: "long", day: "numeric", year: "numeric" }) : "";
+  const isOppEvent = event ? event.id.startsWith("opp-") : false;
+
   if (!event) return null;
 
   const start = new Date(event.startTime);

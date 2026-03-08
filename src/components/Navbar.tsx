@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Menu, X, User as UserIcon, LogOut, LayoutDashboard } from "lucide-react";
+import { ArrowRight, Menu, X, User as UserIcon, LogOut, LayoutDashboard, Award } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -95,6 +95,13 @@ const Navbar = () => {
                       className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors"
                     >
                       <UserIcon className="w-4 h-4 text-muted-foreground" /> Profile
+                    </Link>
+                    <Link
+                      to="/portfolio"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors"
+                    >
+                      <Award className="w-4 h-4 text-muted-foreground" /> Impact Portfolio
                     </Link>
                   </div>
                   <div className="border-t border-border py-1">

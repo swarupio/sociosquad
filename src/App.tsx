@@ -10,6 +10,7 @@ import Community from "./pages/Community";
 import Opportunities from "./pages/Opportunities";
 import OpportunityDetail from "./pages/OpportunityDetail";
 import Profile from "./pages/Profile";
+import Portfolio from "./pages/Portfolio";
 import Leaderboard from "./pages/Leaderboard";
 import Schedule from "./pages/Schedule";
 import NotFound from "./pages/NotFound";
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/opportunities" element={<Opportunities />} />
           <Route path="/opportunities/:id" element={<OpportunityDetail />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/schedule" element={<Schedule />} />
           <Route path="*" element={<NotFound />} />

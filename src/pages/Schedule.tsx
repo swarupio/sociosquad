@@ -169,12 +169,82 @@ const Schedule = () => {
             <Loader2 className="w-8 h-8 text-navy animate-spin" />
           </div>
         ) : view === "Month" ? (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center space-y-2">
-              <CalendarDays className="w-12 h-12 text-muted-foreground mx-auto" />
-              <p className="text-muted-foreground text-sm">Month view coming soon</p>
-            </div>
-          </div>
+          (() => {
+            const year = activeDate.getFullYear();
+            const month = activeDate.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startPad = (firstDay.getDay() + 6) % 7; // Monday-based
+            const totalDays = lastDay.getDate();
+            const cells: (number | null)[] = Array(startPad).fill(null);
+            for (let d = 1; d <= totalDays; d++) cells.push(d);
+            while (cells.length % 7 !== 0) cells.push(null);
+
+            const today = new Date();
+
+            // Group filtered events by day-of-month
+            const monthEvents = events.filter((ev) => {
+              if (!activeCategories[ev.category]) return false;
+              const d = new Date(ev.startTime);
+              return d.getMonth() === month && d.getFullYear() === year;
+            });
+            const eventsByDay: Record<number, CalEvent[]> = {};
+            monthEvents.forEach((ev) => {
+              const d = new Date(ev.startTime).getDate();
+              if (!eventsByDay[d]) eventsByDay[d] = [];
+              eventsByDay[d].push(ev);
+            });
+
+            return (
+              <div className="flex-1 overflow-auto p-4">
+                <div className="grid grid-cols-7 gap-px bg-border rounded-xl overflow-hidden">
+                  {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
+                    <div key={d} className="bg-card py-2 text-center text-xs font-semibold text-muted-foreground">{d}</div>
+                  ))}
+                  {cells.map((day, i) => {
+                    const isToday = day !== null && day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+                    const isSelected = day !== null && day === activeDate.getDate() && month === activeDate.getMonth();
+                    const dayEvents = day ? (eventsByDay[day] || []) : [];
+
+                    return (
+                      <div
+                        key={i}
+                        onClick={() => day && setActiveDate(new Date(year, month, day))}
+                        className={`bg-card min-h-[100px] p-1.5 cursor-pointer transition-colors hover:bg-secondary/50 ${day === null ? "opacity-30" : ""}`}
+                      >
+                        {day !== null && (
+                          <>
+                            <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-semibold mb-1 ${
+                              isToday ? "bg-navy text-navy-foreground" :
+                              isSelected ? "bg-primary/10 text-primary font-bold" :
+                              "text-foreground/70"
+                            }`}>
+                              {day}
+                            </span>
+                            <div className="space-y-0.5">
+                              {dayEvents.slice(0, 3).map((ev) => (
+                                <div
+                                  key={ev.id}
+                                  onClick={(e) => { e.stopPropagation(); openEventDetail(ev); }}
+                                  className={`${ev.bg} ${ev.color} text-[10px] font-medium px-1.5 py-0.5 rounded truncate cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-1`}
+                                >
+                                  {ev.registered && <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600 shrink-0" />}
+                                  {ev.title}
+                                </div>
+                              ))}
+                              {dayEvents.length > 3 && (
+                                <span className="text-[9px] text-muted-foreground font-medium px-1.5">+{dayEvents.length - 3} more</span>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()
         ) : (
           <div className="flex-1 overflow-auto relative">
             <div className="grid min-w-[800px]" style={{ gridTemplateColumns: "60px repeat(7, 1fr)" }}>

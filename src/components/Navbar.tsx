@@ -20,6 +20,7 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isReady, signOut } = useAuth();
+  const { isOrg } = useUserRole();
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {

@@ -14,6 +14,8 @@ import Portfolio from "./pages/Portfolio";
 import Leaderboard from "./pages/Leaderboard";
 import Schedule from "./pages/Schedule";
 import Squads from "./pages/Squads";
+import NGORegister from "./pages/NGORegister";
+import NGODashboard from "./pages/NGODashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,6 +39,8 @@ const App = () => (
           <Route path="/schedule" element={<Schedule />} />
           <Route path="/squads" element={<Squads />} />
           <Route path="/squads/:id" element={<Squads />} />
+          <Route path="/ngo/register" element={<NGORegister />} />
+          <Route path="/ngo/dashboard" element={<NGODashboard />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

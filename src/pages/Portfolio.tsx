@@ -116,6 +116,23 @@ const Portfolio = () => {
     window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}&summary=${text}`, '_blank');
   };
 
+  const handleDownloadResume = () => {
+    generateVolunteerResume({
+      name: displayName,
+      email: user.email || "",
+      joinDate,
+      level,
+      totalHours,
+      tasksCompleted,
+      impactScore,
+      streak,
+      causes: causeBreakdown,
+      skills: skillData,
+      badges,
+      milestones,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />

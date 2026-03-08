@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, Mail, Lock, ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, ArrowRight, ArrowLeft, Loader2, Users, Building2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,7 +14,7 @@ const Auth = () => {
   const [signUpEmail, setSignUpEmail] = useState("");
   const [signUpPassword, setSignUpPassword] = useState("");
   const [signUpName, setSignUpName] = useState("");
-
+  const [signUpRole, setSignUpRole] = useState<"volunteer" | "organization">("volunteer");
   const [signInErrors, setSignInErrors] = useState<{ email?: string; password?: string }>({});
   const [signUpErrors, setSignUpErrors] = useState<{ name?: string; email?: string; password?: string }>({});
   const [signInApiError, setSignInApiError] = useState("");
@@ -75,7 +75,17 @@ const Auth = () => {
     if (error) {
       setSignUpApiError(error.message);
     } else {
-      navigate("/dashboard");
+      if (signUpRole === "organization") {
+        // Add org role — the default volunteer role is added by trigger,
+        // so we insert the org role on top
+        const { data: { user: newUser } } = await supabase.auth.getUser();
+        if (newUser) {
+          await supabase.from("user_roles").insert({ user_id: newUser.id, role: "organization" as any });
+        }
+        navigate("/ngo/register");
+      } else {
+        navigate("/dashboard");
+      }
     }
   };
 
@@ -232,6 +242,30 @@ const Auth = () => {
               {/* Sign Up */}
               <TabsContent value="signup">
                   <form onSubmit={handleSignUp} className="space-y-4">
+                    {/* Role selector */}
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-2 block">I'm signing up as</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setSignUpRole("volunteer")}
+                          className={`flex flex-col items-center gap-1.5 p-4 rounded-xl border-2 transition-all ${signUpRole === "volunteer" ? "border-primary bg-primary/5 text-primary" : "border-border bg-secondary text-muted-foreground hover:border-muted-foreground/30"}`}
+                        >
+                          <Users className="w-5 h-5" />
+                          <span className="text-sm font-semibold">Volunteer</span>
+                          <span className="text-[10px] leading-tight text-center opacity-70">I want to help & volunteer</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSignUpRole("organization")}
+                          className={`flex flex-col items-center gap-1.5 p-4 rounded-xl border-2 transition-all ${signUpRole === "organization" ? "border-primary bg-primary/5 text-primary" : "border-border bg-secondary text-muted-foreground hover:border-muted-foreground/30"}`}
+                        >
+                          <Building2 className="w-5 h-5" />
+                          <span className="text-sm font-semibold">Organization</span>
+                          <span className="text-[10px] leading-tight text-center opacity-70">I want to post opportunities</span>
+                        </button>
+                      </div>
+                    </div>
                     <div>
                       <div className="relative">
                         <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

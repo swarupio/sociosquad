@@ -19,10 +19,41 @@ const mapDbEvent = (e: any): RawEvent => ({
   registered: e.registered ?? false,
 });
 
+/** Convert an NGO opportunity into a RawEvent for the calendar */
+const mapOpportunityToEvent = (opp: any, isRegistered: boolean): RawEvent => {
+  // Build ISO datetime from date + time fields
+  const startTime = `${opp.date}T${opp.start_time || "09:00:00"}`;
+  const endTime = `${opp.date}T${opp.end_time || "17:00:00"}`;
+
+  // Pick color based on category
+  const colorMap: Record<string, { color: string; bg: string; border: string }> = {
+    Environment: { color: "text-emerald-900", bg: "bg-emerald-100", border: "border-l-emerald-500" },
+    Education: { color: "text-indigo-900", bg: "bg-indigo-100", border: "border-l-indigo-500" },
+    Healthcare: { color: "text-rose-900", bg: "bg-rose-100", border: "border-l-rose-500" },
+    Health: { color: "text-rose-900", bg: "bg-rose-100", border: "border-l-rose-500" },
+    Community: { color: "text-amber-900", bg: "bg-amber-100", border: "border-l-amber-500" },
+  };
+  const colors = colorMap[opp.category] || { color: "text-sky-900", bg: "bg-sky-100", border: "border-l-sky-500" };
+
+  return {
+    id: `opp-${opp.id}`,
+    title: opp.title,
+    startTime,
+    endTime,
+    ...colors,
+    iconName: "Users",
+    badge: opp.organization?.name ? `${opp.organization.name}` : "NGO Event",
+    category: "SocioSquad Events" as CalendarCategory,
+    description: opp.description || "",
+    registered: isRegistered,
+  };
+};
+
 export function useScheduleData() {
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [rawEvents, setRawEvents] = useState<RawEvent[]>([]);
+  const [oppEvents, setOppEvents] = useState<RawEvent[]>([]);
   const [tasks, setTasks] = useState<Record<"today" | "tomorrow", Task[]>>({ today: [], tomorrow: [] });
 
   useEffect(() => {
@@ -30,6 +61,48 @@ export function useScheduleData() {
       setUserId(user?.id ?? null);
     });
   }, []);
+
+  // Fetch NGO opportunities and convert to calendar events
+  useEffect(() => {
+    const fetchOpportunities = async () => {
+      const { data: opps } = await supabase
+        .from("opportunities")
+        .select("*")
+        .eq("status", "open")
+        .order("date", { ascending: true });
+
+      if (!opps || opps.length === 0) {
+        setOppEvents([]);
+        return;
+      }
+
+      // Fetch org names
+      const orgIds = [...new Set(opps.map((o: any) => o.org_id))];
+      const { data: orgs } = await supabase.from("organizations").select("id, name").in("id", orgIds);
+
+      // Check registrations for current user
+      const enriched = await Promise.all(
+        opps.map(async (o: any) => {
+          let isRegistered = false;
+          if (userId) {
+            const { data: reg } = await supabase
+              .from("volunteer_registrations")
+              .select("id")
+              .eq("opportunity_id", o.id)
+              .eq("user_id", userId)
+              .maybeSingle();
+            isRegistered = !!reg;
+          }
+          const org = (orgs || []).find((org: any) => org.id === o.org_id);
+          return mapOpportunityToEvent({ ...o, organization: org }, isRegistered);
+        })
+      );
+
+      setOppEvents(enriched);
+    };
+
+    fetchOpportunities();
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) {
@@ -116,6 +189,9 @@ export function useScheduleData() {
     }
   };
 
+  // Merge user events + opportunity events
+  const allRawEvents = [...rawEvents, ...oppEvents];
+
   const toggleTask = useCallback(async (period: "today" | "tomorrow", id: string) => {
     setTasks((prev) => ({
       ...prev,
@@ -171,6 +247,21 @@ export function useScheduleData() {
   }, [userId]);
 
   const toggleRegistration = useCallback(async (id: string) => {
+    // Handle opportunity events (prefixed with "opp-")
+    if (id.startsWith("opp-")) {
+      const oppId = id.replace("opp-", "");
+      const event = oppEvents.find((e) => e.id === id);
+      if (!event || !userId) return;
+
+      if (event.registered) {
+        await supabase.from("volunteer_registrations").delete().eq("opportunity_id", oppId).eq("user_id", userId);
+      } else {
+        await supabase.from("volunteer_registrations").insert({ opportunity_id: oppId, user_id: userId });
+      }
+      setOppEvents((prev) => prev.map((e) => e.id === id ? { ...e, registered: !e.registered } : e));
+      return;
+    }
+
     setRawEvents((prev) =>
       prev.map((e) => e.id === id ? { ...e, registered: !e.registered } : e)
     );
@@ -180,12 +271,12 @@ export function useScheduleData() {
         await supabase.from("user_events").update({ registered: !event.registered }).eq("id", id);
       }
     }
-  }, [userId, rawEvents]);
+  }, [userId, rawEvents, oppEvents]);
 
   return {
     loading,
     userId,
-    rawEvents,
+    rawEvents: allRawEvents,
     tasks,
     toggleTask,
     addTask,

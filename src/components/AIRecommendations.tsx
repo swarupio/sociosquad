@@ -1,11 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, ArrowRight, Star, Shuffle, Heart } from "lucide-react";
+import { ArrowRight, Shuffle, MapPin, Clock, Users, Timer } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import ScrollReveal from "./ScrollReveal";
-import nssChulla from "@/assets/nss-chulla.jpeg";
-import nssSolarJal from "@/assets/nss-solar-jal.jpeg";
-import nssFinancial from "@/assets/nss-financial.jpeg";
 
 const recommendations = [
   {

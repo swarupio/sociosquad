@@ -82,6 +82,28 @@ function CreateChallengeModal({ open, onClose, onCreate }: { open: boolean; onCl
   const [desc, setDesc] = useState("");
   const [target, setTarget] = useState("100");
   const [unit, setUnit] = useState("hours");
+  const [mode, setMode] = useState<"custom" | "events">("custom");
+  const [selectedEvents, setSelectedEvents] = useState<string[]>([]);
+
+  // Upcoming events from schedule
+  const upcomingEvents = initialEvents;
+
+  const toggleEvent = (id: string) => {
+    setSelectedEvents(prev => prev.includes(id) ? prev.filter(e => e !== id) : [...prev, id]);
+  };
+
+  const handleCreate = () => {
+    if (mode === "events" && selectedEvents.length > 0) {
+      const eventNames = upcomingEvents.filter(e => selectedEvents.includes(e.id)).map(e => e.title);
+      const autoTitle = title.trim() || `Complete ${selectedEvents.length} event${selectedEvents.length > 1 ? "s" : ""} together`;
+      const autoDesc = `Squad goal: ${eventNames.join(", ")}`;
+      onCreate(autoTitle, autoDesc, selectedEvents.length, "events");
+    } else if (title.trim()) {
+      onCreate(title, desc, parseInt(target) || 100, unit);
+    }
+    onClose();
+    setTitle(""); setDesc(""); setSelectedEvents([]); setMode("custom");
+  };
 
   if (!open) return null;
 
@@ -90,27 +112,80 @@ function CreateChallengeModal({ open, onClose, onCreate }: { open: boolean; onCl
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-card border border-border rounded-3xl p-8 w-full max-w-md mx-4 shadow-2xl"
+        className="bg-card border border-border rounded-3xl p-8 w-full max-w-lg mx-4 shadow-2xl max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-2xl font-display font-bold text-foreground mb-6">New Challenge</h3>
-        <Input placeholder="Challenge title" value={title} onChange={(e) => setTitle(e.target.value)} className="mb-3 rounded-xl" />
-        <Textarea placeholder="Description" value={desc} onChange={(e) => setDesc(e.target.value)} className="mb-3 rounded-xl resize-none" rows={2} />
-        <div className="flex gap-3 mb-6">
-          <Input type="number" placeholder="Target" value={target} onChange={(e) => setTarget(e.target.value)} className="rounded-xl flex-1" />
-          <select value={unit} onChange={(e) => setUnit(e.target.value)} className="rounded-xl border border-input bg-background px-3 text-sm">
-            <option value="hours">Hours</option>
-            <option value="tasks">Tasks</option>
-            <option value="trees">Trees</option>
-            <option value="meals">Meals</option>
-          </select>
+        <h3 className="text-2xl font-display font-bold text-foreground mb-4">New Challenge</h3>
+
+        {/* Mode toggle */}
+        <div className="flex gap-2 mb-5">
+          <button
+            onClick={() => setMode("custom")}
+            className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all ${mode === "custom" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-muted"}`}
+          >
+            <Target className="w-4 h-4 inline mr-1.5" /> Custom Goal
+          </button>
+          <button
+            onClick={() => setMode("events")}
+            className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all ${mode === "events" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-muted"}`}
+          >
+            <Calendar className="w-4 h-4 inline mr-1.5" /> From Schedule
+          </button>
         </div>
+
+        {mode === "custom" ? (
+          <>
+            <Input placeholder="Challenge title" value={title} onChange={(e) => setTitle(e.target.value)} className="mb-3 rounded-xl" />
+            <Textarea placeholder="Description" value={desc} onChange={(e) => setDesc(e.target.value)} className="mb-3 rounded-xl resize-none" rows={2} />
+            <div className="flex gap-3 mb-6">
+              <Input type="number" placeholder="Target" value={target} onChange={(e) => setTarget(e.target.value)} className="rounded-xl flex-1" />
+              <select value={unit} onChange={(e) => setUnit(e.target.value)} className="rounded-xl border border-input bg-background px-3 text-sm">
+                <option value="hours">Hours</option>
+                <option value="tasks">Tasks</option>
+                <option value="trees">Trees</option>
+                <option value="meals">Meals</option>
+                <option value="events">Events</option>
+              </select>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-xs text-muted-foreground mb-3">Pick upcoming events for your squad to complete together. Progress counts when members log & get approved.</p>
+            <Input placeholder="Challenge title (optional)" value={title} onChange={(e) => setTitle(e.target.value)} className="mb-3 rounded-xl" />
+            <div className="space-y-2 mb-6 max-h-60 overflow-y-auto pr-1">
+              {upcomingEvents.map((ev) => {
+                const selected = selectedEvents.includes(ev.id);
+                return (
+                  <button
+                    key={ev.id}
+                    onClick={() => toggleEvent(ev.id)}
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${selected ? "border-primary bg-primary/5" : "border-border bg-secondary/30 hover:bg-secondary"}`}
+                  >
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm ${selected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                      {selected ? <CheckCircle className="w-4 h-4" /> : <Calendar className="w-4 h-4" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground">{ev.title}</p>
+                      <p className="text-[11px] text-muted-foreground">{DAYS[ev.day]} • {ev.startHour}:{String(ev.startMin).padStart(2, "0")} - {ev.endHour}:{String(ev.endMin).padStart(2, "0")} • {ev.category}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            {selectedEvents.length > 0 && (
+              <p className="text-xs text-primary font-medium mb-4">
+                ✅ {selectedEvents.length} event{selectedEvents.length > 1 ? "s" : ""} selected — squad needs to complete all to finish the challenge
+              </p>
+            )}
+          </>
+        )}
+
         <div className="flex gap-3">
           <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl">Cancel</Button>
           <Button
-            onClick={() => { if (title.trim()) { onCreate(title, desc, parseInt(target) || 100, unit); onClose(); setTitle(""); setDesc(""); } }}
+            onClick={handleCreate}
             className="flex-1 rounded-xl"
-            disabled={!title.trim()}
+            disabled={mode === "custom" ? !title.trim() : selectedEvents.length === 0}
           >
             Launch Challenge <Swords className="w-4 h-4 ml-1" />
           </Button>

@@ -7,11 +7,8 @@ export type CalendarCategory =
 export interface CalEvent {
   id: string;
   title: string;
-  day: number; // 0=Mon
-  startHour: number;
-  startMin: number;
-  endHour: number;
-  endMin: number;
+  startTime: string; // ISO date string
+  endTime: string;   // ISO date string
   color: string;
   bg: string;
   border: string;

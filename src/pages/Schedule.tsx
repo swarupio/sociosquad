@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import EventDetailModal from "@/components/schedule/EventDetailModal";
 import ScheduleSidebar from "@/components/schedule/ScheduleSidebar";
 import type { CalEvent, CalendarCategory } from "@/components/schedule/types";
-import { DAYS, HOURS, pad } from "@/components/schedule/data";
+import { DAYS, HOURS, pad, getWeekStart, formatTime } from "@/components/schedule/data";
 import { useScheduleData } from "@/hooks/useScheduleData";
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -44,10 +44,25 @@ const Schedule = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [activeDate, setActiveDate] = useState(new Date());
 
-  const filteredEvents = useMemo(
-    () => events.filter((ev) => activeCategories[ev.category]),
-    [events, activeCategories]
-  );
+  // Week navigation
+  const weekStart = useMemo(() => getWeekStart(activeDate), [activeDate]);
+  const weekDates = useMemo(() => {
+    return DAYS.map((_, i) => {
+      const d = new Date(weekStart);
+      d.setDate(d.getDate() + i);
+      return d;
+    });
+  }, [weekStart]);
+
+  const filteredEvents = useMemo(() => {
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+    return events.filter((ev) => {
+      if (!activeCategories[ev.category]) return false;
+      const evStart = new Date(ev.startTime);
+      return evStart >= weekStart && evStart < weekEnd;
+    });
+  }, [events, activeCategories, weekStart]);
 
   useEffect(() => {
     const id = setInterval(() => setCurrentTime(new Date()), 60_000);
@@ -58,12 +73,36 @@ const Schedule = () => {
   const currentMin = currentTime.getMinutes();
   const timeInRange = currentHour >= 8 && currentHour < 19;
 
+  // Check if current time indicator should show (only on the current week)
+  const todayInWeek = useMemo(() => {
+    const today = new Date();
+    return weekDates.findIndex((d) =>
+      d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear()
+    );
+  }, [weekDates]);
+
   const toggleCategory = useCallback((label: CalendarCategory) => {
     setActiveCategories((prev) => ({ ...prev, [label]: !prev[label] }));
   }, []);
 
   const resetToToday = useCallback(() => {
     setActiveDate(new Date());
+  }, []);
+
+  const prevWeek = useCallback(() => {
+    setActiveDate((prev) => {
+      const d = new Date(prev);
+      d.setDate(d.getDate() - 7);
+      return d;
+    });
+  }, []);
+
+  const nextWeek = useCallback(() => {
+    setActiveDate((prev) => {
+      const d = new Date(prev);
+      d.setDate(d.getDate() + 7);
+      return d;
+    });
   }, []);
 
   const openEventDetail = useCallback((ev: CalEvent) => {
@@ -99,9 +138,17 @@ const Schedule = () => {
       <main className="flex-1 flex flex-col overflow-hidden bg-card">
         <header className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold text-foreground">
-              {activeDate.toLocaleString("default", { month: "long" })} {activeDate.getFullYear()}
-            </h1>
+            <div className="flex items-center gap-2">
+              <button onClick={prevWeek} className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <h1 className="text-xl font-bold text-foreground">
+                {activeDate.toLocaleString("default", { month: "long" })} {activeDate.getFullYear()}
+              </h1>
+              <button onClick={nextWeek} className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
             <button onClick={resetToToday} className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-navy/10 text-navy hover:bg-navy/20 transition-colors">Today</button>
           </div>
           <div className="flex items-center gap-3">
@@ -132,9 +179,16 @@ const Schedule = () => {
           <div className="flex-1 overflow-auto relative">
             <div className="grid min-w-[800px]" style={{ gridTemplateColumns: "60px repeat(7, 1fr)" }}>
               <div className="sticky top-0 z-10 bg-card" />
-              {DAYS.map((d) => (
-                <div key={d} className="sticky top-0 z-10 py-3 text-center text-xs font-semibold text-muted-foreground border-b border-border bg-card">{d}</div>
-              ))}
+              {weekDates.map((d, i) => {
+                const today = new Date();
+                const isToday = d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+                return (
+                  <div key={i} className={`sticky top-0 z-10 py-3 text-center border-b border-border bg-card ${isToday ? "bg-navy/5" : ""}`}>
+                    <div className="text-xs font-semibold text-muted-foreground">{DAYS[i]}</div>
+                    <div className={`text-sm font-bold ${isToday ? "text-navy" : "text-foreground/70"}`}>{d.getDate()}</div>
+                  </div>
+                );
+              })}
               {HOURS.map((h) => (
                 <div key={`row-${h}`} className="contents">
                   <div className="relative text-[11px] text-muted-foreground text-right pr-3 border-r border-border" style={{ height: 80 }}>
@@ -153,12 +207,20 @@ const Schedule = () => {
               <div className="relative h-full w-full" style={{ minWidth: "calc(800px - 60px)" }}>
                 <AnimatePresence>
                   {filteredEvents.map((ev) => {
-                    const totalMinStart = (ev.startHour - 8) * 80 + (ev.startMin / 60) * 80;
-                    const totalMinEnd = (ev.endHour - 8) * 80 + (ev.endMin / 60) * 80;
+                    const evStart = new Date(ev.startTime);
+                    const evEnd = new Date(ev.endTime);
+                    const dayIndex = (evStart.getDay() + 6) % 7; // 0=Mon
+                    const startHour = evStart.getHours();
+                    const startMin = evStart.getMinutes();
+                    const endHour = evEnd.getHours();
+                    const endMin = evEnd.getMinutes();
+
+                    const totalMinStart = (startHour - 8) * 80 + (startMin / 60) * 80;
+                    const totalMinEnd = (endHour - 8) * 80 + (endMin / 60) * 80;
                     const height = totalMinEnd - totalMinStart;
                     const top = totalMinStart + 36;
                     const colWidth = 100 / 7;
-                    const left = `${ev.day * colWidth}%`;
+                    const left = `${dayIndex * colWidth}%`;
                     const width = `${colWidth}%`;
                     return (
                       <motion.div key={ev.id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ duration: 0.25 }}
@@ -175,7 +237,7 @@ const Schedule = () => {
                         </div>
                         <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                           <Clock className="w-3 h-3" />
-                          {pad(ev.startHour)}:{pad(ev.startMin)} – {pad(ev.endHour)}:{pad(ev.endMin)}
+                          {formatTime(evStart)} – {formatTime(evEnd)}
                         </span>
                         {ev.badge && (
                           <span className="mt-1 inline-flex items-center gap-1 text-[9px] font-semibold text-warm bg-warm/10 px-1.5 py-0.5 rounded-full">
@@ -192,7 +254,7 @@ const Schedule = () => {
                   })}
                 </AnimatePresence>
 
-                {timeInRange && (
+                {timeInRange && todayInWeek >= 0 && (
                   <div className="absolute left-0 right-0 flex items-center z-20 pointer-events-none" style={{ top: (currentHour - 8) * 80 + (currentMin / 60) * 80 + 36 }}>
                     <span className="shrink-0 -ml-[60px] w-[60px] text-center text-[10px] font-bold text-destructive bg-destructive/10 rounded-md px-1.5 py-0.5">{pad(currentHour)}:{pad(currentMin)}</span>
                     <div className="flex-1 h-[2px] bg-destructive/60" />

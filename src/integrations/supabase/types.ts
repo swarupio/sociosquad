@@ -385,15 +385,12 @@ export type Database = {
           category: string
           color: string
           created_at: string
-          day: number
           description: string
-          end_hour: number
-          end_min: number
+          end_time: string
           icon_name: string
           id: string
           registered: boolean
-          start_hour: number
-          start_min: number
+          start_time: string
           title: string
           user_id: string
         }
@@ -404,15 +401,12 @@ export type Database = {
           category?: string
           color?: string
           created_at?: string
-          day?: number
           description?: string
-          end_hour: number
-          end_min?: number
+          end_time?: string
           icon_name?: string
           id?: string
           registered?: boolean
-          start_hour: number
-          start_min?: number
+          start_time?: string
           title: string
           user_id: string
         }
@@ -423,15 +417,12 @@ export type Database = {
           category?: string
           color?: string
           created_at?: string
-          day?: number
           description?: string
-          end_hour?: number
-          end_min?: number
+          end_time?: string
           icon_name?: string
           id?: string
           registered?: boolean
-          start_hour?: number
-          start_min?: number
+          start_time?: string
           title?: string
           user_id?: string
         }

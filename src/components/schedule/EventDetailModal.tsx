@@ -7,10 +7,9 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Clock, Tag, Pencil, Trash2, CheckCircle2, UserPlus } from "lucide-react";
+import { Clock, Tag, CalendarDays, CheckCircle2, UserPlus } from "lucide-react";
 import type { CalEvent } from "./types";
-
-const pad = (n: number) => String(n).padStart(2, "0");
+import { formatTime } from "./data";
 
 interface Props {
   event: CalEvent | null;
@@ -22,6 +21,10 @@ interface Props {
 
 const EventDetailModal = ({ event, open, onClose, onDelete, onToggleRegistration }: Props) => {
   if (!event) return null;
+
+  const start = new Date(event.startTime);
+  const end = new Date(event.endTime);
+  const dateStr = start.toLocaleDateString("default", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -43,10 +46,12 @@ const EventDetailModal = ({ event, open, onClose, onDelete, onToggleRegistration
 
         <div className="space-y-3 py-2">
           <div className="flex items-center gap-2 text-sm text-foreground">
+            <CalendarDays className="w-4 h-4 text-muted-foreground" />
+            <span>{dateStr}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-foreground">
             <Clock className="w-4 h-4 text-muted-foreground" />
-            <span>
-              {pad(event.startHour)}:{pad(event.startMin)} – {pad(event.endHour)}:{pad(event.endMin)}
-            </span>
+            <span>{formatTime(start)} – {formatTime(end)}</span>
           </div>
           <div className="flex items-center gap-2 text-sm text-foreground">
             <Tag className="w-4 h-4 text-muted-foreground" />

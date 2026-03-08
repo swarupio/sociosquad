@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Search, Filter, MapPin, Clock, Users, ArrowRight, List, Map, Timer, Building2, CheckCircle } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { staticOpportunities } from "@/data/staticOpportunities";
+import { supabase } from "@/lib/supabaseClient";
 
 const categories = ["All", "Environment", "Education", "Healthcare", "General", "Community", "Health"];
 const timeFilters = [

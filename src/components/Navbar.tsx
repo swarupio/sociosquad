@@ -57,7 +57,7 @@ const Navbar = () => {
         <Link to="/" className="text-xl font-display font-bold text-primary">SocioSquad</Link>
 
         <div className="hidden md:flex items-center gap-8">
-          {navLinks.map((item) => (
+          {(isOrg ? orgNavLinks : volunteerNavLinks).map((item) => (
             <Link
               key={item.label}
               to={item.to}

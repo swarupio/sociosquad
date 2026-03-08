@@ -24,6 +24,20 @@ export interface SquadMember {
   profile?: { full_name: string | null; avatar_url: string | null };
 }
 
+export interface ActivityLog {
+  id: string;
+  squad_id: string;
+  challenge_id: string;
+  user_id: string;
+  description: string;
+  value: number;
+  status: string;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+  profile?: { full_name: string | null; avatar_url: string | null };
+}
+
 export interface SquadChallenge {
   id: string;
   squad_id: string;

@@ -68,7 +68,6 @@ const Auth = () => {
       password: signUpPassword,
       options: {
         data: { full_name: signUpName.trim() },
-        emailRedirectTo: window.location.origin,
       },
     });
     setSignUpLoading(false);
@@ -76,7 +75,7 @@ const Auth = () => {
     if (error) {
       setSignUpApiError(error.message);
     } else {
-      setSignUpSuccess(true);
+      navigate("/dashboard");
     }
   };
 

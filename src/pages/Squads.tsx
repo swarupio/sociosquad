@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { initialEvents, DAYS } from "@/components/schedule/data";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseClient";
 
 const EMOJIS = ["🌍", "🔥", "💚", "⚡", "🌊", "🌱", "🦁", "🚀"];
 

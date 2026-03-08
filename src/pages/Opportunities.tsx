@@ -184,7 +184,9 @@ const Opportunities = () => {
               {filtered.map((opp, i) => (
                 <ScrollReveal key={opp.id} delay={i * 0.06}>
                   <motion.div whileHover={{ y: -3 }} className="glass-card-hover p-6 h-full flex flex-col relative">
-                    <span className="absolute top-3 right-3 px-2 py-0.5 text-[9px] font-bold rounded-full bg-primary/10 text-primary">VERIFIED NGO</span>
+                    {(opp as any).isReal && (
+                      <span className="absolute top-3 right-3 px-2 py-0.5 text-[9px] font-bold rounded-full bg-primary/10 text-primary">VERIFIED NGO</span>
+                    )}
                     <div className="flex items-start justify-between mb-3">
                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${opp.urgency === "High" ? "bg-destructive/20 text-destructive" : "bg-amber-500/20 text-amber-600"}`}>
                         {opp.urgency === "High" ? "Filling Fast" : opp.category}

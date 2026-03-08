@@ -59,9 +59,6 @@ const BentoGrid = () => {
                 </div>
                 <h3 className="text-lg font-display font-bold mb-3 text-foreground">{feature.title}</h3>
                 <p className="text-muted-foreground leading-relaxed text-sm font-body mb-5">{feature.description}</p>
-                <span className="inline-flex items-center gap-1 text-sm font-semibold font-body text-primary group-hover:gap-2 transition-all">
-                  Read More <ArrowRight className="w-4 h-4" />
-                </span>
               </div>
             </ScrollReveal>
           ))}

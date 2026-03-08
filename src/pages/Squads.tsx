@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Users, Plus, Hash, ArrowRight, Trophy, Target, Copy, LogOut, Crown, Swords } from "lucide-react";
+import { Users, Plus, Hash, ArrowRight, Trophy, Target, Copy, LogOut, Crown, Swords, Trash2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/hooks/useAuth";
@@ -172,9 +172,10 @@ function SquadCard({ squad, onLeave }: { squad: any; onLeave: (id: string) => vo
   );
 }
 
-function SquadDetailView({ squadId }: { squadId: string }) {
+function SquadDetailView({ squadId, onDelete, onBack }: { squadId: string; onDelete: (id: string) => void; onBack: () => void }) {
   const { squad, members, challenges, contributions, loading, createChallenge } = useSquadDetail(squadId);
   const [showChallenge, setShowChallenge] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -202,6 +203,23 @@ function SquadDetailView({ squadId }: { squadId: string }) {
             <Copy className="w-3 h-3 text-muted-foreground" />
           </button>
           <span className="text-sm text-muted-foreground">{members.length} member{members.length !== 1 ? "s" : ""}</span>
+          {user?.id === squad.created_by && (
+            confirmDelete ? (
+              <div className="flex items-center gap-2 ml-auto">
+                <span className="text-xs text-destructive font-medium">Delete this squad?</span>
+                <Button size="sm" variant="destructive" className="rounded-xl text-xs" onClick={() => { onDelete(squad.id); onBack(); }}>
+                  Yes, delete
+                </Button>
+                <Button size="sm" variant="outline" className="rounded-xl text-xs" onClick={() => setConfirmDelete(false)}>
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <Button size="sm" variant="ghost" className="ml-auto text-muted-foreground hover:text-destructive rounded-xl" onClick={() => setConfirmDelete(true)}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )
+          )}
         </div>
       </div>
 
@@ -310,7 +328,7 @@ function SquadDetailView({ squadId }: { squadId: string }) {
 export default function Squads() {
   const { id: routeSquadId } = useParams();
   const { user, isReady } = useAuth();
-  const { squads, loading, createSquad, joinByCode, leaveSquad } = useSquads();
+  const { squads, loading, createSquad, joinByCode, leaveSquad, deleteSquad } = useSquads();
   const [showCreate, setShowCreate] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
   const [selectedSquad, setSelectedSquad] = useState<string | null>(routeSquadId || null);
@@ -332,7 +350,7 @@ export default function Squads() {
             >
               ← Back to Squads
             </button>
-            <SquadDetailView squadId={selectedSquad} />
+            <SquadDetailView squadId={selectedSquad} onDelete={deleteSquad} onBack={() => setSelectedSquad(null)} />
           </>
         ) : (
           <>

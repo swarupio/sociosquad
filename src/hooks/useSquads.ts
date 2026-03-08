@@ -130,7 +130,18 @@ export function useSquads() {
     fetchSquads();
   };
 
-  return { squads, loading, createSquad, joinByCode, leaveSquad, refetch: fetchSquads };
+  const deleteSquad = async (squadId: string) => {
+    if (!user) return;
+    const { error } = await supabase.from("squads").delete().eq("id", squadId).eq("created_by", user.id);
+    if (error) {
+      toast({ title: "Only the creator can delete a squad", variant: "destructive" });
+      return;
+    }
+    toast({ title: "Squad deleted" });
+    fetchSquads();
+  };
+
+  return { squads, loading, createSquad, joinByCode, leaveSquad, deleteSquad, refetch: fetchSquads };
 }
 
 export interface MemberContribution {

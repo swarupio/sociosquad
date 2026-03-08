@@ -197,7 +197,7 @@ const Schedule = () => {
         )}
       </main>
 
-      <EventDetailModal event={selectedEvent} open={modalOpen} onClose={() => setModalOpen(false)} onDelete={deleteEvent} />
+      <EventDetailModal event={selectedEvent} open={modalOpen} onClose={() => setModalOpen(false)} onDelete={deleteEvent} onToggleRegistration={toggleRegistration} />
     </div>
   );
 };

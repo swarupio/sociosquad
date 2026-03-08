@@ -10,8 +10,9 @@ import type { CalendarCategory, CalendarToggle, Task } from "./types";
 interface Props {
   activeDate: Date;
   onSelectDate: (date: Date) => void;
-  activeCategories: Record<CalendarCategory, boolean>;
-  onToggleCategory: (label: CalendarCategory) => void;
+  activeCategories: Record<string, boolean>;
+  onToggleCategory: (label: string) => void;
+  calendars: CalendarToggle[];
   tasks: Record<"today" | "tomorrow", Task[]>;
   onToggleTask: (period: "today" | "tomorrow", id: string) => void;
   onAddTask: (period: "today" | "tomorrow", text: string) => void;

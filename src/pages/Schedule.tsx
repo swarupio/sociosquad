@@ -36,7 +36,7 @@ const Schedule = () => {
   } = useScheduleData();
 
   const events: CalEvent[] = useMemo(
-    () => rawEvents.map((e) => ({ ...e, icon: iconMap[e.iconName] })),
+    () => rawEvents.map((e) => ({ ...e, icon: iconMap[e.iconName], registered: e.registered })),
     [rawEvents]
   );
 

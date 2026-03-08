@@ -53,6 +53,7 @@ export interface RawEvent {
   badge?: string;
   category: CalendarCategory;
   description: string;
+  registered: boolean;
 }
 
 export const initialEvents: RawEvent[] = [

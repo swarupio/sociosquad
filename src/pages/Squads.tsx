@@ -203,6 +203,23 @@ function SquadDetailView({ squadId, onDelete, onBack }: { squadId: string; onDel
             <Copy className="w-3 h-3 text-muted-foreground" />
           </button>
           <span className="text-sm text-muted-foreground">{members.length} member{members.length !== 1 ? "s" : ""}</span>
+          {user?.id === squad.created_by && (
+            confirmDelete ? (
+              <div className="flex items-center gap-2 ml-auto">
+                <span className="text-xs text-destructive font-medium">Delete this squad?</span>
+                <Button size="sm" variant="destructive" className="rounded-xl text-xs" onClick={() => { onDelete(squad.id); onBack(); }}>
+                  Yes, delete
+                </Button>
+                <Button size="sm" variant="outline" className="rounded-xl text-xs" onClick={() => setConfirmDelete(false)}>
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <Button size="sm" variant="ghost" className="ml-auto text-muted-foreground hover:text-destructive rounded-xl" onClick={() => setConfirmDelete(true)}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )
+          )}
         </div>
       </div>
 

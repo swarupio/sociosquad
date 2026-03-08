@@ -41,15 +41,12 @@ export const initialTasks: Record<"today" | "tomorrow", Task[]> = {
 export interface RawEvent {
   id: string;
   title: string;
-  day: number;
-  startHour: number;
-  startMin: number;
-  endHour: number;
-  endMin: number;
+  startTime: string; // ISO date string
+  endTime: string;   // ISO date string
   color: string;
   bg: string;
   border: string;
-  iconName: "Waves" | "Users" | "Utensils" | "TreePine" | "Bus";
+  iconName: string;
   badge?: string;
   category: CalendarCategory;
   description: string;
@@ -58,59 +55,96 @@ export interface RawEvent {
 
 export const initialEvents: RawEvent[] = [
   {
-    id: "e1",
+    id: "1",
     title: "Beach Cleanup",
-    day: 0,
-    startHour: 9, startMin: 0, endHour: 11, endMin: 30,
-    color: "text-sky-700", bg: "bg-sky-100", border: "border-l-sky-500",
+    startTime: "2026-03-09T09:00:00",
+    endTime: "2026-03-09T11:30:00",
+    color: "text-blue-900",
+    bg: "bg-blue-100",
+    border: "border-l-blue-500",
     iconName: "Waves",
-    category: "Personal Calendar",
-    description: "Join us for a community beach cleanup drive along Juhu Beach. Bring gloves and water bottles.",
-    registered: true,
-  },
-  {
-    id: "e2",
-    title: "Mentorship Session",
-    day: 1,
-    startHour: 13, startMin: 30, endHour: 15, endMin: 0,
-    color: "text-amber-700", bg: "bg-amber-100", border: "border-l-amber-500",
-    iconName: "Users",
-    badge: "Skills Match ✨",
     category: "SocioSquad Events",
-    description: "One-on-one mentorship session with a local student. Matched based on your skills.",
+    description: "Join us for a community beach cleanup drive along Juhu Beach. Bring gloves and water bottles.",
     registered: false,
   },
   {
-    id: "e3",
+    id: "2",
+    title: "Tree Plantation Briefing",
+    startTime: "2026-03-12T08:00:00",
+    endTime: "2026-03-12T09:30:00",
+    color: "text-emerald-900",
+    bg: "bg-emerald-100",
+    border: "border-l-emerald-500",
+    iconName: "TreePine",
+    category: "NSS Camps",
+    description: "Pre-event briefing for the upcoming tree plantation drive at Aarey Colony.",
+    registered: false,
+  },
+  {
+    id: "3",
     title: "Food Drive Sorting",
-    day: 2,
-    startHour: 11, startMin: 30, endHour: 13, endMin: 0,
-    color: "text-rose-700", bg: "bg-rose-100", border: "border-l-rose-500",
+    startTime: "2026-03-18T11:30:00",
+    endTime: "2026-03-18T13:00:00",
+    color: "text-pink-900",
+    bg: "bg-pink-100",
+    border: "border-l-pink-500",
     iconName: "Utensils",
-    category: "Urgent Relief",
+    category: "SocioSquad Events",
     description: "Help sort and package food items for distribution to underprivileged communities.",
     registered: false,
   },
   {
-    id: "e4",
-    title: "Tree Plantation Briefing",
-    day: 3,
-    startHour: 8, startMin: 0, endHour: 9, endMin: 30,
-    color: "text-emerald-700", bg: "bg-emerald-100", border: "border-l-emerald-500",
-    iconName: "TreePine",
-    category: "NSS Camps",
-    description: "Pre-event briefing for the upcoming tree plantation drive at Aarey Colony.",
-    registered: true,
+    id: "4",
+    title: "Mentorship Session ✨",
+    startTime: "2026-03-24T13:30:00",
+    endTime: "2026-03-24T15:00:00",
+    color: "text-yellow-900",
+    bg: "bg-yellow-100",
+    border: "border-l-yellow-500",
+    iconName: "Users",
+    badge: "Skills Match ✨",
+    category: "Personal Calendar",
+    description: "Skills Match. Mentoring high school students.",
+    registered: false,
   },
   {
-    id: "e5",
+    id: "5",
     title: "Travel to Palghar Camp",
-    day: 4,
-    startHour: 16, startMin: 0, endHour: 19, endMin: 0,
-    color: "text-violet-700", bg: "bg-violet-100", border: "border-l-violet-500",
+    startTime: "2026-04-03T16:00:00",
+    endTime: "2026-04-03T19:00:00",
+    color: "text-teal-900",
+    bg: "bg-teal-100",
+    border: "border-l-teal-500",
     iconName: "Bus",
     category: "NSS Camps",
-    description: "Bus travel to the 7-day NSS camp at Palghar. Meet at college gate by 3:45 PM.",
+    description: "Annual NSS Camp preparation and travel.",
+    registered: false,
+  },
+  {
+    id: "6",
+    title: "Emergency Blood Donation",
+    startTime: "2026-04-10T10:00:00",
+    endTime: "2026-04-10T12:00:00",
+    color: "text-red-900",
+    bg: "bg-red-100",
+    border: "border-l-red-500",
+    iconName: "Users",
+    category: "Urgent Relief",
+    description: "Urgent requirement at City Hospital.",
     registered: false,
   },
 ];
+
+/** Get the Monday of the week containing the given date */
+export const getWeekStart = (date: Date): Date => {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday
+  d.setDate(diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+/** Format time from a Date object */
+export const formatTime = (date: Date): string =>
+  `${pad(date.getHours())}:${pad(date.getMinutes())}`;

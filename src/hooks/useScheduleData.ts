@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
 import type { CalendarCategory, Task } from "@/components/schedule/types";
 import type { RawEvent } from "@/components/schedule/data";
 import { initialEvents, initialTasks } from "@/components/schedule/data";
@@ -8,11 +7,8 @@ import { initialEvents, initialTasks } from "@/components/schedule/data";
 const mapDbEvent = (e: any): RawEvent => ({
   id: e.id,
   title: e.title,
-  day: e.day,
-  startHour: e.start_hour,
-  startMin: e.start_min,
-  endHour: e.end_hour,
-  endMin: e.end_min,
+  startTime: e.start_time,
+  endTime: e.end_time,
   color: e.color,
   bg: e.bg,
   border: e.border,
@@ -85,11 +81,8 @@ export function useScheduleData() {
     const rows = initialEvents.map((e) => ({
       user_id: uid,
       title: e.title,
-      day: e.day,
-      start_hour: e.startHour,
-      start_min: e.startMin,
-      end_hour: e.endHour,
-      end_min: e.endMin,
+      start_time: e.startTime,
+      end_time: e.endTime,
       color: e.color,
       bg: e.bg,
       border: e.border,

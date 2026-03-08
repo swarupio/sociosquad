@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Eye, EyeOff, Mail, Lock, ArrowRight, ArrowLeft, Loader2, Users, Building2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseClient";
 import heroVolunteers from "@/assets/hero-volunteers.jpg";
 
 const Auth = () => {

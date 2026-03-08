@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseClient";
 import type { CalendarCategory, Task } from "@/components/schedule/types";
 import type { RawEvent } from "@/components/schedule/data";
 import { initialEvents, initialTasks } from "@/components/schedule/data";

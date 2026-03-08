@@ -242,6 +242,30 @@ const Auth = () => {
               {/* Sign Up */}
               <TabsContent value="signup">
                   <form onSubmit={handleSignUp} className="space-y-4">
+                    {/* Role selector */}
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-2 block">I'm signing up as</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setSignUpRole("volunteer")}
+                          className={`flex flex-col items-center gap-1.5 p-4 rounded-xl border-2 transition-all ${signUpRole === "volunteer" ? "border-primary bg-primary/5 text-primary" : "border-border bg-secondary text-muted-foreground hover:border-muted-foreground/30"}`}
+                        >
+                          <Users className="w-5 h-5" />
+                          <span className="text-sm font-semibold">Volunteer</span>
+                          <span className="text-[10px] leading-tight text-center opacity-70">I want to help & volunteer</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSignUpRole("organization")}
+                          className={`flex flex-col items-center gap-1.5 p-4 rounded-xl border-2 transition-all ${signUpRole === "organization" ? "border-primary bg-primary/5 text-primary" : "border-border bg-secondary text-muted-foreground hover:border-muted-foreground/30"}`}
+                        >
+                          <Building2 className="w-5 h-5" />
+                          <span className="text-sm font-semibold">Organization</span>
+                          <span className="text-[10px] leading-tight text-center opacity-70">I want to post opportunities</span>
+                        </button>
+                      </div>
+                    </div>
                     <div>
                       <div className="relative">
                         <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

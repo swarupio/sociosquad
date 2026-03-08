@@ -348,7 +348,7 @@ const Schedule = () => {
                       const totalMinStart = (startHour - 8) * 80 + (startMinute / 60) * 80;
                       const totalMinEnd = (endHour - 8) * 80 + (endMinute / 60) * 80;
                       const height = totalMinEnd - totalMinStart;
-                      const top = totalMinStart + 36;
+                      const top = totalMinStart + 52;
 
                       const colWidth = 100 / 7;
                       const overlap = overlapMap.get(ev.id) || { col: 0, totalCols: 1 };

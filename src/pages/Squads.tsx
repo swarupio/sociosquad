@@ -350,7 +350,7 @@ export default function Squads() {
             >
               ← Back to Squads
             </button>
-            <SquadDetailView squadId={selectedSquad} />
+            <SquadDetailView squadId={selectedSquad} onDelete={deleteSquad} onBack={() => setSelectedSquad(null)} />
           </>
         ) : (
           <>

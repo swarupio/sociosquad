@@ -110,7 +110,7 @@ const Dashboard = () => {
                       contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12 }}
                       labelStyle={{ color: "hsl(var(--foreground))" }}
                     />
-                    <Line type="monotone" dataKey="hours" stroke="hsl(var(--cyan))" strokeWidth={2} dot={{ fill: "hsl(var(--cyan))", r: 4 }} />
+                    <Line type="monotone" dataKey="hours" stroke="hsl(var(--primary))" strokeWidth={3} dot={{ fill: "hsl(var(--primary))", r: 5, strokeWidth: 2, stroke: "hsl(var(--background))" }} activeDot={{ r: 7 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>

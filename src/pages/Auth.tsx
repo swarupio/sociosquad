@@ -21,7 +21,7 @@ const Auth = () => {
   const [signUpApiError, setSignUpApiError] = useState("");
   const [signInLoading, setSignInLoading] = useState(false);
   const [signUpLoading, setSignUpLoading] = useState(false);
-  const [signUpSuccess, setSignUpSuccess] = useState(false);
+  
 
   const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 

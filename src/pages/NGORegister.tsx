@@ -182,7 +182,12 @@ export default function NGORegister() {
           </form>
 
           <p className="text-center text-xs text-muted-foreground mt-4">
-            Already registered? <Link to="/ngo/dashboard" className="text-primary hover:underline">Go to Dashboard</Link>
+            Already registered?{" "}
+            {user ? (
+              <Link to="/ngo/dashboard" className="text-primary hover:underline">Go to Dashboard</Link>
+            ) : (
+              <Link to="/auth" className="text-primary hover:underline">Sign in first</Link>
+            )}
           </p>
         </motion.div>
       </div>

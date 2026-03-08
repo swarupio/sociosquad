@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Users, Plus, Hash, ArrowRight, Trophy, Target, Copy, LogOut, Crown, Swords, Trash2 } from "lucide-react";
+import { Users, Plus, Hash, ArrowRight, Trophy, Target, Copy, LogOut, Crown, Swords, Trash2, CheckCircle, XCircle, Clock, Send } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/hooks/useAuth";

@@ -292,7 +292,6 @@ const Auth = () => {
                       {signUpLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Create Account <ArrowRight className="w-4 h-4" /></>}
                     </motion.button>
                   </form>
-                )}
               </TabsContent>
             </Tabs>
 

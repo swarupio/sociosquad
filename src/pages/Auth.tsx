@@ -75,7 +75,17 @@ const Auth = () => {
     if (error) {
       setSignUpApiError(error.message);
     } else {
-      navigate("/dashboard");
+      if (signUpRole === "organization") {
+        // Add org role — the default volunteer role is added by trigger,
+        // so we insert the org role on top
+        const { data: { user: newUser } } = await supabase.auth.getUser();
+        if (newUser) {
+          await supabase.from("user_roles").insert({ user_id: newUser.id, role: "organization" as any });
+        }
+        navigate("/ngo/register");
+      } else {
+        navigate("/dashboard");
+      }
     }
   };
 

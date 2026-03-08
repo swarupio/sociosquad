@@ -98,7 +98,16 @@ export function useMyOrganization() {
 
     const { data, error } = await supabase
       .from("organizations")
-      .insert({ ...orgData, user_id: user.id })
+      .insert({
+        name: orgData.name || "",
+        description: orgData.description || "",
+        website: orgData.website || "",
+        contact_email: orgData.contact_email || "",
+        contact_phone: orgData.contact_phone || "",
+        address: orgData.address || "",
+        city: orgData.city || "Mumbai",
+        user_id: user.id,
+      })
       .select()
       .single();
 

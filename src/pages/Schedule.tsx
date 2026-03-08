@@ -434,7 +434,15 @@ const Schedule = () => {
         )}
       </main>
 
-      <EventDetailModal event={selectedEvent} open={modalOpen} onClose={() => setModalOpen(false)} onDelete={deleteEvent} onToggleRegistration={toggleRegistration} />
+      <EventDetailModal
+        event={selectedEvent}
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onDelete={deleteEvent}
+        onToggleRegistration={toggleRegistration}
+        onChangeCategory={changeCategory}
+        availableCategories={dynamicCalendars.map((c) => c.label)}
+      />
     </div>
   );
 };

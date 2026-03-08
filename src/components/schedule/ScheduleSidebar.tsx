@@ -4,8 +4,8 @@ import {
   Plus, Pencil, Trash2, X,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { buildMiniCal, calendars } from "./data";
-import type { CalendarCategory, Task } from "./types";
+import { buildMiniCal } from "./data";
+import type { CalendarCategory, CalendarToggle, Task } from "./types";
 
 interface Props {
   activeDate: Date;

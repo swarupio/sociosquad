@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { CalendarCategory, Task } from "@/components/schedule/types";
 import type { RawEvent } from "@/components/schedule/data";
 import { initialEvents, initialTasks } from "@/components/schedule/data";
+import { staticOpportunities } from "@/data/staticOpportunities";
 
 const mapDbEvent = (e: any): RawEvent => ({
   id: e.id,
@@ -191,8 +192,35 @@ export function useScheduleData() {
     }
   };
 
-  // Merge user events + opportunity events
-  const allRawEvents = [...rawEvents, ...oppEvents];
+  // Convert static showcase opportunities to calendar events
+  const staticCalEvents: RawEvent[] = useMemo(() => {
+    const colorMap: Record<string, { color: string; bg: string; border: string; calCategory: string }> = {
+      Environment: { color: "text-emerald-900", bg: "bg-emerald-100", border: "border-l-emerald-500", calCategory: "Environment" },
+      Education: { color: "text-indigo-900", bg: "bg-indigo-100", border: "border-l-indigo-500", calCategory: "Education" },
+      Healthcare: { color: "text-rose-900", bg: "bg-rose-100", border: "border-l-rose-500", calCategory: "Healthcare" },
+      Community: { color: "text-amber-900", bg: "bg-amber-100", border: "border-l-amber-500", calCategory: "Community" },
+    };
+    return staticOpportunities.map((o) => {
+      const match = colorMap[o.category] || { color: "text-sky-900", bg: "bg-sky-100", border: "border-l-sky-500", calCategory: o.category };
+      return {
+        id: `static-${o.id}`,
+        title: o.title,
+        startTime: `${o.date}T${o.startTime}`,
+        endTime: `${o.date}T${o.endTime}`,
+        color: match.color,
+        bg: match.bg,
+        border: match.border,
+        iconName: "Users",
+        badge: o.org,
+        category: match.calCategory as CalendarCategory,
+        description: o.description,
+        registered: false,
+      };
+    });
+  }, []);
+
+  // Merge user events + opportunity events + static showcase events
+  const allRawEvents = [...rawEvents, ...oppEvents, ...staticCalEvents];
 
   const toggleTask = useCallback(async (period: "today" | "tomorrow", id: string) => {
     setTasks((prev) => ({

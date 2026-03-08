@@ -9,7 +9,7 @@ import { usePublicOpportunities } from "@/hooks/useOrganization";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-
+import { staticOpportunities } from "@/data/staticOpportunities";
 
 const categories = ["All", "Environment", "Education", "Healthcare", "General", "Community", "Health"];
 const timeFilters = [
@@ -50,8 +50,30 @@ const Opportunities = () => {
     end_time: o.end_time,
   }));
 
-  // Use only real DB opportunities
-  const allOpps = realOpps;
+  // Convert static opportunities to the same display format
+  const staticOpps = staticOpportunities.map(o => ({
+    id: o.id,
+    title: o.title,
+    org: o.org,
+    location: o.location,
+    category: o.category,
+    spots: o.spots,
+    date: o.dateLabel,
+    timeLabel: o.timeLabel,
+    timeHours: o.timeHours,
+    tags: o.tags,
+    urgency: o.urgency,
+    isReal: false,
+    is_registered: false,
+    registration_count: 0,
+    max_volunteers: o.spots,
+    description: o.description,
+    start_time: o.startTime,
+    end_time: o.endTime,
+  }));
+
+  // Merge: real opps first, then static showcase opps
+  const allOpps = [...realOpps, ...staticOpps];
 
   const filtered = allOpps.filter((o) => {
     const matchesSearch = o.title.toLowerCase().includes(search.toLowerCase()) || o.org.toLowerCase().includes(search.toLowerCase());
@@ -162,7 +184,9 @@ const Opportunities = () => {
               {filtered.map((opp, i) => (
                 <ScrollReveal key={opp.id} delay={i * 0.06}>
                   <motion.div whileHover={{ y: -3 }} className="glass-card-hover p-6 h-full flex flex-col relative">
-                    <span className="absolute top-3 right-3 px-2 py-0.5 text-[9px] font-bold rounded-full bg-primary/10 text-primary">VERIFIED NGO</span>
+                    {(opp as any).isReal && (
+                      <span className="absolute top-3 right-3 px-2 py-0.5 text-[9px] font-bold rounded-full bg-primary/10 text-primary">VERIFIED NGO</span>
+                    )}
                     <div className="flex items-start justify-between mb-3">
                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${opp.urgency === "High" ? "bg-destructive/20 text-destructive" : "bg-amber-500/20 text-amber-600"}`}>
                         {opp.urgency === "High" ? "Filling Fast" : opp.category}
@@ -192,17 +216,26 @@ const Opportunities = () => {
                       </div>
                     )}
 
-                    <Button
-                      onClick={() => handleRegister(opp.id, !!(opp as any).is_registered)}
-                      variant={(opp as any).is_registered ? "outline" : "default"}
-                      className="w-full rounded-xl text-sm"
-                    >
-                      {(opp as any).is_registered ? (
-                        <><CheckCircle className="w-4 h-4 mr-1" /> Registered</>
-                      ) : (
-                        <>Register <ArrowRight className="w-4 h-4 ml-1" /></>
-                      )}
-                    </Button>
+                    {(opp as any).isReal ? (
+                      <Button
+                        onClick={() => handleRegister(opp.id, !!(opp as any).is_registered)}
+                        variant={(opp as any).is_registered ? "outline" : "default"}
+                        className="w-full rounded-xl text-sm"
+                      >
+                        {(opp as any).is_registered ? (
+                          <><CheckCircle className="w-4 h-4 mr-1" /> Registered</>
+                        ) : (
+                          <>Register <ArrowRight className="w-4 h-4 ml-1" /></>
+                        )}
+                      </Button>
+                    ) : (
+                      <Link
+                        to={`/opportunities/${opp.id}`}
+                        className="mt-auto w-full py-2.5 rounded-xl text-sm font-semibold bg-primary text-primary-foreground flex items-center justify-center gap-2 group"
+                      >
+                        View Details <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </Link>
+                    )}
                   </motion.div>
                 </ScrollReveal>
               ))}

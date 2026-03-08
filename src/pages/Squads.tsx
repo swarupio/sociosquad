@@ -284,11 +284,12 @@ function SquadDetailView({ squadId }: { squadId: string }) {
 }
 
 export default function Squads() {
+  const { id: routeSquadId } = useParams();
   const { user, isReady } = useAuth();
   const { squads, loading, createSquad, joinByCode, leaveSquad } = useSquads();
   const [showCreate, setShowCreate] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
-  const [selectedSquad, setSelectedSquad] = useState<string | null>(null);
+  const [selectedSquad, setSelectedSquad] = useState<string | null>(routeSquadId || null);
 
   if (isReady && !user) return <Navigate to="/auth" replace />;
 

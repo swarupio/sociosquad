@@ -25,11 +25,7 @@ const Schedule = () => {
   const navigate = useNavigate();
   const now = new Date();
   const [currentTime, setCurrentTime] = useState(now);
-  const [view, setView] = useState<"Week" | "Month">("Week");
-
-  const [activeCategories, setActiveCategories] = useState<Record<CalendarCategory, boolean>>({
-    "Personal Calendar": true, "SocioSquad Events": true, "NSS Camps": true, "Urgent Relief": true,
-  });
+  const [activeCategories, setActiveCategories] = useState<Record<string, boolean>>({});
 
   const {
     loading, rawEvents, tasks,

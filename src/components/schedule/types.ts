@@ -22,6 +22,6 @@ export interface Task {
 }
 
 export interface CalendarToggle {
-  label: CalendarCategory;
+  label: string;
   color: string;
 }

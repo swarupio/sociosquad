@@ -1,11 +1,11 @@
-import { Brain, Map, Trophy, Zap, Shield, Users, ArrowRight } from "lucide-react";
+import { BarChart3, Map, Trophy, Zap, Shield, Users, ArrowRight } from "lucide-react";
 import ScrollReveal from "./ScrollReveal";
 
 const features = [
   {
-    icon: Brain,
-    title: "AI Command Dashboard",
-    description: "Track your weekly impact with smart charts, skill radar, and personalized growth insights.",
+    icon: BarChart3,
+    title: "Impact Analytics Dashboard",
+    description: "Track your weekly volunteering impact with interactive charts, skill radars, and personal growth insights.",
     iconBg: "bg-primary/10",
     iconColor: "text-primary",
   },

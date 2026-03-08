@@ -231,13 +231,7 @@ const Auth = () => {
 
               {/* Sign Up */}
               <TabsContent value="signup">
-                {signUpSuccess ? (
-                  <div className="text-center space-y-3 py-6">
-                    <div className="text-3xl">📧</div>
-                    <p className="text-foreground font-semibold">Check your email!</p>
-                    <p className="text-muted-foreground text-sm">We've sent a confirmation link to <strong>{signUpEmail}</strong>. Click it to activate your account.</p>
-                  </div>
-                ) : (
+                {(
                   <form onSubmit={handleSignUp} className="space-y-4">
                     <div>
                       <div className="relative">

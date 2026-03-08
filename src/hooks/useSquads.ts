@@ -133,11 +133,18 @@ export function useSquads() {
   return { squads, loading, createSquad, joinByCode, leaveSquad, refetch: fetchSquads };
 }
 
+export interface MemberContribution {
+  user_id: string;
+  contribution: number;
+  profile?: { full_name: string | null; avatar_url: string | null };
+}
+
 export function useSquadDetail(squadId: string | undefined) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [members, setMembers] = useState<SquadMember[]>([]);
-  const [challenges, setChallenges] = useState<SquadChallenge[]>([]);
+  const [challenges, setChallenges] = useState<(SquadChallenge & { live_progress: number })[]>([]);
+  const [contributions, setContributions] = useState<Record<string, MemberContribution[]>>({});
   const [squad, setSquad] = useState<Squad | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -152,18 +159,51 @@ export function useSquadDetail(squadId: string | undefined) {
     ]);
 
     if (squadRes.data) setSquad(squadRes.data as any);
+    
+    let profilesMap: Record<string, { full_name: string | null; avatar_url: string | null }> = {};
     if (membersRes.data) {
-      // Fetch profiles for members
       const userIds = membersRes.data.map((m: any) => m.user_id);
       const { data: profiles } = await supabase.from("profiles").select("user_id, full_name, avatar_url").in("user_id", userIds);
       
+      (profiles || []).forEach((p: any) => { profilesMap[p.user_id] = p; });
+      
       const enriched = membersRes.data.map((m: any) => ({
         ...m,
-        profile: (profiles || []).find((p: any) => p.user_id === m.user_id) || null,
+        profile: profilesMap[m.user_id] || null,
       }));
       setMembers(enriched);
     }
-    if (challengesRes.data) setChallenges(challengesRes.data as any);
+
+    // Fetch auto-calculated progress for each challenge
+    if (challengesRes.data && challengesRes.data.length > 0) {
+      const challengesWithProgress = await Promise.all(
+        challengesRes.data.map(async (c: any) => {
+          const { data: progressData } = await supabase.rpc("get_challenge_progress", { challenge_id: c.id });
+          return { ...c, live_progress: (progressData as number) || 0 };
+        })
+      );
+      setChallenges(challengesWithProgress);
+
+      // Fetch per-member contributions for each challenge
+      const contribs: Record<string, MemberContribution[]> = {};
+      await Promise.all(
+        challengesRes.data.map(async (c: any) => {
+          const { data } = await supabase.rpc("get_member_contributions", {
+            p_squad_id: squadId,
+            p_unit: c.unit,
+            p_since: c.created_at,
+          });
+          contribs[c.id] = ((data as any[]) || []).map((d: any) => ({
+            ...d,
+            profile: profilesMap[d.user_id] || null,
+          }));
+        })
+      );
+      setContributions(contribs);
+    } else {
+      setChallenges([]);
+    }
+
     setLoading(false);
   }, [squadId, user]);
 
@@ -182,5 +222,5 @@ export function useSquadDetail(squadId: string | undefined) {
     fetchDetail();
   };
 
-  return { squad, members, challenges, loading, createChallenge, refetch: fetchDetail };
+  return { squad, members, challenges, contributions, loading, createChallenge, refetch: fetchDetail };
 }

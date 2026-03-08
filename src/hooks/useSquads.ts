@@ -199,7 +199,22 @@ export function useSquadDetail(squadId: string | undefined) {
         profile: profilesMap[m.user_id] || null,
       }));
       setMembers(enriched);
+
+      // Check if current user is leader
+      setIsLeader(enriched.some((m: any) => m.user_id === user.id && m.role === "leader"));
     }
+
+    // Fetch activity logs
+    const { data: logs } = await supabase
+      .from("squad_activity_logs")
+      .select("*")
+      .eq("squad_id", squadId)
+      .order("created_at", { ascending: false });
+
+    setActivityLogs(((logs as any[]) || []).map((l: any) => ({
+      ...l,
+      profile: profilesMap[l.user_id] || null,
+    })));
 
     // Fetch auto-calculated progress for each challenge
     if (challengesRes.data && challengesRes.data.length > 0) {
@@ -211,7 +226,6 @@ export function useSquadDetail(squadId: string | undefined) {
       );
       setChallenges(challengesWithProgress);
 
-      // Fetch per-member contributions for each challenge
       const contribs: Record<string, MemberContribution[]> = {};
       await Promise.all(
         challengesRes.data.map(async (c: any) => {
@@ -249,5 +263,32 @@ export function useSquadDetail(squadId: string | undefined) {
     fetchDetail();
   };
 
-  return { squad, members, challenges, contributions, loading, createChallenge, refetch: fetchDetail };
+  const submitActivity = async (challengeId: string, description: string, value: number) => {
+    if (!user || !squadId) return;
+    const { error } = await supabase.from("squad_activity_logs").insert({
+      squad_id: squadId, challenge_id: challengeId, user_id: user.id, description, value,
+    });
+    if (error) {
+      toast({ title: "Error submitting activity", variant: "destructive" });
+      return;
+    }
+    toast({ title: "Activity submitted for approval ✅" });
+    fetchDetail();
+  };
+
+  const reviewActivity = async (logId: string, approve: boolean) => {
+    if (!user) return;
+    const { error } = await supabase
+      .from("squad_activity_logs")
+      .update({ status: approve ? "approved" : "rejected", reviewed_by: user.id, reviewed_at: new Date().toISOString() })
+      .eq("id", logId);
+    if (error) {
+      toast({ title: "Error reviewing activity", variant: "destructive" });
+      return;
+    }
+    toast({ title: approve ? "Activity approved! ✅" : "Activity rejected" });
+    fetchDetail();
+  };
+
+  return { squad, members, challenges, contributions, activityLogs, isLeader, loading, createChallenge, submitActivity, reviewActivity, refetch: fetchDetail };
 }

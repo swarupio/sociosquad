@@ -5,12 +5,19 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useOrganization";
 
-const navLinks = [
+const volunteerNavLinks = [
   { label: "Explore", to: "/opportunities" },
   { label: "Schedule", to: "/schedule" },
   { label: "Leaderboard", to: "/leaderboard" },
   { label: "Community", to: "/community" },
   { label: "Squads", to: "/squads" },
+];
+
+const orgNavLinks = [
+  { label: "Explore", to: "/opportunities" },
+  { label: "Schedule", to: "/schedule" },
+  { label: "Leaderboard", to: "/leaderboard" },
+  { label: "Community", to: "/community" },
 ];
 
 const Navbar = () => {
@@ -50,7 +57,7 @@ const Navbar = () => {
         <Link to="/" className="text-xl font-display font-bold text-primary">SocioSquad</Link>
 
         <div className="hidden md:flex items-center gap-8">
-          {navLinks.map((item) => (
+          {(isOrg ? orgNavLinks : volunteerNavLinks).map((item) => (
             <Link
               key={item.label}
               to={item.to}
@@ -85,28 +92,7 @@ const Navbar = () => {
                     <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                   </div>
                   <div className="py-1">
-                    <Link
-                      to="/dashboard"
-                      onClick={() => setDropdownOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors"
-                    >
-                      <LayoutDashboard className="w-4 h-4 text-muted-foreground" /> Dashboard
-                    </Link>
-                    <Link
-                      to="/profile"
-                      onClick={() => setDropdownOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors"
-                    >
-                      <UserIcon className="w-4 h-4 text-muted-foreground" /> Profile
-                    </Link>
-                    <Link
-                      to="/portfolio"
-                      onClick={() => setDropdownOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors"
-                    >
-                      <Award className="w-4 h-4 text-muted-foreground" /> Impact Portfolio
-                    </Link>
-                    {isOrg && (
+                    {isOrg ? (
                       <Link
                         to="/ngo/dashboard"
                         onClick={() => setDropdownOpen(false)}
@@ -114,7 +100,31 @@ const Navbar = () => {
                       >
                         <Building2 className="w-4 h-4 text-muted-foreground" /> NGO Dashboard
                       </Link>
+                    ) : (
+                      <>
+                        <Link
+                          to="/dashboard"
+                          onClick={() => setDropdownOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors"
+                        >
+                          <LayoutDashboard className="w-4 h-4 text-muted-foreground" /> Dashboard
+                        </Link>
+                        <Link
+                          to="/portfolio"
+                          onClick={() => setDropdownOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors"
+                        >
+                          <Award className="w-4 h-4 text-muted-foreground" /> Impact Portfolio
+                        </Link>
+                      </>
                     )}
+                    <Link
+                      to="/profile"
+                      onClick={() => setDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors"
+                    >
+                      <UserIcon className="w-4 h-4 text-muted-foreground" /> Profile
+                    </Link>
                   </div>
                   <div className="border-t border-border py-1">
                     <button
@@ -156,7 +166,7 @@ const Navbar = () => {
           animate={{ opacity: 1, y: 0 }}
           className="md:hidden bg-card border-b border-border p-6 space-y-4"
         >
-          {navLinks.map((item) => (
+          {(isOrg ? orgNavLinks : volunteerNavLinks).map((item) => (
             <Link
               key={item.label}
               to={item.to}

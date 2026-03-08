@@ -19,7 +19,7 @@ interface Post {
 
 const trending = [
   { tag: "#ClimateAction", posts: "1.2k" },
-  { tag: "#CodeForGood", posts: "890" },
+  { tag: "#EducationForAll", posts: "890" },
   { tag: "#YouthMentorship", posts: "654" },
   { tag: "#EmergencyRelief", posts: "432" },
 ];

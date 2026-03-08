@@ -92,7 +92,7 @@ export function useScheduleData() {
       description: e.description,
       registered: e.registered,
     }));
-    const { data } = await supabase.from("user_events").insert(rows).select();
+    const { data } = await supabase.from("user_events").insert(rows as any).select();
     if (data) {
       setRawEvents(data.map(mapDbEvent));
     }

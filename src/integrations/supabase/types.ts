@@ -109,6 +109,7 @@ export type Database = {
           end_min: number
           icon_name: string
           id: string
+          registered: boolean
           start_hour: number
           start_min: number
           title: string
@@ -127,6 +128,7 @@ export type Database = {
           end_min?: number
           icon_name?: string
           id?: string
+          registered?: boolean
           start_hour: number
           start_min?: number
           title: string
@@ -145,6 +147,7 @@ export type Database = {
           end_min?: number
           icon_name?: string
           id?: string
+          registered?: boolean
           start_hour?: number
           start_min?: number
           title?: string

@@ -19,6 +19,7 @@ export interface CalEvent {
   badge?: string;
   category: CalendarCategory;
   description: string;
+  registered: boolean;
 }
 
 export interface Task {

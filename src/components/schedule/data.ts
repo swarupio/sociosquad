@@ -53,6 +53,7 @@ export interface RawEvent {
   badge?: string;
   category: CalendarCategory;
   description: string;
+  registered: boolean;
 }
 
 export const initialEvents: RawEvent[] = [
@@ -65,6 +66,7 @@ export const initialEvents: RawEvent[] = [
     iconName: "Waves",
     category: "Personal Calendar",
     description: "Join us for a community beach cleanup drive along Juhu Beach. Bring gloves and water bottles.",
+    registered: true,
   },
   {
     id: "e2",
@@ -76,6 +78,7 @@ export const initialEvents: RawEvent[] = [
     badge: "Skills Match ✨",
     category: "SocioSquad Events",
     description: "One-on-one mentorship session with a local student. Matched based on your skills.",
+    registered: false,
   },
   {
     id: "e3",
@@ -86,6 +89,7 @@ export const initialEvents: RawEvent[] = [
     iconName: "Utensils",
     category: "Urgent Relief",
     description: "Help sort and package food items for distribution to underprivileged communities.",
+    registered: false,
   },
   {
     id: "e4",
@@ -96,6 +100,7 @@ export const initialEvents: RawEvent[] = [
     iconName: "TreePine",
     category: "NSS Camps",
     description: "Pre-event briefing for the upcoming tree plantation drive at Aarey Colony.",
+    registered: true,
   },
   {
     id: "e5",
@@ -106,5 +111,6 @@ export const initialEvents: RawEvent[] = [
     iconName: "Bus",
     category: "NSS Camps",
     description: "Bus travel to the 7-day NSS camp at Palghar. Meet at college gate by 3:45 PM.",
+    registered: false,
   },
 ];

@@ -31,7 +31,7 @@ const Schedule = () => {
 
   const {
     loading, rawEvents, tasks,
-    toggleTask, addTask, editTask, deleteTask, deleteEvent, toggleRegistration,
+    toggleTask, addTask, editTask, deleteTask, deleteEvent, toggleRegistration, changeCategory,
   } = useScheduleData();
 
   const events: CalEvent[] = useMemo(
@@ -45,6 +45,10 @@ const Schedule = () => {
     "SocioSquad Events": "bg-amber-400",
     "NSS Camps": "bg-emerald-400",
     "Urgent Relief": "bg-rose-400",
+    "Environment": "bg-green-400",
+    "Education": "bg-indigo-400",
+    "Healthcare": "bg-pink-400",
+    "Community": "bg-orange-400",
   };
   const FALLBACK_COLORS = ["bg-violet-400", "bg-cyan-400", "bg-orange-400", "bg-fuchsia-400", "bg-lime-400"];
 
@@ -430,7 +434,15 @@ const Schedule = () => {
         )}
       </main>
 
-      <EventDetailModal event={selectedEvent} open={modalOpen} onClose={() => setModalOpen(false)} onDelete={deleteEvent} onToggleRegistration={toggleRegistration} />
+      <EventDetailModal
+        event={selectedEvent}
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onDelete={deleteEvent}
+        onToggleRegistration={toggleRegistration}
+        onChangeCategory={changeCategory}
+        availableCategories={dynamicCalendars.map((c) => c.label)}
+      />
     </div>
   );
 };

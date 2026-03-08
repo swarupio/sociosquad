@@ -25,25 +25,27 @@ const mapOpportunityToEvent = (opp: any, isRegistered: boolean): RawEvent => {
   const startTime = `${opp.date}T${opp.start_time || "09:00:00"}`;
   const endTime = `${opp.date}T${opp.end_time || "17:00:00"}`;
 
-  // Pick color based on category
-  const colorMap: Record<string, { color: string; bg: string; border: string }> = {
-    Environment: { color: "text-emerald-900", bg: "bg-emerald-100", border: "border-l-emerald-500" },
-    Education: { color: "text-indigo-900", bg: "bg-indigo-100", border: "border-l-indigo-500" },
-    Healthcare: { color: "text-rose-900", bg: "bg-rose-100", border: "border-l-rose-500" },
-    Health: { color: "text-rose-900", bg: "bg-rose-100", border: "border-l-rose-500" },
-    Community: { color: "text-amber-900", bg: "bg-amber-100", border: "border-l-amber-500" },
+  // Pick color based on opportunity category
+  const colorMap: Record<string, { color: string; bg: string; border: string; calCategory: string }> = {
+    Environment: { color: "text-emerald-900", bg: "bg-emerald-100", border: "border-l-emerald-500", calCategory: "Environment" },
+    Education: { color: "text-indigo-900", bg: "bg-indigo-100", border: "border-l-indigo-500", calCategory: "Education" },
+    Healthcare: { color: "text-rose-900", bg: "bg-rose-100", border: "border-l-rose-500", calCategory: "Healthcare" },
+    Health: { color: "text-rose-900", bg: "bg-rose-100", border: "border-l-rose-500", calCategory: "Healthcare" },
+    Community: { color: "text-amber-900", bg: "bg-amber-100", border: "border-l-amber-500", calCategory: "Community" },
   };
-  const colors = colorMap[opp.category] || { color: "text-sky-900", bg: "bg-sky-100", border: "border-l-sky-500" };
+  const match = colorMap[opp.category] || { color: "text-sky-900", bg: "bg-sky-100", border: "border-l-sky-500", calCategory: opp.category || "SocioSquad Events" };
 
   return {
     id: `opp-${opp.id}`,
     title: opp.title,
     startTime,
     endTime,
-    ...colors,
+    color: match.color,
+    bg: match.bg,
+    border: match.border,
     iconName: "Users",
     badge: opp.organization?.name ? `${opp.organization.name}` : "NGO Event",
-    category: "SocioSquad Events" as CalendarCategory,
+    category: match.calCategory as CalendarCategory,
     description: opp.description || "",
     registered: isRegistered,
   };
@@ -273,6 +275,15 @@ export function useScheduleData() {
     }
   }, [userId, rawEvents, oppEvents]);
 
+  const changeCategory = useCallback(async (id: string, newCategory: string) => {
+    setRawEvents((prev) =>
+      prev.map((e) => e.id === id ? { ...e, category: newCategory as CalendarCategory } : e)
+    );
+    if (userId) {
+      await supabase.from("user_events").update({ category: newCategory }).eq("id", id);
+    }
+  }, [userId]);
+
   return {
     loading,
     userId,
@@ -284,5 +295,6 @@ export function useScheduleData() {
     deleteTask,
     deleteEvent,
     toggleRegistration,
+    changeCategory,
   };
 }

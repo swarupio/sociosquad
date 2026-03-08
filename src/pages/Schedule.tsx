@@ -38,6 +38,35 @@ const Schedule = () => {
     [rawEvents]
   );
 
+  // Derive calendar toggles dynamically from events
+  const CATEGORY_COLORS: Record<string, string> = {
+    "Personal Calendar": "bg-sky-400",
+    "SocioSquad Events": "bg-amber-400",
+    "NSS Camps": "bg-emerald-400",
+    "Urgent Relief": "bg-rose-400",
+  };
+  const FALLBACK_COLORS = ["bg-violet-400", "bg-cyan-400", "bg-orange-400", "bg-fuchsia-400", "bg-lime-400"];
+
+  const dynamicCalendars: CalendarToggle[] = useMemo(() => {
+    const categories = [...new Set(events.map((e) => e.category))];
+    let fallbackIdx = 0;
+    return categories.map((cat) => ({
+      label: cat,
+      color: CATEGORY_COLORS[cat] || FALLBACK_COLORS[fallbackIdx++ % FALLBACK_COLORS.length],
+    }));
+  }, [events]);
+
+  // Auto-enable new categories
+  useEffect(() => {
+    setActiveCategories((prev) => {
+      const next = { ...prev };
+      dynamicCalendars.forEach((cal) => {
+        if (!(cal.label in next)) next[cal.label] = true;
+      });
+      return next;
+    });
+  }, [dynamicCalendars]);
+
   const [selectedEvent, setSelectedEvent] = useState<CalEvent | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [activeDate, setActiveDate] = useState(new Date());

@@ -50,8 +50,8 @@ const Opportunities = () => {
     end_time: o.end_time,
   }));
 
-  // Merge: real opps first, then hardcoded
-  const allOpps = [...realOpps, ...hardcodedOpps.map(o => ({ ...o, isReal: false, is_registered: false, registration_count: 0, max_volunteers: o.spots, description: "", start_time: "", end_time: "" }))];
+  // Use only real DB opportunities
+  const allOpps = realOpps;
 
   const filtered = allOpps.filter((o) => {
     const matchesSearch = o.title.toLowerCase().includes(search.toLowerCase()) || o.org.toLowerCase().includes(search.toLowerCase());

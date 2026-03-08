@@ -9,6 +9,7 @@ const navLinks = [
   { label: "Schedule", to: "/schedule" },
   { label: "Leaderboard", to: "/leaderboard" },
   { label: "Community", to: "/community" },
+  { label: "Squads", to: "/squads" },
 ];
 
 const Navbar = () => {

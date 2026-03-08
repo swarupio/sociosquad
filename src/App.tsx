@@ -39,6 +39,8 @@ const App = () => (
           <Route path="/schedule" element={<Schedule />} />
           <Route path="/squads" element={<Squads />} />
           <Route path="/squads/:id" element={<Squads />} />
+          <Route path="/ngo/register" element={<NGORegister />} />
+          <Route path="/ngo/dashboard" element={<NGODashboard />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

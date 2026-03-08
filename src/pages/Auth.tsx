@@ -14,7 +14,7 @@ const Auth = () => {
   const [signUpEmail, setSignUpEmail] = useState("");
   const [signUpPassword, setSignUpPassword] = useState("");
   const [signUpName, setSignUpName] = useState("");
-
+  const [signUpRole, setSignUpRole] = useState<"volunteer" | "organization">("volunteer");
   const [signInErrors, setSignInErrors] = useState<{ email?: string; password?: string }>({});
   const [signUpErrors, setSignUpErrors] = useState<{ name?: string; email?: string; password?: string }>({});
   const [signInApiError, setSignInApiError] = useState("");

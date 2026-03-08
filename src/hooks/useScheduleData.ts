@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { CalendarCategory, Task } from "@/components/schedule/types";
 import type { RawEvent } from "@/components/schedule/data";
 import { initialEvents, initialTasks } from "@/components/schedule/data";
+import { staticOpportunities } from "@/data/staticOpportunities";
 
 const mapDbEvent = (e: any): RawEvent => ({
   id: e.id,

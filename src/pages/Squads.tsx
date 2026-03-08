@@ -172,9 +172,43 @@ function SquadCard({ squad, onLeave }: { squad: any; onLeave: (id: string) => vo
   );
 }
 
+function SubmitActivityModal({ open, onClose, challenges, onSubmit }: { open: boolean; onClose: () => void; challenges: any[]; onSubmit: (challengeId: string, desc: string, value: number) => void }) {
+  const [challengeId, setChallengeId] = useState(challenges[0]?.id || "");
+  const [desc, setDesc] = useState("");
+  const [value, setValue] = useState("1");
+
+  if (!open) return null;
+  const selectedChallenge = challenges.find((c: any) => c.id === challengeId);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-card border border-border rounded-3xl p-8 w-full max-w-md mx-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-2xl font-display font-bold text-foreground mb-6">Log Activity</h3>
+        <p className="text-xs text-muted-foreground mb-4">Your activity will be submitted for leader approval before counting toward progress.</p>
+        
+        <select value={challengeId} onChange={(e) => setChallengeId(e.target.value)} className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm mb-3">
+          {challenges.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
+        </select>
+        <Input placeholder="What did you do?" value={desc} onChange={(e) => setDesc(e.target.value)} className="mb-3 rounded-xl" />
+        <div className="flex items-center gap-2 mb-6">
+          <Input type="number" min="1" placeholder="Amount" value={value} onChange={(e) => setValue(e.target.value)} className="rounded-xl flex-1" />
+          <span className="text-sm text-muted-foreground">{selectedChallenge?.unit || "units"}</span>
+        </div>
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl">Cancel</Button>
+          <Button onClick={() => { if (desc.trim() && challengeId) { onSubmit(challengeId, desc, parseInt(value) || 1); onClose(); setDesc(""); setValue("1"); } }} className="flex-1 rounded-xl" disabled={!desc.trim()}>
+            Submit <Send className="w-4 h-4 ml-1" />
+          </Button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 function SquadDetailView({ squadId, onDelete, onBack }: { squadId: string; onDelete: (id: string) => void; onBack: () => void }) {
-  const { squad, members, challenges, contributions, loading, createChallenge } = useSquadDetail(squadId);
+  const { squad, members, challenges, contributions, activityLogs, isLeader, loading, createChallenge, submitActivity, reviewActivity } = useSquadDetail(squadId);
   const [showChallenge, setShowChallenge] = useState(false);
+  const [showSubmit, setShowSubmit] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();

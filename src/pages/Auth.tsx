@@ -86,7 +86,7 @@ const Auth = () => {
       {/* Back to Home link */}
       <Link
         to="/"
-        className="absolute top-6 left-6 z-20 inline-flex items-center gap-2 text-sm text-navy-foreground/70 lg:text-navy-foreground/70 hover:text-navy-foreground transition-colors"
+        className="absolute top-4 left-4 z-20 inline-flex items-center gap-2 text-sm text-foreground/70 hover:text-foreground transition-colors bg-card/80 backdrop-blur-sm px-3 py-1.5 rounded-full lg:bg-transparent lg:backdrop-blur-none lg:px-0 lg:py-0 lg:top-6 lg:left-6 lg:text-navy-foreground/70 lg:hover:text-navy-foreground"
       >
         <ArrowLeft className="w-4 h-4" />
         Back to Home

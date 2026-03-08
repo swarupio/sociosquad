@@ -16,6 +16,7 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer,
 } from "recharts";
 import ImpactCertificate from "@/components/portfolio/ImpactCertificate";
+import { generateVolunteerResume } from "@/components/portfolio/VolunteerResumePDF";
 import { Loader2 } from "lucide-react";
 
 const skillData = [

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Search, Filter, MapPin, Clock, Users, ArrowRight, List, Map, Timer, Building2, CheckCircle } from "lucide-react";
-import Navbar from "@/components/Navbar";
+import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ScrollReveal from "@/components/ScrollReveal";

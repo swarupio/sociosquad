@@ -166,7 +166,7 @@ function CreateChallengeModal({ open, onClose, onCreate }: { open: boolean; onCl
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground">{ev.title}</p>
-                      <p className="text-[11px] text-muted-foreground">{DAYS[ev.day]} • {ev.startHour}:{String(ev.startMin).padStart(2, "0")} - {ev.endHour}:{String(ev.endMin).padStart(2, "0")} • {ev.category}</p>
+                      <p className="text-[11px] text-muted-foreground">{(() => { const s = new Date(ev.startTime); const e = new Date(ev.endTime); return `${s.toLocaleDateString("default", { weekday: "short" })} • ${String(s.getHours()).padStart(2,"0")}:${String(s.getMinutes()).padStart(2,"0")} - ${String(e.getHours()).padStart(2,"0")}:${String(e.getMinutes()).padStart(2,"0")}`; })()} • {ev.category}</p>
                     </div>
                   </button>
                 );

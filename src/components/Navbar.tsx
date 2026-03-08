@@ -163,7 +163,7 @@ const Navbar = () => {
           animate={{ opacity: 1, y: 0 }}
           className="md:hidden bg-card border-b border-border p-6 space-y-4"
         >
-          {navLinks.map((item) => (
+          {(isOrg ? orgNavLinks : volunteerNavLinks).map((item) => (
             <Link
               key={item.label}
               to={item.to}

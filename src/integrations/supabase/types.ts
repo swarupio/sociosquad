@@ -70,6 +70,7 @@ export type Database = {
       }
       squad_challenges: {
         Row: {
+          category: string
           created_at: string
           created_by: string
           current_value: number
@@ -83,6 +84,7 @@ export type Database = {
           unit: string
         }
         Insert: {
+          category?: string
           created_at?: string
           created_by: string
           current_value?: number
@@ -96,6 +98,7 @@ export type Database = {
           unit?: string
         }
         Update: {
+          category?: string
           created_at?: string
           created_by?: string
           current_value?: number
@@ -341,7 +344,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_challenge_progress: {
+        Args: { challenge_id: string }
+        Returns: number
+      }
+      get_member_contributions: {
+        Args: { p_since?: string; p_squad_id: string; p_unit: string }
+        Returns: {
+          contribution: number
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

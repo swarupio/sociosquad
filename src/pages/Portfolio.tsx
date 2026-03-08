@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import {
   Award, Clock, Target, Flame, Zap, Share2, Download, ExternalLink,
   Heart, Shield, Star, MapPin, Linkedin, Copy, Check, Trophy, TrendingUp,
+  FileText,
 } from "lucide-react";
 import { useState, useRef } from "react";
 import { Navigate, Link } from "react-router-dom";

@@ -31,7 +31,7 @@ const Schedule = () => {
 
   const {
     loading, rawEvents, tasks,
-    toggleTask, addTask, editTask, deleteTask, deleteEvent, toggleRegistration,
+    toggleTask, addTask, editTask, deleteTask, deleteEvent, toggleRegistration, changeCategory,
   } = useScheduleData();
 
   const events: CalEvent[] = useMemo(

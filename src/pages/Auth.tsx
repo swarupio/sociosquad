@@ -21,7 +21,7 @@ const Auth = () => {
   const [signUpApiError, setSignUpApiError] = useState("");
   const [signInLoading, setSignInLoading] = useState(false);
   const [signUpLoading, setSignUpLoading] = useState(false);
-  const [signUpSuccess, setSignUpSuccess] = useState(false);
+  
 
   const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
@@ -68,7 +68,6 @@ const Auth = () => {
       password: signUpPassword,
       options: {
         data: { full_name: signUpName.trim() },
-        emailRedirectTo: window.location.origin,
       },
     });
     setSignUpLoading(false);
@@ -76,7 +75,7 @@ const Auth = () => {
     if (error) {
       setSignUpApiError(error.message);
     } else {
-      setSignUpSuccess(true);
+      navigate("/dashboard");
     }
   };
 
@@ -232,13 +231,6 @@ const Auth = () => {
 
               {/* Sign Up */}
               <TabsContent value="signup">
-                {signUpSuccess ? (
-                  <div className="text-center space-y-3 py-6">
-                    <div className="text-3xl">📧</div>
-                    <p className="text-foreground font-semibold">Check your email!</p>
-                    <p className="text-muted-foreground text-sm">We've sent a confirmation link to <strong>{signUpEmail}</strong>. Click it to activate your account.</p>
-                  </div>
-                ) : (
                   <form onSubmit={handleSignUp} className="space-y-4">
                     <div>
                       <div className="relative">
@@ -299,7 +291,6 @@ const Auth = () => {
                       {signUpLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Create Account <ArrowRight className="w-4 h-4" /></>}
                     </motion.button>
                   </form>
-                )}
               </TabsContent>
             </Tabs>
 

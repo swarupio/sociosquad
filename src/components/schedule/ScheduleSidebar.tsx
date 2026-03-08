@@ -4,14 +4,15 @@ import {
   Plus, Pencil, Trash2, X,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { buildMiniCal, calendars } from "./data";
-import type { CalendarCategory, Task } from "./types";
+import { buildMiniCal } from "./data";
+import type { CalendarCategory, CalendarToggle, Task } from "./types";
 
 interface Props {
   activeDate: Date;
   onSelectDate: (date: Date) => void;
-  activeCategories: Record<CalendarCategory, boolean>;
-  onToggleCategory: (label: CalendarCategory) => void;
+  activeCategories: Record<string, boolean>;
+  onToggleCategory: (label: string) => void;
+  calendars: CalendarToggle[];
   tasks: Record<"today" | "tomorrow", Task[]>;
   onToggleTask: (period: "today" | "tomorrow", id: string) => void;
   onAddTask: (period: "today" | "tomorrow", text: string) => void;
@@ -22,6 +23,7 @@ interface Props {
 const ScheduleSidebar = ({
   activeDate, onSelectDate,
   activeCategories, onToggleCategory,
+  calendars,
   tasks, onToggleTask, onAddTask, onEditTask, onDeleteTask,
 }: Props) => {
   const [miniMonth, setMiniMonth] = useState(activeDate.getMonth());

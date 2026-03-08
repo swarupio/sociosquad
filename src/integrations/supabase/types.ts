@@ -68,6 +68,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_activities: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          target: string
+          user_id: string
+          xp: number
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          target: string
+          user_id: string
+          xp?: number
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          target?: string
+          user_id?: string
+          xp?: number
+        }
+        Relationships: []
+      }
       user_events: {
         Row: {
           badge: string | null
@@ -122,6 +149,48 @@ export type Database = {
           start_min?: number
           title?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_stats: {
+        Row: {
+          created_at: string
+          day_streak: number
+          id: string
+          impact_score: number
+          level: number
+          tasks_completed: number
+          total_hours: number
+          updated_at: string
+          user_id: string
+          xp: number
+          xp_max: number
+        }
+        Insert: {
+          created_at?: string
+          day_streak?: number
+          id?: string
+          impact_score?: number
+          level?: number
+          tasks_completed?: number
+          total_hours?: number
+          updated_at?: string
+          user_id: string
+          xp?: number
+          xp_max?: number
+        }
+        Update: {
+          created_at?: string
+          day_streak?: number
+          id?: string
+          impact_score?: number
+          level?: number
+          tasks_completed?: number
+          total_hours?: number
+          updated_at?: string
+          user_id?: string
+          xp?: number
+          xp_max?: number
         }
         Relationships: []
       }

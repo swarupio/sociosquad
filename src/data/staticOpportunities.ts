@@ -1,0 +1,106 @@
+/** Static/showcase opportunities shown across both Opportunities and Schedule pages */
+export interface StaticOpportunity {
+  id: string;
+  title: string;
+  org: string;
+  location: string;
+  category: string;
+  spots: number;
+  date: string;       // ISO date for calendar: "2026-03-15"
+  dateLabel: string;   // Display label: "Mar 15, 2026"
+  startTime: string;   // "09:00:00"
+  endTime: string;     // "11:00:00"
+  timeLabel: string;
+  timeHours: number;
+  tags: string[];
+  urgency: string;
+  description: string;
+}
+
+export const staticOpportunities: StaticOpportunity[] = [
+  {
+    id: "h1",
+    title: "Versova Beach Cleanup",
+    org: "Clean Coast Mumbai",
+    location: "Versova Beach, Andheri West, Mumbai",
+    category: "Environment",
+    spots: 30,
+    date: "2026-03-15",
+    dateLabel: "Mar 15, 2026",
+    startTime: "08:00:00",
+    endTime: "10:00:00",
+    timeLabel: "2 hrs",
+    timeHours: 2,
+    tags: ["Environment", "Outdoor"],
+    urgency: "High",
+    description: "Join us for a community beach cleanup drive along Versova Beach. Bring gloves and water bottles.",
+  },
+  {
+    id: "h2",
+    title: "Tech Literacy for Kids",
+    org: "Future India Foundation",
+    location: "Indiranagar, Bangalore",
+    category: "Education",
+    spots: 15,
+    date: "2026-03-20",
+    dateLabel: "Mar 20, 2026",
+    startTime: "10:00:00",
+    endTime: "11:00:00",
+    timeLabel: "1 hr",
+    timeHours: 1,
+    tags: ["Education", "Tech"],
+    urgency: "Medium",
+    description: "Teach basic computer skills to underprivileged kids in Bangalore.",
+  },
+  {
+    id: "h3",
+    title: "Stray Animal Feeding Drive",
+    org: "Paws of Delhi",
+    location: "Hauz Khas Village, New Delhi",
+    category: "Community",
+    spots: 20,
+    date: "2026-03-27",
+    dateLabel: "Mar 27, 2026",
+    startTime: "09:00:00",
+    endTime: "12:00:00",
+    timeLabel: "3 hrs",
+    timeHours: 3,
+    tags: ["Animals", "Community"],
+    urgency: "High",
+    description: "Help feed and care for stray animals across Hauz Khas Village area.",
+  },
+  {
+    id: "h4",
+    title: "Urban Tree Plantation",
+    org: "Green Yatra",
+    location: "Viman Nagar, Pune",
+    category: "Environment",
+    spots: 25,
+    date: "2026-04-05",
+    dateLabel: "Apr 5, 2026",
+    startTime: "08:00:00",
+    endTime: "12:00:00",
+    timeLabel: "4 hrs",
+    timeHours: 4,
+    tags: ["Environment", "Climate"],
+    urgency: "Medium",
+    description: "Plant trees across Viman Nagar to combat urban heat and pollution.",
+  },
+  {
+    id: "h5",
+    title: "Food Distribution for Seniors",
+    org: "Robin Hood Army",
+    location: "Salt Lake City, Kolkata",
+    category: "Healthcare",
+    spots: 12,
+    date: "2026-04-12",
+    dateLabel: "Apr 12, 2026",
+    startTime: "11:00:00",
+    endTime: "13:00:00",
+    timeLabel: "2 hrs",
+    timeHours: 2,
+    tags: ["Community", "Food"],
+    urgency: "High",
+    description: "Distribute meals and essential supplies to elderly residents in Salt Lake City.",
+  },
+];

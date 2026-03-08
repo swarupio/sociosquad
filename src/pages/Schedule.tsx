@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import EventDetailModal from "@/components/schedule/EventDetailModal";
 import ScheduleSidebar from "@/components/schedule/ScheduleSidebar";
-import type { CalEvent, CalendarCategory } from "@/components/schedule/types";
+import type { CalEvent, CalendarCategory, CalendarToggle } from "@/components/schedule/types";
 import { DAYS, HOURS, pad, getWeekStart, formatTime } from "@/components/schedule/data";
 import { useScheduleData } from "@/hooks/useScheduleData";
 

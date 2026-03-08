@@ -35,7 +35,7 @@ const Footer = () => (
         <div>
           <Link to="/" className="font-display font-bold text-xl">SocioSquad</Link>
           <p className="text-sm leading-relaxed mt-4 font-body opacity-70">
-            AI-powered volunteering platform connecting skills to causes that matter most.
+            Community-driven volunteering platform connecting skills to causes that matter most.
           </p>
         </div>
         {footerLinks.map((col) => (

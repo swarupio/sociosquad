@@ -73,9 +73,9 @@ export const initialEvents: RawEvent[] = [
     startHour: 13, startMin: 30, endHour: 15, endMin: 0,
     color: "text-amber-700", bg: "bg-amber-100", border: "border-l-amber-500",
     iconName: "Users",
-    badge: "AI Suggested Match",
+    badge: "Skills Match ✨",
     category: "SocioSquad Events",
-    description: "One-on-one mentorship session with a local student. AI matched based on your skills.",
+    description: "One-on-one mentorship session with a local student. Matched based on your skills.",
   },
   {
     id: "e3",

@@ -172,9 +172,10 @@ function SquadCard({ squad, onLeave }: { squad: any; onLeave: (id: string) => vo
   );
 }
 
-function SquadDetailView({ squadId }: { squadId: string }) {
+function SquadDetailView({ squadId, onDelete, onBack }: { squadId: string; onDelete: (id: string) => void; onBack: () => void }) {
   const { squad, members, challenges, contributions, loading, createChallenge } = useSquadDetail(squadId);
   const [showChallenge, setShowChallenge] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 

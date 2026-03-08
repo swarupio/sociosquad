@@ -3,6 +3,7 @@ import { ArrowRight, Menu, X, User as UserIcon, LogOut, LayoutDashboard, Award, 
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useOrganization";
 
 const navLinks = [
   { label: "Explore", to: "/opportunities" },

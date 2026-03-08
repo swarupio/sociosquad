@@ -26,7 +26,7 @@ const features = [
   {
     icon: Users,
     title: "Team Collaboration",
-    description: "Join team events, chat in real-time, and coordinate with fellow volunteers.",
+    description: "Join team events and coordinate with fellow volunteers.",
     iconBg: "bg-accent/10",
     iconColor: "text-accent",
   },

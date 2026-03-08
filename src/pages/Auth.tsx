@@ -231,7 +231,6 @@ const Auth = () => {
 
               {/* Sign Up */}
               <TabsContent value="signup">
-                {(
                   <form onSubmit={handleSignUp} className="space-y-4">
                     <div>
                       <div className="relative">

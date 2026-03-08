@@ -68,6 +68,118 @@ export type Database = {
         }
         Relationships: []
       }
+      squad_challenges: {
+        Row: {
+          created_at: string
+          created_by: string
+          current_value: number
+          description: string
+          ends_at: string | null
+          id: string
+          squad_id: string
+          status: string
+          target_value: number
+          title: string
+          unit: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          current_value?: number
+          description?: string
+          ends_at?: string | null
+          id?: string
+          squad_id: string
+          status?: string
+          target_value?: number
+          title: string
+          unit?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          current_value?: number
+          description?: string
+          ends_at?: string | null
+          id?: string
+          squad_id?: string
+          status?: string
+          target_value?: number
+          title?: string
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "squad_challenges_squad_id_fkey"
+            columns: ["squad_id"]
+            isOneToOne: false
+            referencedRelation: "squads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      squad_members: {
+        Row: {
+          id: string
+          joined_at: string
+          role: string
+          squad_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          joined_at?: string
+          role?: string
+          squad_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          joined_at?: string
+          role?: string
+          squad_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "squad_members_squad_id_fkey"
+            columns: ["squad_id"]
+            isOneToOne: false
+            referencedRelation: "squads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      squads: {
+        Row: {
+          avatar_emoji: string
+          created_at: string
+          created_by: string
+          description: string
+          id: string
+          invite_code: string
+          name: string
+        }
+        Insert: {
+          avatar_emoji?: string
+          created_at?: string
+          created_by: string
+          description?: string
+          id?: string
+          invite_code?: string
+          name: string
+        }
+        Update: {
+          avatar_emoji?: string
+          created_at?: string
+          created_by?: string
+          description?: string
+          id?: string
+          invite_code?: string
+          name?: string
+        }
+        Relationships: []
+      }
       user_activities: {
         Row: {
           action: string

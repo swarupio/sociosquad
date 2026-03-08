@@ -13,6 +13,7 @@ import Profile from "./pages/Profile";
 import Portfolio from "./pages/Portfolio";
 import Leaderboard from "./pages/Leaderboard";
 import Schedule from "./pages/Schedule";
+import Squads from "./pages/Squads";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,8 @@ const App = () => (
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/schedule" element={<Schedule />} />
+          <Route path="/squads" element={<Squads />} />
+          <Route path="/squads/:id" element={<Squads />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

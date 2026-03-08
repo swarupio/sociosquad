@@ -28,6 +28,14 @@ const Opportunities = () => {
   const [category, setCategory] = useState("All");
   const [timeFilter, setTimeFilter] = useState("All");
   const [view, setView] = useState<"grid" | "list">("grid");
+  const [isOrg, setIsOrg] = useState(false);
+
+  useEffect(() => {
+    if (!user) { setIsOrg(false); return; }
+    supabase.from("user_roles").select("role").eq("user_id", user.id).then(({ data }) => {
+      setIsOrg((data || []).some((r: any) => r.role === "organization"));
+    });
+  }, [user]);
 
   // Convert DB opportunities to display format
   const realOpps = dbOpps.map(o => ({

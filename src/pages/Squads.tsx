@@ -285,9 +285,16 @@ function SquadDetailView({ squadId, onDelete, onBack }: { squadId: string; onDel
             <h3 className="text-lg font-display font-bold text-foreground flex items-center gap-2">
               <Target className="w-5 h-5 text-primary" /> Challenges
             </h3>
-            <Button size="sm" onClick={() => setShowChallenge(true)} className="rounded-xl">
-              <Plus className="w-4 h-4 mr-1" /> New Challenge
-            </Button>
+            <div className="flex gap-2">
+              {challenges.length > 0 && (
+                <Button size="sm" variant="outline" onClick={() => setShowSubmit(true)} className="rounded-xl">
+                  <Send className="w-4 h-4 mr-1" /> Log Activity
+                </Button>
+              )}
+              <Button size="sm" onClick={() => setShowChallenge(true)} className="rounded-xl">
+                <Plus className="w-4 h-4 mr-1" /> New Challenge
+              </Button>
+            </div>
           </div>
 
           {challenges.length === 0 ? (

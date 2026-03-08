@@ -13,6 +13,7 @@ import Profile from "./pages/Profile";
 import Portfolio from "./pages/Portfolio";
 import Leaderboard from "./pages/Leaderboard";
 import Schedule from "./pages/Schedule";
+import Squads from "./pages/Squads";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();

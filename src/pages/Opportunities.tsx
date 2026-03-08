@@ -216,17 +216,26 @@ const Opportunities = () => {
                       </div>
                     )}
 
-                    <Button
-                      onClick={() => handleRegister(opp.id, !!(opp as any).is_registered)}
-                      variant={(opp as any).is_registered ? "outline" : "default"}
-                      className="w-full rounded-xl text-sm"
-                    >
-                      {(opp as any).is_registered ? (
-                        <><CheckCircle className="w-4 h-4 mr-1" /> Registered</>
-                      ) : (
-                        <>Register <ArrowRight className="w-4 h-4 ml-1" /></>
-                      )}
-                    </Button>
+                    {(opp as any).isReal ? (
+                      <Button
+                        onClick={() => handleRegister(opp.id, !!(opp as any).is_registered)}
+                        variant={(opp as any).is_registered ? "outline" : "default"}
+                        className="w-full rounded-xl text-sm"
+                      >
+                        {(opp as any).is_registered ? (
+                          <><CheckCircle className="w-4 h-4 mr-1" /> Registered</>
+                        ) : (
+                          <>Register <ArrowRight className="w-4 h-4 ml-1" /></>
+                        )}
+                      </Button>
+                    ) : (
+                      <Link
+                        to={`/opportunities/${opp.id}`}
+                        className="mt-auto w-full py-2.5 rounded-xl text-sm font-semibold bg-primary text-primary-foreground flex items-center justify-center gap-2 group"
+                      >
+                        View Details <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </Link>
+                    )}
                   </motion.div>
                 </ScrollReveal>
               ))}

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Home, CalendarDays, MessageSquare, Settings,
   ChevronLeft, ChevronRight, Sparkles, Clock,
-  TreePine, Utensils, Users, Waves, Bus, Loader2,
+  TreePine, Utensils, Users, Waves, Bus, Loader2, CheckCircle2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";

@@ -275,6 +275,15 @@ export function useScheduleData() {
     }
   }, [userId, rawEvents, oppEvents]);
 
+  const changeCategory = useCallback(async (id: string, newCategory: string) => {
+    setRawEvents((prev) =>
+      prev.map((e) => e.id === id ? { ...e, category: newCategory as CalendarCategory } : e)
+    );
+    if (userId) {
+      await supabase.from("user_events").update({ category: newCategory }).eq("id", id);
+    }
+  }, [userId]);
+
   return {
     loading,
     userId,
@@ -286,5 +295,6 @@ export function useScheduleData() {
     deleteTask,
     deleteEvent,
     toggleRegistration,
+    changeCategory,
   };
 }

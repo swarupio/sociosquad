@@ -153,7 +153,7 @@ const Schedule = () => {
               <h1 className="text-xl font-bold text-foreground">
                 {activeDate.toLocaleString("default", { month: "long" })} {activeDate.getFullYear()}
               </h1>
-              <button onClick={nextWeek} className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
+              <button onClick={nextPeriod} className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>

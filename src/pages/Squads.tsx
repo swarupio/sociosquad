@@ -328,7 +328,7 @@ function SquadDetailView({ squadId, onDelete, onBack }: { squadId: string; onDel
 export default function Squads() {
   const { id: routeSquadId } = useParams();
   const { user, isReady } = useAuth();
-  const { squads, loading, createSquad, joinByCode, leaveSquad } = useSquads();
+  const { squads, loading, createSquad, joinByCode, leaveSquad, deleteSquad } = useSquads();
   const [showCreate, setShowCreate] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
   const [selectedSquad, setSelectedSquad] = useState<string | null>(routeSquadId || null);

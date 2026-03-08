@@ -89,15 +89,28 @@ function PostOpportunityModal({ open, onClose, onCreate }: { open: boolean; onCl
   );
 }
 
-function VolunteerManager({ opportunityId, opportunityTitle }: { opportunityId: string; opportunityTitle: string }) {
+function VolunteerManager({ opportunityId, opportunityTitle, startTime, endTime }: { opportunityId: string; opportunityTitle: string; startTime?: string; endTime?: string }) {
   const { user } = useAuth();
   const { volunteers, loading, verifyAttendance } = useOpportunityVolunteers(opportunityId);
+
+  // Calculate hours from opportunity times
+  const calcHours = () => {
+    if (!startTime || !endTime) return 1;
+    const [sh, sm] = startTime.split(":").map(Number);
+    const [eh, em] = endTime.split(":").map(Number);
+    const diff = (eh * 60 + em - sh * 60 - sm) / 60;
+    return Math.max(Math.round(diff * 10) / 10, 0.5);
+  };
+  const hours = calcHours();
 
   if (loading) return <p className="text-sm text-muted-foreground">Loading volunteers...</p>;
 
   return (
     <div className="space-y-3">
-      <h4 className="text-sm font-display font-bold text-foreground">{volunteers.length} Volunteer{volunteers.length !== 1 ? "s" : ""} Registered</h4>
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-display font-bold text-foreground">{volunteers.length} Volunteer{volunteers.length !== 1 ? "s" : ""} Registered</h4>
+        <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{hours}h per volunteer</span>
+      </div>
       {volunteers.length === 0 ? (
         <p className="text-xs text-muted-foreground">No volunteers registered yet.</p>
       ) : (
@@ -116,7 +129,7 @@ function VolunteerManager({ opportunityId, opportunityTitle }: { opportunityId: 
               </div>
               {v.status === "registered" && (
                 <div className="flex gap-1.5">
-                  <Button size="sm" variant="ghost" className="rounded-lg h-8 w-8 p-0 text-primary hover:bg-primary/10" onClick={() => verifyAttendance(v.id, true, 4, user!.id)}>
+                  <Button size="sm" variant="ghost" className="rounded-lg h-8 w-8 p-0 text-primary hover:bg-primary/10" onClick={() => verifyAttendance(v.id, true, hours, user!.id)}>
                     <CheckCircle className="w-5 h-5" />
                   </Button>
                   <Button size="sm" variant="ghost" className="rounded-lg h-8 w-8 p-0 text-destructive hover:bg-destructive/10" onClick={() => verifyAttendance(v.id, false, 0, user!.id)}>
@@ -249,7 +262,7 @@ export default function NGODashboard() {
                     {/* Expanded volunteer management */}
                     {expandedOpp === opp.id && (
                       <div className="border-t border-border p-5 bg-secondary/20">
-                        <VolunteerManager opportunityId={opp.id} opportunityTitle={opp.title} />
+                        <VolunteerManager opportunityId={opp.id} opportunityTitle={opp.title} startTime={opp.start_time} endTime={opp.end_time} />
                       </div>
                     )}
                   </motion.div>

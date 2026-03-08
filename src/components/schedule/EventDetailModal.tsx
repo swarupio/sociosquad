@@ -7,7 +7,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Clock, Tag, Pencil, Trash2 } from "lucide-react";
+import { Clock, Tag, Pencil, Trash2, CheckCircle2, UserPlus } from "lucide-react";
 import type { CalEvent } from "./types";
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -17,9 +17,10 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onDelete: (id: string) => void;
+  onToggleRegistration: (id: string) => void;
 }
 
-const EventDetailModal = ({ event, open, onClose, onDelete }: Props) => {
+const EventDetailModal = ({ event, open, onClose, onDelete, onToggleRegistration }: Props) => {
   if (!event) return null;
 
   return (
@@ -29,6 +30,11 @@ const EventDetailModal = ({ event, open, onClose, onDelete }: Props) => {
           <div className="flex items-center gap-2 mb-1">
             <span className={`w-3 h-3 rounded-full ${event.bg} border ${event.border}`} />
             <DialogTitle className="text-foreground">{event.title}</DialogTitle>
+            {event.registered && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                <CheckCircle2 className="w-3 h-3" /> Registered
+              </span>
+            )}
           </div>
           <DialogDescription className="text-muted-foreground">
             {event.description}
@@ -49,8 +55,17 @@ const EventDetailModal = ({ event, open, onClose, onDelete }: Props) => {
         </div>
 
         <DialogFooter className="gap-2 sm:gap-2">
-          <Button variant="outline" size="sm" className="gap-1.5">
-            <Pencil className="w-3.5 h-3.5" /> Edit
+          <Button
+            variant={event.registered ? "outline" : "default"}
+            size="sm"
+            className="gap-1.5"
+            onClick={() => onToggleRegistration(event.id)}
+          >
+            {event.registered ? (
+              <><CheckCircle2 className="w-3.5 h-3.5" /> Unregister</>
+            ) : (
+              <><UserPlus className="w-3.5 h-3.5" /> Register</>
+            )}
           </Button>
           <Button
             variant="destructive"

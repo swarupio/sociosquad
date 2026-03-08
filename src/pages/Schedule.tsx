@@ -89,21 +89,29 @@ const Schedule = () => {
     setActiveDate(new Date());
   }, []);
 
-  const prevWeek = useCallback(() => {
+  const prevPeriod = useCallback(() => {
     setActiveDate((prev) => {
       const d = new Date(prev);
-      d.setDate(d.getDate() - 7);
+      if (view === "Month") {
+        d.setMonth(d.getMonth() - 1);
+      } else {
+        d.setDate(d.getDate() - 7);
+      }
       return d;
     });
-  }, []);
+  }, [view]);
 
-  const nextWeek = useCallback(() => {
+  const nextPeriod = useCallback(() => {
     setActiveDate((prev) => {
       const d = new Date(prev);
-      d.setDate(d.getDate() + 7);
+      if (view === "Month") {
+        d.setMonth(d.getMonth() + 1);
+      } else {
+        d.setDate(d.getDate() + 7);
+      }
       return d;
     });
-  }, []);
+  }, [view]);
 
   const openEventDetail = useCallback((ev: CalEvent) => {
     setSelectedEvent(ev);

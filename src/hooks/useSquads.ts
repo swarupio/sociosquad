@@ -170,8 +170,10 @@ export function useSquadDetail(squadId: string | undefined) {
   const [members, setMembers] = useState<SquadMember[]>([]);
   const [challenges, setChallenges] = useState<(SquadChallenge & { live_progress: number })[]>([]);
   const [contributions, setContributions] = useState<Record<string, MemberContribution[]>>({});
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [squad, setSquad] = useState<Squad | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isLeader, setIsLeader] = useState(false);
 
   const fetchDetail = useCallback(async () => {
     if (!squadId || !user) return;

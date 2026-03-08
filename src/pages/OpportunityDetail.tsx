@@ -5,20 +5,12 @@ import { ArrowLeft, MapPin, Clock, Users, Calendar, CheckCircle2 } from "lucide-
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ScrollReveal from "@/components/ScrollReveal";
-
-const allOpportunities: Record<string, { title: string; org: string; location: string; type: string; category: string; hours: string; spots: number; match: number; description: string }> = {
-  "1": { title: "Ocean Cleanup Drive", org: "Blue Planet Foundation", location: "Bali, Indonesia", type: "On-Site", category: "Environment", hours: "8h", spots: 12, match: 94, description: "Join us for a full-day beach and ocean cleanup initiative. You'll work alongside marine biologists and local communities to remove plastic waste from coastal areas. Equipment and training provided." },
-  "2": { title: "Code for Good Hackathon", org: "Tech4Impact", location: "Remote", type: "Remote", category: "Technology", hours: "48h", spots: 50, match: 91, description: "A weekend-long hackathon building software solutions for nonprofits. Teams of 4-5 will tackle real challenges faced by organizations worldwide. Prizes and mentorship included." },
-  "3": { title: "Youth Mentorship Program", org: "Future Leaders", location: "New York, USA", type: "Hybrid", category: "Education", hours: "4h/week", spots: 20, match: 87, description: "Guide young students through STEM concepts and career development. Weekly 1-on-1 sessions with personalized curriculum support." },
-  "4": { title: "Medical Camp Volunteer", org: "Doctors Without Borders", location: "Nairobi, Kenya", type: "On-Site", category: "Healthcare", hours: "2 weeks", spots: 8, match: 82, description: "Support medical professionals in providing healthcare services to underserved communities. Training provided for non-medical volunteers." },
-  "5": { title: "Community Garden Project", org: "Green Roots", location: "London, UK", type: "On-Site", category: "Environment", hours: "6h", spots: 30, match: 78, description: "Help build and maintain urban community gardens that provide fresh produce to food banks and local families." },
-  "6": { title: "Disaster Relief Coordination", org: "Red Cross", location: "Remote", type: "Remote", category: "Humanitarian", hours: "Flexible", spots: 5, match: 85, description: "Coordinate logistics and communication for disaster relief operations worldwide from a remote operations center." },
-};
+import { staticOpportunities } from "@/data/staticOpportunities";
 
 const OpportunityDetail = () => {
   const { id } = useParams();
   const [joined, setJoined] = useState(false);
-  const opp = id ? allOpportunities[id] : null;
+  const opp = staticOpportunities.find(o => o.id === id);
 
   if (!opp) {
     return (
@@ -28,7 +20,7 @@ const OpportunityDetail = () => {
           <div className="container mx-auto px-6 max-w-4xl text-center">
             <div className="glass-card p-16">
               <p className="text-xl text-muted-foreground mb-4">Opportunity not found</p>
-              <Link to="/opportunities" className="text-cyan hover:underline">← Back to Opportunities</Link>
+              <Link to="/opportunities" className="text-primary hover:underline">← Back to Opportunities</Link>
             </div>
           </div>
         </main>
@@ -48,52 +40,80 @@ const OpportunityDetail = () => {
             </Link>
           </ScrollReveal>
 
-          <ScrollReveal>
-            <div className="glass-card p-8 mb-6">
-              <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-6">
-                <div>
-                  <div className="flex gap-2 mb-3">
-                    <span className="text-xs px-2.5 py-1 rounded-full bg-secondary text-muted-foreground">{opp.category}</span>
-                    <span className="text-xs px-2.5 py-1 rounded-full bg-secondary text-muted-foreground">{opp.type}</span>
-                  </div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-2">{opp.title}</h1>
-                  <p className="text-muted-foreground">{opp.org}</p>
-                </div>
-                <span className="text-2xl font-bold gradient-text shrink-0">{opp.match}% match</span>
+          <ScrollReveal delay={0.1}>
+            <div className="glass-card p-8 md:p-12">
+              <div className="flex flex-wrap items-center gap-3 mb-6">
+                <span className="text-xs px-3 py-1 rounded-full bg-primary/10 text-primary font-medium">{opp.category}</span>
+                <span className="text-xs px-3 py-1 rounded-full bg-secondary text-muted-foreground font-medium">{opp.timeLabel}</span>
+                {opp.urgency === "High" && (
+                  <span className="text-xs px-3 py-1 rounded-full bg-destructive/20 text-destructive font-medium">Filling Fast</span>
+                )}
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                {[
-                  { icon: MapPin, label: "Location", value: opp.location },
-                  { icon: Clock, label: "Duration", value: opp.hours },
-                  { icon: Users, label: "Spots Left", value: `${opp.spots}` },
-                  { icon: Calendar, label: "Type", value: opp.type },
-                ].map((detail, i) => (
-                  <div key={i} className="bg-secondary/50 rounded-xl p-4">
-                    <detail.icon className="w-4 h-4 text-cyan mb-2" />
-                    <p className="text-xs text-muted-foreground">{detail.label}</p>
-                    <p className="text-sm font-medium text-foreground">{detail.value}</p>
+              <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">{opp.title}</h1>
+              <p className="text-lg text-muted-foreground mb-8">{opp.org}</p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div className="flex items-center gap-3 p-4 rounded-xl bg-secondary/50">
+                  <MapPin className="w-5 h-5 text-primary shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Location</p>
+                    <p className="text-sm font-medium text-foreground">{opp.location}</p>
                   </div>
-                ))}
+                </div>
+                <div className="flex items-center gap-3 p-4 rounded-xl bg-secondary/50">
+                  <Calendar className="w-5 h-5 text-primary shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Date</p>
+                    <p className="text-sm font-medium text-foreground">{opp.dateLabel}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-4 rounded-xl bg-secondary/50">
+                  <Users className="w-5 h-5 text-primary shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Spots Available</p>
+                    <p className="text-sm font-medium text-foreground">{opp.spots} spots</p>
+                  </div>
+                </div>
               </div>
+
+              {opp.startTime && (
+                <div className="flex items-center gap-3 p-4 rounded-xl bg-secondary/50 mb-8">
+                  <Clock className="w-5 h-5 text-primary shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Time</p>
+                    <p className="text-sm font-medium text-foreground">{opp.startTime} – {opp.endTime}</p>
+                  </div>
+                </div>
+              )}
+
+              {opp.tags.length > 0 && (
+                <div className="flex gap-2 flex-wrap mb-8">
+                  {opp.tags.map(tag => (
+                    <span key={tag} className="text-xs px-3 py-1 rounded-full bg-secondary text-muted-foreground">{tag}</span>
+                  ))}
+                </div>
+              )}
 
               <div className="mb-8">
-                <h3 className="font-semibold text-foreground mb-3">About this opportunity</h3>
+                <h2 className="text-lg font-semibold text-foreground mb-3">About this opportunity</h2>
                 <p className="text-muted-foreground leading-relaxed">{opp.description}</p>
               </div>
 
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setJoined(true)}
-                disabled={joined}
-                className={`w-full py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-opacity ${joined ? "opacity-70 cursor-default" : ""}`}
-                style={{ background: joined ? "hsl(var(--secondary))" : "var(--gradient-primary)" }}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                onClick={() => setJoined(!joined)}
+                className={`w-full py-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
+                  joined
+                    ? "bg-secondary text-foreground"
+                    : "bg-primary text-primary-foreground hover:brightness-105"
+                }`}
               >
                 {joined ? (
-                  <><CheckCircle2 className="w-5 h-5 text-cyan" /> <span className="text-foreground">Joined — You're In!</span></>
+                  <><CheckCircle2 className="w-5 h-5" /> You're Signed Up!</>
                 ) : (
-                  <span className="text-primary-foreground">Join This Opportunity</span>
+                  "Join This Opportunity"
                 )}
               </motion.button>
             </div>

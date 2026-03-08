@@ -206,52 +206,108 @@ const Schedule = () => {
             <div className="absolute inset-0 pointer-events-none" style={{ paddingLeft: 60 }}>
               <div className="relative h-full w-full" style={{ minWidth: "calc(800px - 60px)" }}>
                 <AnimatePresence>
-                  {filteredEvents.map((ev) => {
-                    const evStart = new Date(ev.startTime);
-                    const evEnd = new Date(ev.endTime);
-                    const dayIndex = (evStart.getDay() + 6) % 7; // 0=Mon
-                    const startHour = evStart.getHours();
-                    const startMin = evStart.getMinutes();
-                    const endHour = evEnd.getHours();
-                    const endMin = evEnd.getMinutes();
+                  {(() => {
+                    // Pre-compute layout info for overlap detection
+                    const layoutItems = filteredEvents.map((ev) => {
+                      const evStart = new Date(ev.startTime);
+                      const evEnd = new Date(ev.endTime);
+                      const dayIndex = (evStart.getDay() + 6) % 7;
+                      const startMin = evStart.getHours() * 60 + evStart.getMinutes();
+                      const endMin = evEnd.getHours() * 60 + evEnd.getMinutes();
+                      return { ev, dayIndex, startMin, endMin };
+                    });
 
-                    const totalMinStart = (startHour - 8) * 80 + (startMin / 60) * 80;
-                    const totalMinEnd = (endHour - 8) * 80 + (endMin / 60) * 80;
-                    const height = totalMinEnd - totalMinStart;
-                    const top = totalMinStart + 36;
-                    const colWidth = 100 / 7;
-                    const left = `${dayIndex * colWidth}%`;
-                    const width = `${colWidth}%`;
-                    return (
-                      <motion.div key={ev.id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ duration: 0.25 }}
-                        className={`absolute pointer-events-auto cursor-pointer rounded-lg ${ev.bg} border-l-[3px] ${ev.border} px-2.5 py-2 transition-all duration-200 hover:scale-[1.02] hover:shadow-md ${ev.registered ? "ring-2 ring-emerald-400/50 ring-offset-1 ring-offset-background" : ""}`}
-                        style={{ top, left, width, height, paddingRight: 8 }}
-                        onClick={() => openEventDetail(ev)}
-                      >
-                        <div className={`flex items-center gap-1.5 ${ev.color} mb-0.5`}>
-                          {ev.icon}
-                          <span className="text-[11px] font-bold truncate">{ev.title}</span>
-                          {ev.registered && (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    // Group by day, then compute overlap columns
+                    const dayGroups: Record<number, typeof layoutItems> = {};
+                    layoutItems.forEach((item) => {
+                      if (!dayGroups[item.dayIndex]) dayGroups[item.dayIndex] = [];
+                      dayGroups[item.dayIndex].push(item);
+                    });
+
+                    // For each day, assign column index and total columns for overlapping events
+                    const overlapMap = new Map<string, { col: number; totalCols: number }>();
+
+                    Object.values(dayGroups).forEach((group) => {
+                      // Sort by start time
+                      group.sort((a, b) => a.startMin - b.startMin);
+
+                      // Find overlap clusters
+                      const clusters: (typeof group)[] = [];
+                      let currentCluster: typeof group = [];
+
+                      group.forEach((item) => {
+                        if (currentCluster.length === 0) {
+                          currentCluster.push(item);
+                        } else {
+                          const clusterEnd = Math.max(...currentCluster.map((c) => c.endMin));
+                          if (item.startMin < clusterEnd) {
+                            currentCluster.push(item);
+                          } else {
+                            clusters.push(currentCluster);
+                            currentCluster = [item];
+                          }
+                        }
+                      });
+                      if (currentCluster.length > 0) clusters.push(currentCluster);
+
+                      clusters.forEach((cluster) => {
+                        const totalCols = cluster.length;
+                        cluster.forEach((item, colIdx) => {
+                          overlapMap.set(item.ev.id, { col: colIdx, totalCols });
+                        });
+                      });
+                    });
+
+                    return layoutItems.map(({ ev, dayIndex }) => {
+                      const evStart = new Date(ev.startTime);
+                      const evEnd = new Date(ev.endTime);
+                      const startHour = evStart.getHours();
+                      const startMinute = evStart.getMinutes();
+                      const endHour = evEnd.getHours();
+                      const endMinute = evEnd.getMinutes();
+
+                      const totalMinStart = (startHour - 8) * 80 + (startMinute / 60) * 80;
+                      const totalMinEnd = (endHour - 8) * 80 + (endMinute / 60) * 80;
+                      const height = totalMinEnd - totalMinStart;
+                      const top = totalMinStart + 36;
+
+                      const colWidth = 100 / 7;
+                      const overlap = overlapMap.get(ev.id) || { col: 0, totalCols: 1 };
+                      const slotWidth = colWidth / overlap.totalCols;
+                      const left = `${dayIndex * colWidth + overlap.col * slotWidth}%`;
+                      const width = `${slotWidth}%`;
+
+                      return (
+                        <motion.div key={ev.id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ duration: 0.25 }}
+                          className={`absolute pointer-events-auto cursor-pointer rounded-lg ${ev.bg} border-l-[3px] ${ev.border} px-2 py-1.5 transition-all duration-200 hover:scale-[1.02] hover:shadow-md ${ev.registered ? "ring-2 ring-emerald-400/50 ring-offset-1 ring-offset-background" : ""}`}
+                          style={{ top, left, width, height, paddingRight: 4 }}
+                          onClick={() => openEventDetail(ev)}
+                        >
+                          <div className={`flex items-center gap-1 ${ev.color} mb-0.5`}>
+                            {ev.icon}
+                            <span className="text-[11px] font-bold truncate">{ev.title}</span>
+                            {ev.registered && (
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            )}
+                          </div>
+                          <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {formatTime(evStart)} – {formatTime(evEnd)}
+                          </span>
+                          {ev.badge && overlap.totalCols <= 2 && (
+                            <span className="mt-1 inline-flex items-center gap-1 text-[9px] font-semibold text-warm bg-warm/10 px-1.5 py-0.5 rounded-full truncate">
+                              <Sparkles className="w-3 h-3 shrink-0" /> {ev.badge}
+                            </span>
                           )}
-                        </div>
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {formatTime(evStart)} – {formatTime(evEnd)}
-                        </span>
-                        {ev.badge && (
-                          <span className="mt-1 inline-flex items-center gap-1 text-[9px] font-semibold text-warm bg-warm/10 px-1.5 py-0.5 rounded-full">
-                            <Sparkles className="w-3 h-3" /> {ev.badge}
-                          </span>
-                        )}
-                        {ev.registered && height > 60 && (
-                          <span className="mt-1 inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full">
-                            <CheckCircle2 className="w-2.5 h-2.5" /> You're in
-                          </span>
-                        )}
-                      </motion.div>
-                    );
-                  })}
+                          {ev.registered && height > 60 && overlap.totalCols <= 2 && (
+                            <span className="mt-1 inline-flex items-center gap-1 text-[9px] font-semibold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded-full">
+                              <CheckCircle2 className="w-2.5 h-2.5" /> You're in
+                            </span>
+                          )}
+                        </motion.div>
+                      );
+                    });
+                  })()}
                 </AnimatePresence>
 
                 {timeInRange && todayInWeek >= 0 && (

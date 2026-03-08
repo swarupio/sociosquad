@@ -67,17 +67,6 @@ const EventDetailModal = ({ event, open, onClose, onDelete, onToggleRegistration
               <><UserPlus className="w-3.5 h-3.5" /> Register</>
             )}
           </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            className="gap-1.5"
-            onClick={() => {
-              onDelete(event.id);
-              onClose();
-            }}
-          >
-            <Trash2 className="w-3.5 h-3.5" /> Delete
-          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

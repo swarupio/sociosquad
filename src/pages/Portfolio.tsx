@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import {
   Award, Clock, Target, Flame, Zap, Share2, Download, ExternalLink,
   Heart, Shield, Star, MapPin, Linkedin, Copy, Check, Trophy, TrendingUp,
+  FileText,
 } from "lucide-react";
 import { useState, useRef } from "react";
 import { Navigate, Link } from "react-router-dom";
@@ -15,6 +16,7 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer,
 } from "recharts";
 import ImpactCertificate from "@/components/portfolio/ImpactCertificate";
+import { generateVolunteerResume } from "@/components/portfolio/VolunteerResumePDF";
 import { Loader2 } from "lucide-react";
 
 const skillData = [
@@ -114,6 +116,23 @@ const Portfolio = () => {
     window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}&summary=${text}`, '_blank');
   };
 
+  const handleDownloadResume = () => {
+    generateVolunteerResume({
+      name: displayName,
+      email: user.email || "",
+      joinDate,
+      level,
+      totalHours,
+      tasksCompleted,
+      impactScore,
+      streak,
+      causes: causeBreakdown,
+      skills: skillData,
+      badges,
+      milestones,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -172,6 +191,14 @@ const Portfolio = () => {
                     title="Share on LinkedIn"
                   >
                     <Linkedin className="w-4 h-4" />
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleDownloadResume}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-secondary text-foreground text-sm font-semibold hover:bg-muted transition-all"
+                  >
+                    <FileText className="w-4 h-4" /> Resume
                   </motion.button>
                   <motion.button
                     whileHover={{ scale: 1.05 }}
@@ -352,6 +379,14 @@ const Portfolio = () => {
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-primary-foreground/20 text-primary-foreground text-sm font-semibold"
                 >
                   {copied ? <><Check className="w-4 h-4" /> Copied!</> : <><Copy className="w-4 h-4" /> Copy Link</>}
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={handleDownloadResume}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-primary-foreground/20 text-primary-foreground text-sm font-semibold"
+                >
+                  <FileText className="w-4 h-4" /> Download Resume
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.03 }}

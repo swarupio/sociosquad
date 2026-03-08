@@ -10,6 +10,7 @@ import Community from "./pages/Community";
 import Opportunities from "./pages/Opportunities";
 import OpportunityDetail from "./pages/OpportunityDetail";
 import Profile from "./pages/Profile";
+import Portfolio from "./pages/Portfolio";
 import Leaderboard from "./pages/Leaderboard";
 import Schedule from "./pages/Schedule";
 import NotFound from "./pages/NotFound";

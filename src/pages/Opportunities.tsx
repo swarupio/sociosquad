@@ -10,14 +10,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
-// Legacy hardcoded data as fallback
-const hardcodedOpps = [
-  { id: "h1", title: "Versova Beach Cleanup", org: "Clean Coast Mumbai", location: "Versova Beach, Andheri West, Mumbai", category: "Environment", spots: 30, date: "Mar 15, 2026", timeLabel: "2 hrs", timeHours: 2, tags: ["Environment", "Outdoor"], urgency: "High" },
-  { id: "h2", title: "Tech Literacy for Kids", org: "Future India Foundation", location: "Indiranagar, Bangalore", category: "Education", spots: 15, date: "Mar 20, 2026", timeLabel: "1 hr", timeHours: 1, tags: ["Education", "Tech"], urgency: "Medium" },
-  { id: "h3", title: "Stray Animal Feeding Drive", org: "Paws of Delhi", location: "Hauz Khas Village, New Delhi", category: "Humanitarian", spots: 20, date: "Mar 27, 2026", timeLabel: "3 hrs", timeHours: 3, tags: ["Animals", "Community"], urgency: "High" },
-  { id: "h4", title: "Urban Tree Plantation", org: "Green Yatra", location: "Viman Nagar, Pune", category: "Environment", spots: 25, date: "Apr 5, 2026", timeLabel: "4 hrs", timeHours: 4, tags: ["Environment", "Climate"], urgency: "Medium" },
-  { id: "h5", title: "Food Distribution for Seniors", org: "Robin Hood Army", location: "Salt Lake City, Kolkata", category: "Healthcare", spots: 12, date: "Apr 12, 2026", timeLabel: "2 hrs", timeHours: 2, tags: ["Community", "Food"], urgency: "High" },
-];
 
 const categories = ["All", "Environment", "Education", "Healthcare", "General", "Community", "Health"];
 const timeFilters = [

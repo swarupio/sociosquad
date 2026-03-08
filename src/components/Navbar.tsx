@@ -5,12 +5,19 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useOrganization";
 
-const navLinks = [
+const volunteerNavLinks = [
   { label: "Explore", to: "/opportunities" },
   { label: "Schedule", to: "/schedule" },
   { label: "Leaderboard", to: "/leaderboard" },
   { label: "Community", to: "/community" },
   { label: "Squads", to: "/squads" },
+];
+
+const orgNavLinks = [
+  { label: "Explore", to: "/opportunities" },
+  { label: "Schedule", to: "/schedule" },
+  { label: "Leaderboard", to: "/leaderboard" },
+  { label: "Community", to: "/community" },
 ];
 
 const Navbar = () => {

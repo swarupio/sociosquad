@@ -295,10 +295,10 @@ const Schedule = () => {
                   </div>
                 );
               })}
-              {HOURS.map((h) => (
+              {HOURS.map((h, hourIndex) => (
                 <div key={`row-${h}`} className="contents">
                   <div className="relative text-[11px] text-muted-foreground text-right pr-3 border-r border-border" style={{ height: 80 }}>
-                    <span className="absolute -top-2 right-3">{pad(h)}:00</span>
+                    <span className={`absolute right-3 ${hourIndex === 0 ? "top-1" : "-top-2"}`}>{pad(h)}:00</span>
                   </div>
                   {DAYS.map((_, di) => (
                     <div key={`cell-${h}-${di}`} className="relative border-b border-r border-border" style={{ height: 80 }}>

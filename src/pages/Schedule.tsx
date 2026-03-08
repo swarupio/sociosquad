@@ -255,7 +255,7 @@ const Schedule = () => {
             );
           })()
         ) : (
-          <div className="flex-1 overflow-auto relative">
+          <div className="flex-1 overflow-auto relative pt-2">
             <div className="grid min-w-[800px]" style={{ gridTemplateColumns: "60px repeat(7, 1fr)" }}>
               <div className="sticky top-0 z-10 bg-card" />
               {weekDates.map((d, i) => {

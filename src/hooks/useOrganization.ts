@@ -159,7 +159,20 @@ export function useOrgOpportunities(orgId: string | undefined) {
     if (!user || !orgId) return;
     const { error } = await supabase
       .from("opportunities")
-      .insert({ ...opp, org_id: orgId });
+      .insert({
+        title: opp.title || "",
+        description: opp.description || "",
+        category: opp.category || "General",
+        skills_needed: opp.skills_needed || [],
+        date: opp.date || new Date().toISOString().split("T")[0],
+        start_time: opp.start_time || "09:00",
+        end_time: opp.end_time || "17:00",
+        location: opp.location || "",
+        city: opp.city || "Mumbai",
+        max_volunteers: opp.max_volunteers || 50,
+        time_commitment: opp.time_commitment || "Half Day",
+        org_id: orgId,
+      });
     if (error) {
       toast({ title: "Error creating opportunity", description: error.message, variant: "destructive" });
       return;

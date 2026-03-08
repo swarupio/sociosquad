@@ -2,10 +2,10 @@ import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import AnimatedCounter from "./AnimatedCounter";
-import heroVolunteers from "@/assets/hero-volunteers.jpg";
-import nssChristmas from "@/assets/nss-christmas.jpeg";
-import nss7daysCamp from "@/assets/nss-7days-camp.jpeg";
-import nssDiwali from "@/assets/nss-diwali.jpeg";
+import heroTreePlanting from "@/assets/hero-tree-planting.jpg";
+import heroFoodDrive from "@/assets/hero-food-drive.jpg";
+import heroTeaching from "@/assets/hero-teaching.jpg";
+import heroBeachCleanup from "@/assets/hero-beach-cleanup.jpg";
 
 const HeroSection = () => {
   return (

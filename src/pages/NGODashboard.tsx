@@ -262,7 +262,7 @@ export default function NGODashboard() {
                     {/* Expanded volunteer management */}
                     {expandedOpp === opp.id && (
                       <div className="border-t border-border p-5 bg-secondary/20">
-                        <VolunteerManager opportunityId={opp.id} opportunityTitle={opp.title} />
+                        <VolunteerManager opportunityId={opp.id} opportunityTitle={opp.title} startTime={opp.start_time} endTime={opp.end_time} />
                       </div>
                     )}
                   </motion.div>

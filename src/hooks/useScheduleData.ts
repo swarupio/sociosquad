@@ -219,8 +219,20 @@ export function useScheduleData() {
     });
   }, []);
 
-  // Merge user events + opportunity events + static showcase events
-  const allRawEvents = [...rawEvents, ...oppEvents, ...staticCalEvents];
+  // Merge user events + opportunity events + static showcase events, deduplicating by title+date
+  const allRawEvents = useMemo(() => {
+    const existing = new Set(
+      [...rawEvents, ...oppEvents].map(e => {
+        const dateKey = e.startTime.slice(0, 10);
+        return `${e.title.toLowerCase().trim()}|${dateKey}`;
+      })
+    );
+    const dedupedStatic = staticCalEvents.filter(e => {
+      const dateKey = e.startTime.slice(0, 10);
+      return !existing.has(`${e.title.toLowerCase().trim()}|${dateKey}`);
+    });
+    return [...rawEvents, ...oppEvents, ...dedupedStatic];
+  }, [rawEvents, oppEvents, staticCalEvents]);
 
   const toggleTask = useCallback(async (period: "today" | "tomorrow", id: string) => {
     setTasks((prev) => ({

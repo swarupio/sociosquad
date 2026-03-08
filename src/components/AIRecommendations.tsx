@@ -1,11 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, ArrowRight, Star, Shuffle, Heart } from "lucide-react";
+import { ArrowRight, Shuffle, MapPin, Clock, Users, Timer } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import ScrollReveal from "./ScrollReveal";
-import nssChulla from "@/assets/nss-chulla.jpeg";
-import nssSolarJal from "@/assets/nss-solar-jal.jpeg";
-import nssFinancial from "@/assets/nss-financial.jpeg";
 
 const recommendations = [
   {
@@ -13,27 +10,39 @@ const recommendations = [
     org: "Phillon's Green Initiative",
     match: 94,
     tags: ["Environment", "On-Site"],
-    reason: "Ghatkopar West, Mumbai · Oct 15, 9:00 AM · 8/15 spots filled",
+    location: "Ghatkopar West, Mumbai",
+    date: "Oct 15, 9:00 AM",
+    spots: "8/15 spots filled",
     urgent: false,
-    image: nssChulla,
+    urgencyLabel: "Medium Priority",
+    urgencyColor: "bg-amber-100 text-amber-700",
+    timeLabel: "3 hrs",
   },
   {
     title: "Blood Donation Camp",
     org: "Pramit's Helping Hands",
     match: 91,
     tags: ["Health", "On-Site"],
-    reason: "DBIT Mumbai · Oct 18, 2:00 PM · 12/20 spots filled",
+    location: "DBIT Mumbai",
+    date: "Oct 18, 2:00 PM",
+    spots: "12/20 spots filled",
     urgent: true,
-    image: nssSolarJal,
+    urgencyLabel: "High Priority",
+    urgencyColor: "bg-red-100 text-red-700",
+    timeLabel: "1 hr",
   },
   {
     title: "Beach Cleanup Drive",
     org: "Chaitanya's Ocean Warriors",
     match: 87,
     tags: ["Environment", "On-Site"],
-    reason: "Versova Beach · Oct 22, 7:00 AM · 20/30 spots filled",
+    location: "Versova Beach",
+    date: "Oct 22, 7:00 AM",
+    spots: "20/30 spots filled",
     urgent: false,
-    image: nssFinancial,
+    urgencyLabel: "High Priority",
+    urgencyColor: "bg-red-100 text-red-700",
+    timeLabel: "4 hrs",
   },
 ];
 
@@ -84,42 +93,46 @@ const AIRecommendations = () => {
             <ScrollReveal key={i} delay={i * 0.15}>
               <motion.div
                 whileHover={{ y: -4 }}
-                className="bg-card border border-border rounded-3xl overflow-hidden h-full flex flex-col hover:shadow-lg transition-all duration-300"
+                className="bg-card border border-border rounded-3xl p-6 h-full flex flex-col hover:shadow-lg transition-all duration-300"
               >
-                {/* Image */}
-                <div className="relative h-52 overflow-hidden">
-                  <img src={rec.image} alt={rec.title} className="w-full h-full object-cover" />
-                  {rec.urgent && (
-                    <div className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-semibold font-body bg-destructive text-destructive-foreground">
-                      Urgent
-                    </div>
-                  )}
-                  <div className="absolute top-3 right-3 w-8 h-8 rounded-full bg-card/80 backdrop-blur-sm flex items-center justify-center">
-                    <Heart className="w-4 h-4 text-muted-foreground" />
+                {/* Priority & Time */}
+                <div className="flex items-center justify-between mb-4">
+                  <span className={`text-xs px-3 py-1 rounded-full font-semibold font-body ${rec.urgencyColor}`}>
+                    {rec.urgencyLabel}
+                  </span>
+                  <span className="text-xs text-muted-foreground font-medium font-body flex items-center gap-1">
+                    <Timer className="w-3.5 h-3.5" /> {rec.timeLabel}
+                  </span>
+                </div>
+
+                <h3 className="font-display font-bold text-lg text-foreground mb-1">{rec.title}</h3>
+                <p className="text-sm text-muted-foreground font-body mb-4">{rec.org}</p>
+
+                {/* Details */}
+                <div className="space-y-2 mb-5 flex-1">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground font-body">
+                    <MapPin className="w-3.5 h-3.5 shrink-0" /> {rec.location}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground font-body">
+                    <Clock className="w-3.5 h-3.5 shrink-0" /> {rec.date}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground font-body">
+                    <Users className="w-3.5 h-3.5 shrink-0" /> {rec.spots}
                   </div>
                 </div>
-                
-                <div className="p-6 flex flex-col flex-1">
-                  <div className="flex gap-2 mb-3">
-                    {rec.tags.map((tag) => (
-                      <span key={tag} className="text-xs px-3 py-1 rounded-full bg-primary/10 text-primary font-medium font-body">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
 
-                  <h3 className="font-display font-bold text-lg text-foreground mb-2">{rec.title}</h3>
-                  <p className="text-sm text-muted-foreground font-body mb-1">{rec.org}</p>
-
-                  <p className="text-sm text-muted-foreground mb-5 flex-1 font-body">
-                    <Star className="w-3.5 h-3.5 inline mr-1 text-accent" />
-                    {rec.reason}
-                  </p>
-
-                  <Link to="/opportunities/1" className="w-full py-3 rounded-full text-sm font-semibold font-body bg-primary text-primary-foreground flex items-center justify-center gap-2 group">
-                    Apply Now <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                  </Link>
+                {/* Tags */}
+                <div className="flex gap-2 flex-wrap mb-5">
+                  {rec.tags.map((tag) => (
+                    <span key={tag} className="text-xs px-3 py-1 rounded-full border border-border text-muted-foreground font-medium font-body">
+                      {tag}
+                    </span>
+                  ))}
                 </div>
+
+                <Link to="/opportunities/1" className="w-full py-3 rounded-full text-sm font-semibold font-body bg-primary text-primary-foreground flex items-center justify-center gap-2 group">
+                  Apply Now <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
               </motion.div>
             </ScrollReveal>
           ))}

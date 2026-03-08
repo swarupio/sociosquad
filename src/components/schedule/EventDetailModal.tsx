@@ -39,10 +39,8 @@ const EventDetailModal = ({ event, open, onClose, onDelete, onToggleRegistration
 
   if (!event) return null;
 
-  const start = new Date(event.startTime);
-  const end = new Date(event.endTime);
-  const dateStr = start.toLocaleDateString("default", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
-  const isOppEvent = event.id.startsWith("opp-");
+
+
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) { onClose(); setEditingCategory(false); } }}>

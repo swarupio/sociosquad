@@ -9,7 +9,7 @@ import { usePublicOpportunities } from "@/hooks/useOrganization";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-
+import { staticOpportunities } from "@/data/staticOpportunities";
 
 const categories = ["All", "Environment", "Education", "Healthcare", "General", "Community", "Health"];
 const timeFilters = [
@@ -50,8 +50,30 @@ const Opportunities = () => {
     end_time: o.end_time,
   }));
 
-  // Use only real DB opportunities
-  const allOpps = realOpps;
+  // Convert static opportunities to the same display format
+  const staticOpps = staticOpportunities.map(o => ({
+    id: o.id,
+    title: o.title,
+    org: o.org,
+    location: o.location,
+    category: o.category,
+    spots: o.spots,
+    date: o.dateLabel,
+    timeLabel: o.timeLabel,
+    timeHours: o.timeHours,
+    tags: o.tags,
+    urgency: o.urgency,
+    isReal: false,
+    is_registered: false,
+    registration_count: 0,
+    max_volunteers: o.spots,
+    description: o.description,
+    start_time: o.startTime,
+    end_time: o.endTime,
+  }));
+
+  // Merge: real opps first, then static showcase opps
+  const allOpps = [...realOpps, ...staticOpps];
 
   const filtered = allOpps.filter((o) => {
     const matchesSearch = o.title.toLowerCase().includes(search.toLowerCase()) || o.org.toLowerCase().includes(search.toLowerCase());

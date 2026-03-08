@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Menu, X, User as UserIcon, LogOut, LayoutDashboard, Award, Users } from "lucide-react";
+import { ArrowRight, Menu, X, User as UserIcon, LogOut, LayoutDashboard, Award, Users, Building2 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";

@@ -162,6 +162,7 @@ const Schedule = () => {
         onSelectDate={setActiveDate}
         activeCategories={activeCategories}
         onToggleCategory={toggleCategory}
+        calendars={dynamicCalendars}
         tasks={tasks}
         onToggleTask={toggleTask}
         onAddTask={addTask}

@@ -24,7 +24,7 @@ const HeroSection = () => {
             </h1>
 
             <p className="text-lg text-muted-foreground max-w-lg mb-10 leading-relaxed font-body">
-              SocioSquad is a global volunteering platform in Mumbai. AI matches your skills to causes that need you most — turning good intentions into real-world results.
+              Our smart platform connects your specific skills to the causes that need you most — turning good intentions into real-world results.
             </p>
 
             {/* CTA Buttons */}

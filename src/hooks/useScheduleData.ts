@@ -5,26 +5,38 @@ import type { CalendarCategory, Task } from "@/components/schedule/types";
 import type { RawEvent } from "@/components/schedule/data";
 import { initialEvents, initialTasks } from "@/components/schedule/data";
 
+const mapDbEvent = (e: any): RawEvent => ({
+  id: e.id,
+  title: e.title,
+  day: e.day,
+  startHour: e.start_hour,
+  startMin: e.start_min,
+  endHour: e.end_hour,
+  endMin: e.end_min,
+  color: e.color,
+  bg: e.bg,
+  border: e.border,
+  iconName: e.icon_name,
+  badge: e.badge ?? undefined,
+  category: e.category as CalendarCategory,
+  description: e.description,
+  registered: e.registered ?? false,
+});
+
 export function useScheduleData() {
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-
-  // Events
   const [rawEvents, setRawEvents] = useState<RawEvent[]>([]);
-  // Tasks
   const [tasks, setTasks] = useState<Record<"today" | "tomorrow", Task[]>>({ today: [], tomorrow: [] });
 
-  // Get current user
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUserId(user?.id ?? null);
     });
   }, []);
 
-  // Fetch data when userId is available
   useEffect(() => {
     if (!userId) {
-      // Not logged in — use local defaults
       setRawEvents(initialEvents);
       setTasks(initialTasks);
       setLoading(false);
@@ -34,37 +46,17 @@ export function useScheduleData() {
     const fetchAll = async () => {
       setLoading(true);
 
-      // Fetch events
       const { data: evData } = await supabase
         .from("user_events")
         .select("*")
         .order("created_at", { ascending: true });
 
       if (evData && evData.length > 0) {
-        setRawEvents(
-          evData.map((e: any) => ({
-            id: e.id,
-            title: e.title,
-            day: e.day,
-            startHour: e.start_hour,
-            startMin: e.start_min,
-            endHour: e.end_hour,
-            endMin: e.end_min,
-            color: e.color,
-            bg: e.bg,
-            border: e.border,
-            iconName: e.icon_name,
-            badge: e.badge ?? undefined,
-            category: e.category as CalendarCategory,
-            description: e.description,
-          }))
-        );
+        setRawEvents(evData.map(mapDbEvent));
       } else if (evData && evData.length === 0) {
-        // First time user — seed with defaults
         await seedEvents(userId);
       }
 
-      // Fetch tasks
       const { data: taskData } = await supabase
         .from("user_tasks")
         .select("*")
@@ -89,7 +81,6 @@ export function useScheduleData() {
     fetchAll();
   }, [userId]);
 
-  // Seed default events for new users
   const seedEvents = async (uid: string) => {
     const rows = initialEvents.map((e) => ({
       user_id: uid,
@@ -106,31 +97,14 @@ export function useScheduleData() {
       badge: e.badge ?? null,
       category: e.category,
       description: e.description,
+      registered: e.registered,
     }));
     const { data } = await supabase.from("user_events").insert(rows).select();
     if (data) {
-      setRawEvents(
-        data.map((e: any) => ({
-          id: e.id,
-          title: e.title,
-          day: e.day,
-          startHour: e.start_hour,
-          startMin: e.start_min,
-          endHour: e.end_hour,
-          endMin: e.end_min,
-          color: e.color,
-          bg: e.bg,
-          border: e.border,
-          iconName: e.icon_name,
-          badge: e.badge ?? undefined,
-          category: e.category as CalendarCategory,
-          description: e.description,
-        }))
-      );
+      setRawEvents(data.map(mapDbEvent));
     }
   };
 
-  // Seed default tasks for new users
   const seedTasks = async (uid: string) => {
     const rows = [
       ...initialTasks.today.map((t) => ({ user_id: uid, text: t.text, done: t.done, period: "today" })),
@@ -149,7 +123,6 @@ export function useScheduleData() {
     }
   };
 
-  // ─── Task operations ─────────────────────
   const toggleTask = useCallback(async (period: "today" | "tomorrow", id: string) => {
     setTasks((prev) => ({
       ...prev,
@@ -164,7 +137,6 @@ export function useScheduleData() {
   const addTask = useCallback(async (period: "today" | "tomorrow", text: string) => {
     if (!text.trim()) return;
     if (!userId) {
-      // Local-only fallback
       const newTask: Task = { id: `t-${Date.now()}`, text: text.trim(), done: false };
       setTasks((prev) => ({ ...prev, [period]: [...prev[period], newTask] }));
       return;
@@ -198,13 +170,24 @@ export function useScheduleData() {
     }
   }, [userId]);
 
-  // ─── Event operations ─────────────────────
   const deleteEvent = useCallback(async (id: string) => {
     setRawEvents((prev) => prev.filter((e) => e.id !== id));
     if (userId) {
       await supabase.from("user_events").delete().eq("id", id);
     }
   }, [userId]);
+
+  const toggleRegistration = useCallback(async (id: string) => {
+    setRawEvents((prev) =>
+      prev.map((e) => e.id === id ? { ...e, registered: !e.registered } : e)
+    );
+    if (userId) {
+      const event = rawEvents.find((e) => e.id === id);
+      if (event) {
+        await supabase.from("user_events").update({ registered: !event.registered }).eq("id", id);
+      }
+    }
+  }, [userId, rawEvents]);
 
   return {
     loading,
@@ -216,5 +199,6 @@ export function useScheduleData() {
     editTask,
     deleteTask,
     deleteEvent,
+    toggleRegistration,
   };
 }

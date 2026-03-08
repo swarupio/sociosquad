@@ -3,6 +3,7 @@ import { ArrowRight, Menu, X, User as UserIcon, LogOut, LayoutDashboard, Award, 
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useOrganization";
 
 const navLinks = [
   { label: "Explore", to: "/opportunities" },
@@ -19,6 +20,7 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, isReady, signOut } = useAuth();
+  const { isOrg } = useUserRole();
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -104,13 +106,15 @@ const Navbar = () => {
                     >
                       <Award className="w-4 h-4 text-muted-foreground" /> Impact Portfolio
                     </Link>
-                    <Link
-                      to="/ngo/register"
-                      onClick={() => setDropdownOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors"
-                    >
-                      <Building2 className="w-4 h-4 text-muted-foreground" /> NGO Dashboard
-                    </Link>
+                    {isOrg && (
+                      <Link
+                        to="/ngo/dashboard"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors"
+                      >
+                        <Building2 className="w-4 h-4 text-muted-foreground" /> NGO Dashboard
+                      </Link>
+                    )}
                   </div>
                   <div className="border-t border-border py-1">
                     <button

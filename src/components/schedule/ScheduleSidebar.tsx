@@ -23,6 +23,7 @@ interface Props {
 const ScheduleSidebar = ({
   activeDate, onSelectDate,
   activeCategories, onToggleCategory,
+  calendars,
   tasks, onToggleTask, onAddTask, onEditTask, onDeleteTask,
 }: Props) => {
   const [miniMonth, setMiniMonth] = useState(activeDate.getMonth());

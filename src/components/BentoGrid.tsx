@@ -1,4 +1,4 @@
-import { Brain, Map, Trophy, Zap, Shield, Users, ArrowRight } from "lucide-react";
+import { BarChart3, Map, Trophy, Zap, Shield, Users, ArrowRight } from "lucide-react";
 import ScrollReveal from "./ScrollReveal";
 
 const features = [

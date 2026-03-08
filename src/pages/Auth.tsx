@@ -46,6 +46,16 @@ const Auth = () => {
     if (error) {
       setSignInApiError(error.message);
     } else {
+      // Check if user is an organization → redirect to NGO dashboard
+      const { data: { user: signedInUser } } = await supabase.auth.getUser();
+      if (signedInUser) {
+        const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", signedInUser.id);
+        const isOrg = (roles || []).some((r: any) => r.role === "organization");
+        if (isOrg) {
+          navigate("/ngo/dashboard");
+          return;
+        }
+      }
       navigate("/dashboard");
     }
   };

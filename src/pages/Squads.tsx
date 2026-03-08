@@ -246,7 +246,8 @@ function SquadDetailView({ squadId }: { squadId: string }) {
           ) : (
             <div className="space-y-4">
               {challenges.map((c) => {
-                const pct = Math.min((c.current_value / c.target_value) * 100, 100);
+                const pct = Math.min((c.live_progress / c.target_value) * 100, 100);
+                const memberContribs = contributions[c.id] || [];
                 return (
                   <motion.div
                     key={c.id}
@@ -259,17 +260,40 @@ function SquadDetailView({ squadId }: { squadId: string }) {
                         <h4 className="font-display font-bold text-foreground">{c.title}</h4>
                         <p className="text-xs text-muted-foreground mt-0.5">{c.description}</p>
                       </div>
-                      <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${c.status === "active" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
-                        {c.status}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-secondary text-muted-foreground">Auto-tracked</span>
+                        <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${c.status === "active" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                          {c.status}
+                        </span>
+                      </div>
                     </div>
                     <div className="mt-4">
                       <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
-                        <span>{c.current_value} {c.unit}</span>
+                        <span>{c.live_progress} {c.unit}</span>
                         <span>{c.target_value} {c.unit}</span>
                       </div>
                       <Progress value={pct} className="h-2.5 rounded-full" />
                     </div>
+
+                    {/* Per-member contribution breakdown */}
+                    {memberContribs.length > 0 && (
+                      <div className="mt-4 pt-3 border-t border-border">
+                        <p className="text-xs font-medium text-muted-foreground mb-2">Member Contributions</p>
+                        <div className="space-y-1.5">
+                          {memberContribs
+                            .sort((a, b) => b.contribution - a.contribution)
+                            .map((mc) => (
+                            <div key={mc.user_id} className="flex items-center gap-2 text-xs">
+                              <div className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold">
+                                {mc.profile?.full_name?.[0]?.toUpperCase() || "U"}
+                              </div>
+                              <span className="text-foreground flex-1 truncate">{mc.profile?.full_name || "Anonymous"}</span>
+                              <span className="font-mono text-muted-foreground">{mc.contribution} {c.unit}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </motion.div>
                 );
               })}

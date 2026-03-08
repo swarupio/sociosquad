@@ -348,7 +348,7 @@ const Schedule = () => {
                       const totalMinStart = (startHour - 8) * 80 + (startMinute / 60) * 80;
                       const totalMinEnd = (endHour - 8) * 80 + (endMinute / 60) * 80;
                       const height = totalMinEnd - totalMinStart;
-                      const top = totalMinStart + 52;
+                      const top = totalMinStart + 64;
 
                       const colWidth = 100 / 7;
                       const overlap = overlapMap.get(ev.id) || { col: 0, totalCols: 1 };
@@ -390,7 +390,7 @@ const Schedule = () => {
                 </AnimatePresence>
 
                 {timeInRange && todayInWeek >= 0 && (
-                  <div className="absolute left-0 right-0 flex items-center z-20 pointer-events-none" style={{ top: (currentHour - 8) * 80 + (currentMin / 60) * 80 + 52 }}>
+                  <div className="absolute left-0 right-0 flex items-center z-20 pointer-events-none" style={{ top: (currentHour - 8) * 80 + (currentMin / 60) * 80 + 64 }}>
                     <span className="shrink-0 -ml-[60px] w-[60px] text-center text-[10px] font-bold text-destructive bg-destructive/10 rounded-md px-1.5 py-0.5">{pad(currentHour)}:{pad(currentMin)}</span>
                     <div className="flex-1 h-[2px] bg-destructive/60" />
                     <div className="w-2.5 h-2.5 rounded-full bg-destructive -ml-1" />

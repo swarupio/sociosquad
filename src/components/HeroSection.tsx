@@ -81,19 +81,16 @@ const HeroSection = () => {
             <div className="relative w-[480px] h-[480px]">
               {/* Top-right: Large circle */}
               <div className="absolute top-0 right-0 w-[220px] h-[220px] rounded-full overflow-hidden border-[5px] border-background shadow-xl">
-                <img src={heroVolunteers} alt="Volunteers at beach cleanup" className="w-full h-full object-cover" />
+                <img src={heroTreePlanting} alt="Volunteers planting trees" className="w-full h-full object-cover" />
               </div>
-              {/* Top-left: Medium circle */}
               <div className="absolute top-12 left-4 w-[170px] h-[170px] rounded-full overflow-hidden border-[5px] border-background shadow-xl">
-                <img src={nss7daysCamp} alt="NSS camp" className="w-full h-full object-cover" />
+                <img src={heroFoodDrive} alt="Food drive volunteers" className="w-full h-full object-cover" />
               </div>
-              {/* Bottom-center-right: Medium circle */}
               <div className="absolute bottom-12 right-8 w-[190px] h-[190px] rounded-full overflow-hidden border-[5px] border-background shadow-xl">
-                <img src={nssChristmas} alt="Christmas celebration" className="w-full h-full object-cover" />
+                <img src={heroTeaching} alt="Teaching volunteers" className="w-full h-full object-cover" />
               </div>
-              {/* Bottom-left: Smaller circle */}
               <div className="absolute bottom-4 left-12 w-[150px] h-[150px] rounded-full overflow-hidden border-[5px] border-background shadow-xl">
-                <img src={nssDiwali} alt="Diwali celebration" className="w-full h-full object-cover" />
+                <img src={heroBeachCleanup} alt="Beach cleanup volunteers" className="w-full h-full object-cover" />
               </div>
 
               {/* Decorative dots */}

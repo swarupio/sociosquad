@@ -43,8 +43,11 @@ const NSSImpactGallery = () => {
           <div className="text-center mb-12 md:mb-16">
             <span className="text-sm font-semibold font-body text-primary uppercase tracking-wider">NSS Impact Gallery</span>
             <h2 className="text-4xl md:text-5xl font-display font-bold mt-3 text-foreground">
-              Helping People In Need Around The World
+              Discover Our Campaigns
             </h2>
+            <p className="text-muted-foreground max-w-xl mx-auto font-body mt-3">
+              Join us in doing something great for our community.
+            </p>
           </div>
         </ScrollReveal>
 

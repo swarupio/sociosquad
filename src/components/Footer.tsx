@@ -55,9 +55,6 @@ const Footer = () => (
       </div>
       <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-primary-foreground/20">
         <p className="text-sm font-body opacity-50">© 2026 SocioSquad. All rights reserved.</p>
-        <p className="text-sm font-body opacity-50 flex items-center gap-1 mt-2 md:mt-0">
-          Made with <Heart className="w-3.5 h-3.5 text-accent" /> for a better world
-        </p>
       </div>
     </div>
   </footer>

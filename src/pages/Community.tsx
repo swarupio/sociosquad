@@ -150,7 +150,7 @@ const Community = () => {
           <ScrollReveal>
             <div className="mb-10">
               <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
-                <span className="text-primary">Community</span> Hub
+                Community Hub
               </h1>
               <p className="text-muted-foreground">Share your journey, inspire others</p>
             </div>

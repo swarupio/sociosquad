@@ -1,16 +1,88 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, Clock, Users, Calendar, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, Users, Calendar, CheckCircle2, Loader2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ScrollReveal from "@/components/ScrollReveal";
 import { staticOpportunities } from "@/data/staticOpportunities";
+import { supabase } from "@/lib/supabaseClient";
+
+interface OppDisplay {
+  title: string;
+  org: string;
+  location: string;
+  category: string;
+  spots: number;
+  dateLabel: string;
+  startTime?: string;
+  endTime?: string;
+  timeLabel: string;
+  tags: string[];
+  urgency: string;
+  description: string;
+}
 
 const OpportunityDetail = () => {
   const { id } = useParams();
   const [joined, setJoined] = useState(false);
-  const opp = staticOpportunities.find(o => o.id === id);
+  const [opp, setOpp] = useState<OppDisplay | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) { setLoading(false); return; }
+
+    // First check static opportunities
+    const staticOpp = staticOpportunities.find(o => o.id === id);
+    if (staticOpp) {
+      setOpp(staticOpp);
+      setLoading(false);
+      return;
+    }
+
+    // Then check DB
+    const fetchFromDb = async () => {
+      const { data, error } = await supabase
+        .from("opportunities")
+        .select("*, organizations(name)")
+        .eq("id", id)
+        .maybeSingle();
+
+      if (data) {
+        const timeCommitment = data.time_commitment || "";
+        const timeHours = timeCommitment === "Quick Impact" ? 0.5 : timeCommitment === "Half Day" ? 3 : 6;
+        setOpp({
+          title: data.title,
+          org: (data as any).organizations?.name || "Organization",
+          location: `${data.location || ""}${data.city ? ", " + data.city : ""}`,
+          category: data.category,
+          spots: data.max_volunteers || 0,
+          dateLabel: data.date ? new Date(data.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "",
+          startTime: data.start_time || undefined,
+          endTime: data.end_time || undefined,
+          timeLabel: timeCommitment || `${timeHours} hrs`,
+          tags: data.skills_needed || [],
+          urgency: (data.max_volunteers || 0) < 10 ? "High" : "Medium",
+          description: data.description,
+        });
+      }
+      setLoading(false);
+    };
+
+    fetchFromDb();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="pt-24 pb-16 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!opp) {
     return (

@@ -38,11 +38,11 @@ const BentoGrid = () => {
       <div className="container mx-auto px-6 relative z-10 max-w-7xl">
         <ScrollReveal>
           <div className="text-center mb-4">
-            <span className="text-sm font-semibold font-body text-primary uppercase tracking-wider">Features</span>
+            <span className="text-sm font-semibold font-body text-primary uppercase tracking-wider">Our Programs</span>
           </div>
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-display font-bold mt-3 mb-6 leading-relaxed text-foreground">
-              Everything You Need to Make a Difference
+              Program to Empower Others
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto font-body">
               Powerful tools designed to amplify your impact and connect you with causes that matter.

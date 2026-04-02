@@ -19,7 +19,8 @@ const HeroSection = () => {
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
           >
             <h1 className="text-5xl md:text-6xl xl:text-7xl font-display font-bold tracking-tight mb-6 leading-[1.1] text-foreground">
-              Do Something Great To Help Others
+              Do Something{" "}
+              <span className="text-primary">Great</span> To Help Others
             </h1>
 
             <p className="text-lg text-muted-foreground max-w-lg mb-10 leading-relaxed font-body">

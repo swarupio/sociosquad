@@ -115,7 +115,7 @@ const Opportunities = () => {
             <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
               <div>
                 <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
-                  Explore <span className="gradient-text">Opportunities</span>
+                  Explore Opportunities
                 </h1>
                 <p className="text-muted-foreground">{filtered.length} opportunities available</p>
               </div>

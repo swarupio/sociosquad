@@ -76,10 +76,10 @@ const AIRecommendations = () => {
             <div>
               <span className="text-sm font-semibold font-body text-primary uppercase tracking-wider">Campaigns</span>
               <h2 className="text-4xl md:text-5xl font-display font-bold mt-2 text-foreground">
-                Introduce Our Campaign
+                Discover Our Campaigns
               </h2>
               <p className="text-muted-foreground max-w-xl mt-3 font-body">
-                Help us do something great to help others
+                Join us in doing something great for our community.
               </p>
             </div>
             <Link to="/opportunities" className="hidden md:inline-flex items-center gap-2 text-sm font-semibold font-body text-primary hover:underline">

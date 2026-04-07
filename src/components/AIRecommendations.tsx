@@ -133,7 +133,7 @@ const AIRecommendations = () => {
                   ))}
                 </div>
 
-                <Link to="/opportunities/1" className="w-full py-3 rounded-full text-sm font-semibold font-body bg-primary text-primary-foreground flex items-center justify-center gap-2 group">
+                <Link to={`/opportunities/${rec.id}`} className="w-full py-3 rounded-full text-sm font-semibold font-body bg-primary text-primary-foreground flex items-center justify-center gap-2 group">
                   Apply Now <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </motion.div>

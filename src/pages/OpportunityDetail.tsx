@@ -7,6 +7,9 @@ import Footer from "@/components/Footer";
 import ScrollReveal from "@/components/ScrollReveal";
 import { staticOpportunities } from "@/data/staticOpportunities";
 import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface OppDisplay {
   title: string;
@@ -25,9 +28,15 @@ interface OppDisplay {
 
 const OpportunityDetail = () => {
   const { id } = useParams();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [joined, setJoined] = useState(false);
+  const [registering, setRegistering] = useState(false);
   const [opp, setOpp] = useState<OppDisplay | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isDbOpp, setIsDbOpp] = useState(false);
+  const [dbOppId, setDbOppId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) { setLoading(false); return; }
@@ -36,6 +45,7 @@ const OpportunityDetail = () => {
     const staticOpp = staticOpportunities.find(o => o.id === id);
     if (staticOpp) {
       setOpp(staticOpp);
+      setIsDbOpp(false);
       setLoading(false);
       return;
     }
@@ -49,6 +59,8 @@ const OpportunityDetail = () => {
         .maybeSingle();
 
       if (data) {
+        setDbOppId(data.id);
+        setIsDbOpp(true);
         const timeCommitment = data.time_commitment || "";
         const timeHours = timeCommitment === "Quick Impact" ? 0.5 : timeCommitment === "Half Day" ? 3 : 6;
         setOpp({
@@ -65,12 +77,59 @@ const OpportunityDetail = () => {
           urgency: (data.max_volunteers || 0) < 10 ? "High" : "Medium",
           description: data.description,
         });
+
+        // Check if user is already registered
+        if (user) {
+          const { data: reg } = await supabase
+            .from("volunteer_registrations")
+            .select("id")
+            .eq("opportunity_id", data.id)
+            .eq("user_id", user.id)
+            .maybeSingle();
+          setJoined(!!reg);
+        }
       }
       setLoading(false);
     };
 
     fetchFromDb();
-  }, [id]);
+  }, [id, user]);
+
+  const handleToggleRegistration = async () => {
+    if (!user) {
+      toast({ title: "Please sign in to register", variant: "destructive" });
+      return;
+    }
+
+    const oppId = isDbOpp ? dbOppId : id;
+    if (!oppId) return;
+
+    setRegistering(true);
+    try {
+      if (joined) {
+        await supabase
+          .from("volunteer_registrations")
+          .delete()
+          .eq("opportunity_id", oppId)
+          .eq("user_id", user.id);
+        setJoined(false);
+        toast({ title: "Registration cancelled" });
+      } else {
+        // For static opps, we still record the registration in DB using the static ID
+        await supabase
+          .from("volunteer_registrations")
+          .insert({ opportunity_id: oppId, user_id: user.id });
+        setJoined(true);
+        toast({ title: "Registered successfully! 🎉" });
+      }
+      // Invalidate registrations query so Dashboard/Profile update
+      queryClient.invalidateQueries({ queryKey: ["my-registrations"] });
+    } catch (err) {
+      toast({ title: "Something went wrong", variant: "destructive" });
+    } finally {
+      setRegistering(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -119,6 +178,11 @@ const OpportunityDetail = () => {
                 <span className="text-xs px-3 py-1 rounded-full bg-secondary text-muted-foreground font-medium">{opp.timeLabel}</span>
                 {opp.urgency === "High" && (
                   <span className="text-xs px-3 py-1 rounded-full bg-destructive/20 text-destructive font-medium">Filling Fast</span>
+                )}
+                {joined && (
+                  <span className="text-xs px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 font-semibold flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> Registered
+                  </span>
                 )}
               </div>
 
@@ -175,15 +239,18 @@ const OpportunityDetail = () => {
               <motion.button
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
-                onClick={() => setJoined(!joined)}
+                onClick={handleToggleRegistration}
+                disabled={registering}
                 className={`w-full py-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
                   joined
-                    ? "bg-secondary text-foreground"
+                    ? "bg-secondary text-foreground hover:bg-destructive/10 hover:text-destructive"
                     : "bg-primary text-primary-foreground hover:brightness-105"
                 }`}
               >
-                {joined ? (
-                  <><CheckCircle2 className="w-5 h-5" /> You're Signed Up!</>
+                {registering ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : joined ? (
+                  <><CheckCircle2 className="w-5 h-5" /> Registered — Click to Cancel</>
                 ) : (
                   "Join This Opportunity"
                 )}

@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Edit3, Award, MapPin, Calendar, Zap, Star, Shield, Heart, Loader2, Save } from "lucide-react";
-import { Navigate } from "react-router-dom";
+import { Edit3, Award, MapPin, Calendar, Zap, Star, Shield, Heart, Loader2, Save, CalendarCheck } from "lucide-react";
+import { Navigate, Link } from "react-router-dom";
+import { useMyRegistrations } from "@/hooks/useMyRegistrations";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ScrollReveal from "@/components/ScrollReveal";
@@ -51,6 +52,8 @@ const Profile = () => {
     },
     enabled: isReady && !!user,
   });
+
+  const { data: registrations } = useMyRegistrations(user?.id);
 
   const updateProfile = useMutation({
     mutationFn: async (newName: string) => {
@@ -181,7 +184,59 @@ const Profile = () => {
             </div>
           </ScrollReveal>
 
-          {/* Badges */}
+          {/* Upcoming Registrations */}
+          <ScrollReveal>
+            <div className="glass-card p-6 mb-8">
+              <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+                <CalendarCheck className="w-5 h-5 text-primary" /> My Registered Events
+              </h3>
+              {registrations && registrations.length > 0 ? (
+                <div className="space-y-3">
+                  {registrations.slice(0, 5).map((reg) => {
+                    const eventDate = new Date(reg.date);
+                    const isPast = eventDate < new Date();
+                    return (
+                      <div key={reg.id} className="flex items-center justify-between p-3 rounded-xl bg-secondary/50 border border-border/50">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex flex-col items-center justify-center shrink-0">
+                            <span className="text-[9px] font-bold text-primary uppercase">
+                              {eventDate.toLocaleDateString("en-US", { month: "short" })}
+                            </span>
+                            <span className="text-xs font-bold text-primary leading-none">
+                              {eventDate.getDate()}
+                            </span>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">{reg.title}</p>
+                            <p className="text-xs text-muted-foreground">{reg.org_name} • {reg.category}</p>
+                          </div>
+                        </div>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${
+                          reg.attended ? "bg-emerald-100 text-emerald-700" : isPast ? "bg-amber-100 text-amber-700" : "bg-primary/10 text-primary"
+                        }`}>
+                          {reg.attended ? "Attended" : isPast ? "Pending" : "Upcoming"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                  {registrations.length > 5 && (
+                    <Link to="/dashboard" className="text-xs text-primary hover:underline block text-center mt-2">
+                      View all {registrations.length} registrations →
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground text-sm">No registrations yet.</p>
+                  <Link to="/opportunities" className="text-xs text-primary hover:underline mt-1 inline-block">
+                    Explore opportunities →
+                  </Link>
+                </div>
+              )}
+            </div>
+          </ScrollReveal>
+
+
           <ScrollReveal>
             <div className="glass-card p-6">
               <h3 className="font-semibold text-foreground mb-6 flex items-center gap-2">

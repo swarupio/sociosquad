@@ -8,20 +8,21 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 
 const dummyLeaders = [
-  { rank: 1, name: "Swarup", city: "Mumbai", xp: 12400, hours: 580, level: 24 },
+  { rank: 1, name: "Swarup", city: "Mumbai", xp: 12400, hours: 580, level: 24 , isUser: true},
   { rank: 2, name: "Suhani", city: "Mumbai", xp: 11200, hours: 520, level: 22 },
   { rank: 3, name: "Gururaj", city: "Mumbai", xp: 10800, hours: 490, level: 21 },
-  { rank: 4, name: "Phillon", city: "Mumbai", xp: 9600, hours: 440, level: 19 },
-  { rank: 5, name: "Aayush N", city: "Mumbai", xp: 9200, hours: 410, level: 18 },
-  { rank: 6, name: "Pramit", city: "Mumbai", xp: 8800, hours: 390, level: 17 },
-  { rank: 7, name: "Chaitanya", city: "Mumbai", xp: 8400, hours: 370, level: 17 },
-  { rank: 8, name: "Aayush B", city: "Mumbai", xp: 7900, hours: 350, level: 16 },
-  { rank: 9, name: "Pushkar", city: "Mumbai", xp: 7500, hours: 330, level: 15 },
-  { rank: 10, name: "Jeevan", city: "Mumbai", xp: 7100, hours: 310, level: 14 },
-  { rank: 11, name: "Nilay", city: "Mumbai", xp: 6700, hours: 290, level: 13 },
-  { rank: 12, name: "Jishnu", city: "Mumbai", xp: 6300, hours: 270, level: 12 },
-  { rank: 13, name: "Tanmay", city: "Mumbai", xp: 5900, hours: 250, level: 11 },
-  { rank: 14, name: "Soham", city: "Mumbai", xp: 5500, hours: 230, level: 10, isUser: true },
+  { rank: 4, name: "Phillon", city: "Mumbai", xp: 9600, hours: 440, level: 20 },
+  { rank: 5, name: "Aditya S", city: "Mumbai", xp: 9400, hours: 420, level: 19 },
+  { rank: 6, name: "Aayush N", city: "Mumbai", xp: 9200, hours: 410, level: 18 },
+  { rank: 7, name: "Pramit", city: "Mumbai", xp: 8800, hours: 390, level: 17 },
+  { rank: 8, name: "Chaitanya", city: "Mumbai", xp: 8400, hours: 370, level: 17 },
+  { rank: 9, name: "Aayush B", city: "Mumbai", xp: 7900, hours: 350, level: 16 },
+  { rank: 10, name: "Pushkar", city: "Mumbai", xp: 7500, hours: 330, level: 15 },
+  { rank: 11, name: "Jeevan", city: "Mumbai", xp: 7100, hours: 310, level: 14 },
+  { rank: 12, name: "Nilay", city: "Mumbai", xp: 6700, hours: 290, level: 13 },
+  { rank: 13, name: "Jishnu", city: "Mumbai", xp: 6300, hours: 270, level: 12 },
+  { rank: 14, name: "Tanmay", city: "Mumbai", xp: 5900, hours: 250, level: 11 },
+  { rank: 15, name: "Soham", city: "Mumbai", xp: 5500, hours: 230, level: 10, isUser: true },
 ];
 
 interface LeaderEntry {

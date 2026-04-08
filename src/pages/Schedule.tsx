@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 
 
 import {
-  Home, CalendarDays, MessageSquare, Settings,
+  Home, CalendarDays,
   ChevronLeft, ChevronRight, Sparkles, Clock,
   TreePine, Utensils, Users, Waves, Bus, Loader2, CheckCircle2,
 } from "lucide-react";
@@ -156,9 +156,6 @@ const Schedule = () => {
       <nav className="w-[56px] shrink-0 flex flex-col items-center py-6 gap-6 border-r border-border bg-card">
         <button onClick={() => navigate("/")} className="p-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"><Home className="w-5 h-5" /></button>
         <button className="p-2.5 rounded-xl bg-navy/10 text-navy transition-colors"><CalendarDays className="w-5 h-5" /></button>
-        <button className="p-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"><MessageSquare className="w-5 h-5" /></button>
-        <div className="flex-1" />
-        <button className="p-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"><Settings className="w-5 h-5" /></button>
       </nav>
 
       {/* Sidebar */}

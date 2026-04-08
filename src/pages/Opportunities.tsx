@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { staticOpportunities } from "@/data/staticOpportunities";
 import { supabase } from "@/lib/supabaseClient";
+import { useQueryClient } from "@tanstack/react-query";
 
 const categories = ["All", "Environment", "Education", "Healthcare", "General", "Community", "Health"];
 const timeFilters = [
@@ -23,6 +24,7 @@ const timeFilters = [
 const Opportunities = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { opportunities: dbOpps, loading, register, unregister } = usePublicOpportunities();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
@@ -104,6 +106,8 @@ const Opportunities = () => {
       await register(oppId);
       toast({ title: "Registered! 🎉" });
     }
+    // Sync across Dashboard/Profile
+    queryClient.invalidateQueries({ queryKey: ["my-registrations"] });
   };
 
   return (

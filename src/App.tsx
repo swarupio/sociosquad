@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/react"; // Use /react for Vite
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -44,6 +45,10 @@ const App = () => (
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
+      {/* Placing Analytics here ensures it tracks every route 
+          defined in your BrowserRouter above. 
+      */}
+      <Analytics />
     </TooltipProvider>
   </QueryClientProvider>
 );

@@ -4,7 +4,7 @@ import {
   Heart, Shield, Star, MapPin, Linkedin, Copy, Check, Trophy, TrendingUp,
   FileText,
 } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useMemo } from "react";
 import { Navigate, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -17,37 +17,8 @@ import {
 } from "recharts";
 import ImpactCertificate from "@/components/portfolio/ImpactCertificate";
 import { generateVolunteerResume } from "@/components/portfolio/VolunteerResumePDF";
+import { useMyRegistrations } from "@/hooks/useMyRegistrations";
 import { Loader2 } from "lucide-react";
-
-const skillData = [
-  { skill: "Teaching", value: 72 }, { skill: "Coding", value: 58 },
-  { skill: "Leadership", value: 85 }, { skill: "Design", value: 40 },
-  { skill: "Communication", value: 90 }, { skill: "Organizing", value: 65 },
-];
-
-const causeBreakdown = [
-  { cause: "Education", hours: 45, color: "bg-primary" },
-  { cause: "Environment", hours: 32, color: "bg-accent" },
-  { cause: "Healthcare", hours: 18, color: "bg-teal" },
-  { cause: "Community Dev", hours: 25, color: "bg-warm" },
-];
-
-const badges = [
-  { name: "First Responder", icon: Shield, earned: true, date: "Jan 2026" },
-  { name: "Team Captain", icon: Star, earned: true, date: "Feb 2026" },
-  { name: "Eco Warrior", icon: Heart, earned: true, date: "Feb 2026" },
-  { name: "Code Hero", icon: Zap, earned: false, date: null },
-  { name: "Mentor", icon: Award, earned: false, date: null },
-  { name: "Globe Trotter", icon: MapPin, earned: false, date: null },
-];
-
-const milestones = [
-  { title: "100 Volunteer Hours", achieved: true, icon: Clock },
-  { title: "10 Events Completed", achieved: true, icon: Target },
-  { title: "5 Causes Supported", achieved: true, icon: Heart },
-  { title: "30-Day Streak", achieved: false, icon: Flame },
-  { title: "Squad Leader", achieved: false, icon: Trophy },
-];
 
 const Portfolio = () => {
   const { user, isReady } = useAuth();
@@ -82,6 +53,99 @@ const Portfolio = () => {
     enabled: isReady && !!user,
   });
 
+  const { data: registrations } = useMyRegistrations(user?.id);
+
+  // Derive cause breakdown from real registrations
+  const causeBreakdown = useMemo(() => {
+    if (!registrations || registrations.length === 0) return [];
+    const causeMap = new Map<string, number>();
+    for (const reg of registrations) {
+      const category = reg.category || "General";
+      const hours = reg.hours_credited && reg.hours_credited > 0 ? reg.hours_credited : 0;
+      causeMap.set(category, (causeMap.get(category) || 0) + hours);
+    }
+    // Also count registrations without hours as participation
+    if ([...causeMap.values()].every(v => v === 0)) {
+      // No hours credited yet — show registration counts instead
+      causeMap.clear();
+      for (const reg of registrations) {
+        const category = reg.category || "General";
+        causeMap.set(category, (causeMap.get(category) || 0) + 1);
+      }
+    }
+    const colors = ["bg-primary", "bg-accent", "bg-teal", "bg-warm", "bg-secondary", "bg-destructive"];
+    return [...causeMap.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([cause, hours], i) => ({ cause, hours, color: colors[i % colors.length] }));
+  }, [registrations]);
+
+  // Derive skill profile from registration categories
+  const skillData = useMemo(() => {
+    if (!registrations || registrations.length === 0) {
+      return [
+        { skill: "Teaching", value: 0 }, { skill: "Coding", value: 0 },
+        { skill: "Leadership", value: 0 }, { skill: "Design", value: 0 },
+        { skill: "Communication", value: 0 }, { skill: "Organizing", value: 0 },
+      ];
+    }
+    const categorySkillMap: Record<string, string[]> = {
+      "Education": ["Teaching", "Communication"],
+      "Environment": ["Organizing", "Leadership"],
+      "Healthcare": ["Communication", "Organizing"],
+      "Community Dev": ["Leadership", "Organizing"],
+      "General": ["Communication"],
+      "Technology": ["Coding", "Design"],
+      "Arts & Culture": ["Design", "Communication"],
+    };
+    const skillScores: Record<string, number> = {
+      Teaching: 0, Coding: 0, Leadership: 0, Design: 0, Communication: 0, Organizing: 0,
+    };
+    for (const reg of registrations) {
+      const skills = categorySkillMap[reg.category] || categorySkillMap["General"];
+      for (const s of skills!) {
+        skillScores[s] = (skillScores[s] || 0) + 15;
+      }
+    }
+    return Object.entries(skillScores).map(([skill, value]) => ({
+      skill,
+      value: Math.min(value, 100),
+    }));
+  }, [registrations]);
+
+  // Derive badges from real achievements
+  const badges = useMemo(() => {
+    const totalHours = stats?.total_hours ?? 0;
+    const tasksCompleted = stats?.tasks_completed ?? 0;
+    const regCount = registrations?.length ?? 0;
+    const uniqueCauses = new Set(registrations?.map(r => r.category) ?? []).size;
+    const streak = stats?.day_streak ?? 0;
+
+    return [
+      { name: "First Responder", icon: Shield, earned: regCount >= 1, date: regCount >= 1 ? "Earned" : null },
+      { name: "Team Captain", icon: Star, earned: tasksCompleted >= 5, date: tasksCompleted >= 5 ? "Earned" : null },
+      { name: "Eco Warrior", icon: Heart, earned: uniqueCauses >= 3, date: uniqueCauses >= 3 ? "Earned" : null },
+      { name: "Code Hero", icon: Zap, earned: totalHours >= 50, date: totalHours >= 50 ? "Earned" : null },
+      { name: "Mentor", icon: Award, earned: totalHours >= 100, date: totalHours >= 100 ? "Earned" : null },
+      { name: "Globe Trotter", icon: MapPin, earned: uniqueCauses >= 5, date: uniqueCauses >= 5 ? "Earned" : null },
+    ];
+  }, [stats, registrations]);
+
+  // Derive milestones from real data
+  const milestones = useMemo(() => {
+    const totalHours = stats?.total_hours ?? 0;
+    const tasksCompleted = stats?.tasks_completed ?? 0;
+    const uniqueCauses = new Set(registrations?.map(r => r.category) ?? []).size;
+    const streak = stats?.day_streak ?? 0;
+
+    return [
+      { title: "100 Volunteer Hours", achieved: totalHours >= 100, icon: Clock },
+      { title: "10 Events Completed", achieved: tasksCompleted >= 10, icon: Target },
+      { title: "5 Causes Supported", achieved: uniqueCauses >= 5, icon: Heart },
+      { title: "30-Day Streak", achieved: streak >= 30, icon: Flame },
+      { title: "First Registration", achieved: (registrations?.length ?? 0) >= 1, icon: Trophy },
+    ];
+  }, [stats, registrations]);
+
   if (!isReady) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -95,13 +159,13 @@ const Portfolio = () => {
   const displayName = profile?.full_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Volunteer";
   const initials = displayName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
   const joinDate = new Date(user.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" });
-  const totalHours = stats?.total_hours ?? 120;
-  const tasksCompleted = stats?.tasks_completed ?? 24;
-  const impactScore = stats?.impact_score ?? 87;
-  const level = stats?.level ?? 5;
-  const streak = stats?.day_streak ?? 14;
+  const totalHours = stats?.total_hours ?? 0;
+  const tasksCompleted = stats?.tasks_completed ?? 0;
+  const impactScore = stats?.impact_score ?? 0;
+  const level = stats?.level ?? 1;
+  const streak = stats?.day_streak ?? 0;
   const totalCauses = causeBreakdown.length;
-  const maxCauseHours = Math.max(...causeBreakdown.map(c => c.hours));
+  const maxCauseHours = causeBreakdown.length > 0 ? Math.max(...causeBreakdown.map(c => c.hours)) : 1;
 
   const shareUrl = `${window.location.origin}/portfolio`;
 
@@ -142,7 +206,6 @@ const Portfolio = () => {
           {/* Hero Header */}
           <ScrollReveal>
             <div className="relative glass-card p-8 md:p-10 mb-8 overflow-hidden">
-              {/* Decorative background */}
               <div className="absolute top-0 right-0 w-72 h-72 rounded-full opacity-[0.04]" style={{ background: 'var(--gradient-primary)' }} />
               <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full opacity-[0.03]" style={{ background: 'var(--gradient-accent)' }} />
 
@@ -241,25 +304,29 @@ const Portfolio = () => {
                 <h3 className="font-semibold text-foreground mb-5 flex items-center gap-2">
                   <Heart className="w-5 h-5 text-primary" /> Cause Breakdown
                 </h3>
-                <div className="space-y-4">
-                  {causeBreakdown.map((cause, i) => (
-                    <div key={i}>
-                      <div className="flex items-center justify-between text-sm mb-1.5">
-                        <span className="text-foreground font-medium">{cause.cause}</span>
-                        <span className="text-muted-foreground">{cause.hours}h</span>
+                {causeBreakdown.length > 0 ? (
+                  <div className="space-y-4">
+                    {causeBreakdown.map((cause, i) => (
+                      <div key={i}>
+                        <div className="flex items-center justify-between text-sm mb-1.5">
+                          <span className="text-foreground font-medium">{cause.cause}</span>
+                          <span className="text-muted-foreground">{cause.hours}{cause.hours > 0 ? 'h' : ' events'}</span>
+                        </div>
+                        <div className="w-full h-2.5 rounded-full bg-secondary overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            whileInView={{ width: `${(cause.hours / maxCauseHours) * 100}%` }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.8, delay: i * 0.15 }}
+                            className={`h-full rounded-full ${cause.color}`}
+                          />
+                        </div>
                       </div>
-                      <div className="w-full h-2.5 rounded-full bg-secondary overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          whileInView={{ width: `${(cause.hours / maxCauseHours) * 100}%` }}
-                          viewport={{ once: true }}
-                          transition={{ duration: 0.8, delay: i * 0.15 }}
-                          className={`h-full rounded-full ${cause.color}`}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-8">Register for opportunities to see your cause breakdown</p>
+                )}
               </div>
             </ScrollReveal>
 

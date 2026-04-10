@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Shuffle, MapPin, Clock, Users, Timer } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import ScrollReveal from "./ScrollReveal";
+import { staticOpportunities } from "@/data/staticOpportunities";
 
 const recommendations = [
   {
@@ -65,7 +66,7 @@ const AIRecommendations = () => {
   const handleSurpriseMe = () => {
     setIsSpinning(true);
     setTimeout(() => {
-      const random = allOpportunities[Math.floor(Math.random() * allOpportunities.length)];
+      const random = staticOpportunities[Math.floor(Math.random() * allOpportunities.length)];
       setIsSpinning(false);
       navigate(`/opportunities/${random.id}`);
     }, 800);

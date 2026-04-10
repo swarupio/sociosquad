@@ -72,8 +72,14 @@ const Schedule = () => {
     });
   }, [dynamicCalendars]);
 
-  const [selectedEvent, setSelectedEvent] = useState<CalEvent | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+
+  // Derive selectedEvent from events so it stays in sync after registration toggles
+  const selectedEvent = useMemo(
+    () => (selectedEventId ? events.find((e) => e.id === selectedEventId) ?? null : null),
+    [selectedEventId, events]
+  );
   const [activeDate, setActiveDate] = useState(new Date());
 
   // Week navigation
@@ -146,7 +152,7 @@ const Schedule = () => {
   }, [view]);
 
   const openEventDetail = useCallback((ev: CalEvent) => {
-    setSelectedEvent(ev);
+    setSelectedEventId(ev.id);
     setModalOpen(true);
   }, []);
 
@@ -434,7 +440,7 @@ const Schedule = () => {
       <EventDetailModal
         event={selectedEvent}
         open={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => { setModalOpen(false); setSelectedEventId(null); }}
         onDelete={deleteEvent}
         onToggleRegistration={toggleRegistration}
         onChangeCategory={changeCategory}

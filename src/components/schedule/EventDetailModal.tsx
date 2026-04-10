@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Clock, Tag, CalendarDays, CheckCircle2, UserPlus, Pencil } from "lucide-react";
+import { Clock, Tag, CalendarDays, CheckCircle2, UserPlus, Pencil, Loader2 } from "lucide-react";
 import type { CalEvent } from "./types";
 import { formatTime } from "./data";
 
@@ -24,23 +24,30 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onDelete: (id: string) => void;
-  onToggleRegistration: (id: string) => void;
+  onToggleRegistration: (id: string) => Promise<boolean> | void;
   onChangeCategory?: (id: string, category: string) => void;
   availableCategories?: string[];
 }
 
 const EventDetailModal = ({ event, open, onClose, onDelete, onToggleRegistration, onChangeCategory, availableCategories = [] }: Props) => {
   const [editingCategory, setEditingCategory] = useState(false);
+  const [toggling, setToggling] = useState(false);
 
   const start = event ? new Date(event.startTime) : new Date();
   const end = event ? new Date(event.endTime) : new Date();
   const dateStr = event ? start.toLocaleDateString("default", { weekday: "long", month: "long", day: "numeric", year: "numeric" }) : "";
-  const isOppEvent = event ? event.id.startsWith("opp-") : false;
+  const isOppEvent = event ? (event.id.startsWith("opp-") || event.id.startsWith("static-")) : false;
 
   if (!event) return null;
 
-
-
+  const handleToggle = async () => {
+    setToggling(true);
+    try {
+      await onToggleRegistration(event.id);
+    } finally {
+      setToggling(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) { onClose(); setEditingCategory(false); } }}>
@@ -109,9 +116,12 @@ const EventDetailModal = ({ event, open, onClose, onDelete, onToggleRegistration
             variant={event.registered ? "outline" : "default"}
             size="sm"
             className="gap-1.5"
-            onClick={() => onToggleRegistration(event.id)}
+            onClick={handleToggle}
+            disabled={toggling}
           >
-            {event.registered ? (
+            {toggling ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : event.registered ? (
               <><CheckCircle2 className="w-3.5 h-3.5" /> Unregister</>
             ) : (
               <><UserPlus className="w-3.5 h-3.5" /> Register</>

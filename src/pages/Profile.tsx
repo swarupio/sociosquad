@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Edit3, Award, MapPin, Calendar, Zap, Star, Shield, Heart, Loader2, Save, CalendarCheck } from "lucide-react";
 import { Navigate, Link } from "react-router-dom";
-import { useMyRegistrations } from "@/hooks/useMyRegistrations";
+import { useVolunteerImpact } from "@/hooks/useVolunteerImpact";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ScrollReveal from "@/components/ScrollReveal";
@@ -39,21 +39,7 @@ const Profile = () => {
     enabled: isReady && !!user,
   });
 
-  const { data: stats } = useQuery({
-    queryKey: ["user-stats", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("user_stats")
-        .select("*")
-        .eq("user_id", user!.id)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: isReady && !!user,
-  });
-
-  const { data: registrations } = useMyRegistrations(user?.id);
+  const { registrations, summary } = useVolunteerImpact(user?.id, isReady && !!user);
 
   const updateProfile = useMutation({
     mutationFn: async (newName: string) => {
@@ -83,9 +69,9 @@ const Profile = () => {
   const initials = displayName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
   const joinDate = new Date(user.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" });
 
-  const level = stats?.level ?? 1;
-  const xp = stats?.xp ?? 0;
-  const xpMax = stats?.xp_max ?? 500;
+  const level = summary.level;
+  const xp = summary.xp;
+  const xpMax = summary.xpMax;
   const xpPercent = xpMax > 0 ? (xp / xpMax) * 100 : 0;
 
   const handleSave = () => {
@@ -152,10 +138,10 @@ const Profile = () => {
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             {[
-              { label: "Total Hours", value: `${stats?.total_hours ?? 0}` },
-              { label: "Tasks Done", value: `${stats?.tasks_completed ?? 0}` },
-              { label: "Impact Score", value: `${stats?.impact_score ?? 0}%` },
-              { label: "Streak", value: `${stats?.day_streak ?? 0} days` },
+              { label: "Total Hours", value: `${summary.totalHours}` },
+              { label: "Events Completed", value: `${summary.completedEvents}` },
+              { label: "Impact Score", value: `${summary.impactScore}%` },
+              { label: "Streak", value: `${summary.dayStreak} days` },
             ].map((stat, i) => (
               <ScrollReveal key={i} delay={i * 0.1}>
                 <div className="glass-card p-5 text-center">

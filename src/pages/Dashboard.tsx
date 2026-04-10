@@ -8,7 +8,7 @@ import AnimatedCounter from "@/components/AnimatedCounter";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
-import { useMyRegistrations } from "@/hooks/useMyRegistrations";
+import { useVolunteerImpact } from "@/hooks/useVolunteerImpact";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -28,21 +28,7 @@ const defaultWeeklyData = [
 const Dashboard = () => {
   const { user, isReady } = useAuth();
 
-  const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ["user-stats", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("user_stats")
-        .select("*")
-        .eq("user_id", user!.id)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: isReady && !!user,
-  });
-
-  const { data: registrations } = useMyRegistrations(user?.id);
+  const { registrations, summary } = useVolunteerImpact(user?.id, isReady && !!user);
 
   const { data: activities, isLoading: activitiesLoading } = useQuery({
     queryKey: ["user-activities", user?.id],
@@ -70,9 +56,9 @@ const Dashboard = () => {
   if (!user) return <Navigate to="/auth" />;
 
   const displayName = user.user_metadata?.full_name || user.email?.split("@")[0] || "Volunteer";
-  const level = stats?.level ?? 1;
-  const xp = stats?.xp ?? 0;
-  const xpMax = stats?.xp_max ?? 500;
+  const level = summary.level;
+  const xp = summary.xp;
+  const xpMax = summary.xpMax;
   const xpPercent = xpMax > 0 ? (xp / xpMax) * 100 : 0;
 
   const formatTime = (dateStr: string) => {
@@ -102,10 +88,10 @@ const Dashboard = () => {
           {/* Impact Stats Row */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             {[
-              { icon: Clock, label: "Total Hours", value: stats?.total_hours ?? 0, suffix: "h", color: "text-primary" },
-              { icon: Target, label: "Tasks Completed", value: stats?.tasks_completed ?? 0, suffix: "", color: "text-primary" },
-              { icon: Flame, label: "Day Streak", value: stats?.day_streak ?? 0, suffix: "", color: "text-destructive" },
-              { icon: TrendingUp, label: "Impact Score", value: stats?.impact_score ?? 0, suffix: "%", color: "text-primary" },
+              { icon: Clock, label: "Total Hours", value: summary.totalHours, suffix: "h", color: "text-primary" },
+              { icon: Target, label: "Events Completed", value: summary.completedEvents, suffix: "", color: "text-primary" },
+              { icon: Flame, label: "Day Streak", value: summary.dayStreak, suffix: "", color: "text-destructive" },
+              { icon: TrendingUp, label: "Impact Score", value: summary.impactScore, suffix: "%", color: "text-primary" },
             ].map((stat, i) => (
               <ScrollReveal key={i} delay={i * 0.1}>
                 <div className="glass-card p-6 text-center">

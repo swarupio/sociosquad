@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import { ArrowRight, Shuffle, MapPin, Clock, Users, Timer } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import ScrollReveal from "./ScrollReveal";
-import { staticOpportunities } from "@/data/staticOpportunities";
 
 const recommendations = [
   {
@@ -50,14 +49,7 @@ const recommendations = [
   },
 ];
 
-const allOpportunities = [
-  { id: 1, title: "Community Garden Cleanup" },
-  { id: 2, title: "Blood Donation Camp" },
-  { id: 3, title: "Beach Cleanup Drive" },
-  { id: 4, title: "Youth Mentorship Program" },
-  { id: 5, title: "Senior Care Companionship" },
-  { id: 6, title: "Animal Shelter Support" },
-];
+import { staticOpportunities } from "@/data/staticOpportunities";
 
 const AIRecommendations = () => {
   const navigate = useNavigate();
@@ -66,7 +58,7 @@ const AIRecommendations = () => {
   const handleSurpriseMe = () => {
     setIsSpinning(true);
     setTimeout(() => {
-      const random = staticOpportunities[Math.floor(Math.random() * allOpportunities.length)];
+      const random = staticOpportunities[Math.floor(Math.random() * staticOpportunities.length)];
       setIsSpinning(false);
       navigate(`/opportunities/${random.id}`);
     }, 800);

@@ -8,34 +8,68 @@ interface AnimatedCounterProps {
 
 const AnimatedCounter = ({ target, suffix = "", duration = 2000 }: AnimatedCounterProps) => {
   const [count, setCount] = useState(0);
+  const [isVisible, setIsVisible] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
-  const hasAnimated = useRef(false);
+  const frameRef = useRef<number>();
+  const latestCountRef = useRef(0);
+
+  useEffect(() => {
+    latestCountRef.current = count;
+  }, [count]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && !hasAnimated.current) {
-          hasAnimated.current = true;
-          const startTime = Date.now();
-          const animate = () => {
-            const elapsed = Date.now() - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 3);
-            setCount(Math.floor(eased * target));
-            if (progress < 1) requestAnimationFrame(animate);
-          };
-          requestAnimationFrame(animate);
+        if (entry.isIntersecting) {
+          setIsVisible(true);
         }
       },
       { threshold: 0.3 }
     );
-    if (ref.current) observer.observe(ref.current);
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
     return () => observer.disconnect();
-  }, [target, duration]);
+  }, []);
+
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const startValue = latestCountRef.current;
+    const startTime = performance.now();
+
+    if (frameRef.current) {
+      cancelAnimationFrame(frameRef.current);
+    }
+
+    const animate = (timestamp: number) => {
+      const elapsed = timestamp - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const nextValue = Math.round(startValue + (target - startValue) * eased);
+
+      setCount(nextValue);
+
+      if (progress < 1) {
+        frameRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    frameRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (frameRef.current) {
+        cancelAnimationFrame(frameRef.current);
+      }
+    };
+  }, [isVisible, target, duration]);
 
   return (
     <span ref={ref} className="tabular-nums">
-      {count.toLocaleString()}{suffix}
+      {count.toLocaleString()}
+      {suffix}
     </span>
   );
 };

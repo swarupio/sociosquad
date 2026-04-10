@@ -16,8 +16,7 @@ const ImpactCertificate = ({ name, hours, tasks, causes, level, joinDate, onClos
   const certRef = useRef<HTMLDivElement>(null);
 
   const handleDownload = () => {
-    // Create a printable version
-    const printWindow = window.open('', '_blank');
+    const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
     printWindow.document.write(`
@@ -85,7 +84,7 @@ const ImpactCertificate = ({ name, hours, tasks, causes, level, joinDate, onClos
           </div>
           <div class="stats">
             <div class="stat"><div class="stat-value">${hours}</div><div class="stat-label">Hours</div></div>
-            <div class="stat"><div class="stat-value">${tasks}</div><div class="stat-label">Tasks</div></div>
+            <div class="stat"><div class="stat-value">${tasks}</div><div class="stat-label">Events</div></div>
             <div class="stat"><div class="stat-value">${causes}</div><div class="stat-label">Causes</div></div>
             <div class="stat"><div class="stat-value">${level}</div><div class="stat-label">Level</div></div>
           </div>
@@ -115,10 +114,9 @@ const ImpactCertificate = ({ name, hours, tasks, causes, level, joinDate, onClos
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
-          onClick={(e) => e.stopPropagation()}
+          onClick={(event) => event.stopPropagation()}
           className="bg-card rounded-2xl border border-border shadow-2xl max-w-2xl w-full overflow-hidden"
         >
-          {/* Modal Header */}
           <div className="flex items-center justify-between p-5 border-b border-border">
             <h3 className="font-semibold text-foreground flex items-center gap-2">
               <Award className="w-5 h-5 text-primary" /> Impact Certificate
@@ -128,11 +126,9 @@ const ImpactCertificate = ({ name, hours, tasks, causes, level, joinDate, onClos
             </button>
           </div>
 
-          {/* Certificate Preview */}
           <div className="p-6" ref={certRef}>
             <div className="bg-background rounded-xl border-2 border-primary/20 p-8 relative overflow-hidden">
-              {/* Decorative top bar */}
-              <div className="absolute top-0 left-0 right-0 h-1.5 rounded-t-xl" style={{ background: 'var(--gradient-primary)' }} />
+              <div className="absolute top-0 left-0 right-0 h-1.5 rounded-t-xl" style={{ background: "var(--gradient-primary)" }} />
 
               <div className="text-center mb-6">
                 <p className="text-xl font-display font-bold text-primary">SocioSquad</p>
@@ -147,19 +143,19 @@ const ImpactCertificate = ({ name, hours, tasks, causes, level, joinDate, onClos
               <p className="text-center text-xs text-muted-foreground leading-relaxed max-w-sm mx-auto mb-6">
                 has contributed <span className="font-semibold text-foreground">{hours} hours</span> across{" "}
                 <span className="font-semibold text-foreground">{causes} causes</span>, completing{" "}
-                <span className="font-semibold text-foreground">{tasks} tasks</span> since {joinDate}.
+                <span className="font-semibold text-foreground">{tasks} events</span> since {joinDate}.
               </p>
 
               <div className="flex justify-center gap-8 mb-6">
                 {[
                   { label: "Hours", value: hours },
-                  { label: "Tasks", value: tasks },
+                  { label: "Events", value: tasks },
                   { label: "Causes", value: causes },
                   { label: "Level", value: level },
-                ].map((s, i) => (
-                  <div key={i} className="text-center">
-                    <div className="text-lg font-bold text-primary">{s.value}</div>
-                    <div className="text-[9px] uppercase tracking-wider text-muted-foreground">{s.label}</div>
+                ].map((stat, index) => (
+                  <div key={index} className="text-center">
+                    <div className="text-lg font-bold text-primary">{stat.value}</div>
+                    <div className="text-[9px] uppercase tracking-wider text-muted-foreground">{stat.label}</div>
                   </div>
                 ))}
               </div>
@@ -168,7 +164,7 @@ const ImpactCertificate = ({ name, hours, tasks, causes, level, joinDate, onClos
                 <div className="text-center">
                   <div className="w-24 border-b border-muted-foreground/30 mb-1" />
                   <p className="text-[9px] text-muted-foreground uppercase tracking-wider">
-                    {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                   </p>
                 </div>
                 <Shield className="w-8 h-8 text-primary/20" />
@@ -180,7 +176,6 @@ const ImpactCertificate = ({ name, hours, tasks, causes, level, joinDate, onClos
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex items-center justify-end gap-3 p-5 border-t border-border">
             <button
               onClick={onClose}

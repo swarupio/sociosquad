@@ -1,8 +1,3 @@
-/**
- * Generates a full-page volunteer resume as a printable HTML document.
- * Opens in a new window with auto-print.
- */
-
 interface ResumeData {
   name: string;
   email: string;
@@ -12,19 +7,19 @@ interface ResumeData {
   tasksCompleted: number;
   impactScore: number;
   streak: number;
-  causes: { cause: string; hours: number }[];
+  causes: { cause: string; value: number; unit: "hours" | "events" }[];
   skills: { skill: string; value: number }[];
   badges: { name: string; earned: boolean; date: string | null }[];
   milestones: { title: string; achieved: boolean }[];
 }
 
 export function generateVolunteerResume(data: ResumeData) {
-  const earnedBadges = data.badges.filter(b => b.earned);
-  const achievedMilestones = data.milestones.filter(m => m.achieved);
+  const earnedBadges = data.badges.filter((badge) => badge.earned);
+  const achievedMilestones = data.milestones.filter((milestone) => milestone.achieved);
   const topSkills = [...data.skills].sort((a, b) => b.value - a.value).slice(0, 6);
-  const totalCauseHours = data.causes.reduce((sum, c) => sum + c.hours, 0);
+  const maxCauseValue = Math.max(...data.causes.map((cause) => cause.value), 1);
 
-  const printWindow = window.open('', '_blank');
+  const printWindow = window.open("", "_blank");
   if (!printWindow) return;
 
   printWindow.document.write(`
@@ -50,8 +45,6 @@ export function generateVolunteerResume(data: ResumeData) {
           overflow: hidden;
           box-shadow: 0 4px 24px rgba(0,0,0,0.08);
         }
-
-        /* Header */
         .header {
           background: linear-gradient(135deg, #2d6a4f, #1b4332);
           color: #fff;
@@ -114,8 +107,6 @@ export function generateVolunteerResume(data: ResumeData) {
           opacity: 0.6;
           margin-top: 2px;
         }
-
-        /* Content */
         .content {
           padding: 36px 48px 48px;
         }
@@ -137,8 +128,6 @@ export function generateVolunteerResume(data: ResumeData) {
           grid-template-columns: 1fr 1fr;
           gap: 28px;
         }
-
-        /* Cause bars */
         .cause-row {
           display: flex;
           align-items: center;
@@ -162,15 +151,13 @@ export function generateVolunteerResume(data: ResumeData) {
           background: linear-gradient(90deg, #2d6a4f, #52b788);
           border-radius: 5px;
         }
-        .cause-hrs {
-          width: 50px;
+        .cause-val {
+          width: 72px;
           text-align: right;
           font-size: 11px;
           font-weight: 600;
           color: #666;
         }
-
-        /* Skills */
         .skill-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -198,8 +185,6 @@ export function generateVolunteerResume(data: ResumeData) {
           color: #888;
           font-weight: 600;
         }
-
-        /* Badges */
         .badge-grid {
           display: flex;
           flex-wrap: wrap;
@@ -222,8 +207,6 @@ export function generateVolunteerResume(data: ResumeData) {
           border-radius: 50%;
           background: #d4a843;
         }
-
-        /* Milestones */
         .milestone-list {
           display: flex;
           flex-wrap: wrap;
@@ -237,8 +220,6 @@ export function generateVolunteerResume(data: ResumeData) {
           background: #e8f5e9;
           color: #2d6a4f;
         }
-
-        /* Footer */
         .footer {
           padding: 20px 48px;
           border-top: 1px solid #e8e0d4;
@@ -248,11 +229,6 @@ export function generateVolunteerResume(data: ResumeData) {
           font-size: 10px;
           color: #aaa;
         }
-        .footer a {
-          color: #2d6a4f;
-          text-decoration: none;
-        }
-
         .verified-badge {
           display: inline-flex;
           align-items: center;
@@ -264,7 +240,6 @@ export function generateVolunteerResume(data: ResumeData) {
           font-weight: 600;
           color: #2d6a4f;
         }
-
         @media print {
           body { background: #fff; padding: 0; }
           .page { box-shadow: none; border-radius: 0; width: 100%; }
@@ -286,7 +261,7 @@ export function generateVolunteerResume(data: ResumeData) {
           </div>
           <div class="header-stats">
             <div class="header-stat"><div class="val">${data.totalHours}</div><div class="lbl">Volunteer Hours</div></div>
-            <div class="header-stat"><div class="val">${data.tasksCompleted}</div><div class="lbl">Tasks Completed</div></div>
+            <div class="header-stat"><div class="val">${data.tasksCompleted}</div><div class="lbl">Events Completed</div></div>
             <div class="header-stat"><div class="val">${data.impactScore}%</div><div class="lbl">Impact Score</div></div>
             <div class="header-stat"><div class="val">${data.streak}</div><div class="lbl">Day Streak</div></div>
           </div>
@@ -294,27 +269,25 @@ export function generateVolunteerResume(data: ResumeData) {
 
         <div class="content">
           <div class="two-col">
-            <!-- Left: Causes -->
             <div class="section">
               <div class="section-title">Cause Breakdown</div>
-              ${data.causes.map(c => `
+              ${data.causes.length > 0 ? data.causes.map((cause) => `
                 <div class="cause-row">
-                  <div class="cause-name">${c.cause}</div>
-                  <div class="cause-bar-bg"><div class="cause-bar" style="width: ${(c.hours / totalCauseHours * 100).toFixed(0)}%"></div></div>
-                  <div class="cause-hrs">${c.hours}h</div>
+                  <div class="cause-name">${cause.cause}</div>
+                  <div class="cause-bar-bg"><div class="cause-bar" style="width: ${((cause.value / maxCauseValue) * 100).toFixed(0)}%"></div></div>
+                  <div class="cause-val">${cause.unit === 'hours' ? `${cause.value}h` : `${cause.value} evt`}</div>
                 </div>
-              `).join('')}
+              `).join('') : '<div style="font-size:12px;color:#666;">No completed impact data yet</div>'}
             </div>
 
-            <!-- Right: Skills -->
             <div class="section">
               <div class="section-title">Skill Profile</div>
               <div class="skill-grid">
-                ${topSkills.map(s => `
+                ${topSkills.map((skill) => `
                   <div class="skill-item">
                     <div class="skill-dot"></div>
-                    <div class="skill-name">${s.skill}</div>
-                    <div class="skill-val">${s.value}%</div>
+                    <div class="skill-name">${skill.skill}</div>
+                    <div class="skill-val">${skill.value}%</div>
                   </div>
                 `).join('')}
               </div>
@@ -325,8 +298,8 @@ export function generateVolunteerResume(data: ResumeData) {
           <div class="section">
             <div class="section-title">Achievement Badges</div>
             <div class="badge-grid">
-              ${earnedBadges.map(b => `
-                <div class="badge-chip"><div class="dot"></div>${b.name}${b.date ? ` · ${b.date}` : ''}</div>
+              ${earnedBadges.map((badge) => `
+                <div class="badge-chip"><div class="dot"></div>${badge.name}${badge.date ? ` · ${badge.date}` : ''}</div>
               `).join('')}
             </div>
           </div>
@@ -336,8 +309,8 @@ export function generateVolunteerResume(data: ResumeData) {
           <div class="section">
             <div class="section-title">Milestones Achieved</div>
             <div class="milestone-list">
-              ${achievedMilestones.map(m => `
-                <div class="milestone-item">✓ ${m.title}</div>
+              ${achievedMilestones.map((milestone) => `
+                <div class="milestone-item">✓ ${milestone.title}</div>
               `).join('')}
             </div>
           </div>

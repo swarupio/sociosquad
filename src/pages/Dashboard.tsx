@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ScrollReveal from "@/components/ScrollReveal";
 import AnimatedCounter from "@/components/AnimatedCounter";
+import AsyncStateCard from "@/components/AsyncStateCard";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
@@ -28,9 +29,22 @@ const defaultWeeklyData = [
 const Dashboard = () => {
   const { user, isReady } = useAuth();
 
-  const { registrations, summary } = useVolunteerImpact(user?.id, isReady && !!user);
+  const {
+    registrations,
+    summary,
+    isLoading: impactLoading,
+    isError: impactHasError,
+    error: impactError,
+    refetch: refetchImpact,
+  } = useVolunteerImpact(user?.id, isReady && !!user);
 
-  const { data: activities, isLoading: activitiesLoading } = useQuery({
+  const {
+    data: activities,
+    isLoading: activitiesLoading,
+    isError: activitiesHasError,
+    error: activitiesError,
+    refetch: refetchActivities,
+  } = useQuery({
     queryKey: ["user-activities", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -54,6 +68,37 @@ const Dashboard = () => {
   }
 
   if (!user) return <Navigate to="/auth" />;
+
+  if (impactLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="pt-24 pb-16 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (impactHasError) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="pt-24 pb-16">
+          <div className="container mx-auto px-6 max-w-3xl">
+            <AsyncStateCard
+              title="Could not load your dashboard"
+              description={impactError instanceof Error ? impactError.message : "Please try again"}
+              actionLabel="Retry"
+              onAction={() => refetchImpact()}
+            />
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   const displayName = user.user_metadata?.full_name || user.email?.split("@")[0] || "Volunteer";
   const level = summary.level;
@@ -116,11 +161,11 @@ const Dashboard = () => {
               { icon: Flame, label: "Day Streak", value: summary.dayStreak, suffix: "", color: "text-destructive" },
               { icon: TrendingUp, label: "Impact Score", value: summary.impactScore, suffix: "%", color: "text-primary" },
             ].map((stat, i) => (
-              <ScrollReveal key={i} delay={i * 0.1}>
+              <ScrollReveal key={i} delay={i * 0.04}>
                 <div className="glass-card p-6 text-center">
                   <stat.icon className={`w-6 h-6 ${stat.color} mx-auto mb-3`} />
                   <div className="text-2xl font-bold text-primary">
-                    <AnimatedCounter target={stat.value} suffix={stat.suffix} />
+                    <AnimatedCounter target={stat.value} suffix={stat.suffix} duration={700} startOnView={false} />
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">{stat.label}</div>
                 </div>
@@ -256,7 +301,24 @@ const Dashboard = () => {
           <ScrollReveal>
             <div className="glass-card p-6">
               <h3 className="font-semibold text-foreground mb-4">Recent Activity</h3>
-              {activities && activities.length > 0 ? (
+              {activitiesHasError ? (
+                <div className="text-center py-12">
+                  <p className="text-destructive text-sm font-medium">Could not load recent activity</p>
+                  <p className="text-muted-foreground text-xs mt-1">
+                    {activitiesError instanceof Error ? activitiesError.message : "Please try again"}
+                  </p>
+                  <button
+                    onClick={() => refetchActivities()}
+                    className="mt-3 px-3 py-1.5 rounded-lg bg-secondary text-foreground text-xs font-semibold"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : activitiesLoading ? (
+                <div className="py-10 flex items-center justify-center">
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                </div>
+              ) : activities && activities.length > 0 ? (
                 <div className="space-y-4">
                   {activities.map((item: any) => (
                     <div key={item.id} className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">

@@ -52,6 +52,11 @@ export interface VolunteerRegistration {
   profile?: { full_name: string | null; avatar_url: string | null };
 }
 
+interface MutationResult {
+  success: boolean;
+  message?: string;
+}
+
 export function useUserRole() {
   const { user } = useAuth();
   const [isOrg, setIsOrg] = useState(false);
@@ -251,76 +256,119 @@ export function usePublicOpportunities() {
   const { user } = useAuth();
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchOpps = useCallback(async () => {
-    const { data } = await supabase
-      .from("opportunities")
-      .select("*")
-      .eq("status", "open")
-      .gte("date", new Date().toISOString().split("T")[0])
-      .order("date", { ascending: true });
+    setLoading(true);
+    setError(null);
 
-    if (!data || data.length === 0) {
-      setOpportunities([]);
-      setLoading(false);
-      return;
-    }
+    try {
+      const { data, error: opportunitiesError } = await supabase
+        .from("opportunities")
+        .select("*")
+        .eq("status", "open")
+        .gte("date", new Date().toISOString().split("T")[0])
+        .order("date", { ascending: true });
 
-    // Fetch org info & registration data
-    const orgIds = [...new Set((data || []).map((o: any) => o.org_id))];
-    const { data: orgs } = await supabase.from("organizations").select("*").in("id", orgIds);
+      if (opportunitiesError) {
+        throw opportunitiesError;
+      }
 
-    const enriched = await Promise.all(
-      (data || []).map(async (o: any) => {
-        const { count } = await supabase
-          .from("volunteer_registrations")
-          .select("*", { count: "exact", head: true })
-          .eq("opportunity_id", o.id);
+      if (!data || data.length === 0) {
+        setOpportunities([]);
+        return;
+      }
 
-        let is_registered = false;
-        if (user) {
-          const { data: reg } = await supabase
+      const orgIds = [...new Set((data || []).map((o: any) => o.org_id))];
+      const { data: orgs, error: orgsError } = await supabase.from("organizations").select("*").in("id", orgIds);
+
+      if (orgsError) {
+        throw orgsError;
+      }
+
+      const enriched = await Promise.all(
+        (data || []).map(async (o: any) => {
+          const { count, error: countError } = await supabase
             .from("volunteer_registrations")
-            .select("id")
-            .eq("opportunity_id", o.id)
-            .eq("user_id", user.id)
-            .maybeSingle();
-          is_registered = !!reg;
-        }
+            .select("*", { count: "exact", head: true })
+            .eq("opportunity_id", o.id);
 
-        return {
-          ...o,
-          organization: (orgs || []).find((org: any) => org.id === o.org_id) || null,
-          registration_count: count || 0,
-          is_registered,
-        };
-      })
-    );
+          if (countError) {
+            throw countError;
+          }
 
-    setOpportunities(enriched as any);
-    setLoading(false);
+          let is_registered = false;
+          if (user) {
+            const { data: reg, error: registrationError } = await supabase
+              .from("volunteer_registrations")
+              .select("id")
+              .eq("opportunity_id", o.id)
+              .eq("user_id", user.id)
+              .maybeSingle();
+
+            if (registrationError) {
+              throw registrationError;
+            }
+
+            is_registered = !!reg;
+          }
+
+          return {
+            ...o,
+            organization: (orgs || []).find((org: any) => org.id === o.org_id) || null,
+            registration_count: count || 0,
+            is_registered,
+          };
+        })
+      );
+
+      setOpportunities(enriched as any);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to load opportunities";
+      setError(message);
+      setOpportunities([]);
+    } finally {
+      setLoading(false);
+    }
   }, [user]);
 
   useEffect(() => { fetchOpps(); }, [fetchOpps]);
 
-  const register = async (opportunityId: string) => {
-    if (!user) return;
+  const register = async (opportunityId: string): Promise<MutationResult> => {
+    if (!user) {
+      return { success: false, message: "Please sign in to register" };
+    }
+
     const { error } = await supabase
       .from("volunteer_registrations")
       .insert({ opportunity_id: opportunityId, user_id: user.id });
-    if (error) return;
+
+    if (error) {
+      return { success: false, message: error.message };
+    }
+
     fetchOpps();
+    return { success: true };
   };
 
-  const unregister = async (opportunityId: string) => {
-    if (!user) return;
-    await supabase
+  const unregister = async (opportunityId: string): Promise<MutationResult> => {
+    if (!user) {
+      return { success: false, message: "Please sign in to update registration" };
+    }
+
+    const { error } = await supabase
       .from("volunteer_registrations")
       .delete()
       .eq("opportunity_id", opportunityId)
       .eq("user_id", user.id);
+
+    if (error) {
+      return { success: false, message: error.message };
+    }
+
     fetchOpps();
+    return { success: true };
   };
 
-  return { opportunities, loading, register, unregister, refetch: fetchOpps };
+  return { opportunities, loading, error, register, unregister, refetch: fetchOpps };
 }

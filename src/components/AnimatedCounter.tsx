@@ -4,11 +4,17 @@ interface AnimatedCounterProps {
   target: number;
   suffix?: string;
   duration?: number;
+  startOnView?: boolean;
 }
 
-const AnimatedCounter = ({ target, suffix = "", duration = 2000 }: AnimatedCounterProps) => {
+const AnimatedCounter = ({
+  target,
+  suffix = "",
+  duration = 1200,
+  startOnView = true,
+}: AnimatedCounterProps) => {
   const [count, setCount] = useState(0);
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(!startOnView);
   const ref = useRef<HTMLSpanElement>(null);
   const frameRef = useRef<number>();
   const latestCountRef = useRef(0);
@@ -18,13 +24,16 @@ const AnimatedCounter = ({ target, suffix = "", duration = 2000 }: AnimatedCount
   }, [count]);
 
   useEffect(() => {
+    if (!startOnView) return;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsVisible(true);
+          observer.disconnect();
         }
       },
-      { threshold: 0.3 }
+      { threshold: 0.05, rootMargin: "100px" }
     );
 
     if (ref.current) {
@@ -32,7 +41,7 @@ const AnimatedCounter = ({ target, suffix = "", duration = 2000 }: AnimatedCount
     }
 
     return () => observer.disconnect();
-  }, []);
+  }, [startOnView]);
 
   useEffect(() => {
     if (!isVisible) return;

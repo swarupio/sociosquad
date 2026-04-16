@@ -40,6 +40,7 @@ const OpportunityDetail = () => {
   const [registering, setRegistering] = useState(false);
   const [opp, setOpp] = useState<OppDisplay | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isDbOpp, setIsDbOpp] = useState(false);
   const [dbOppId, setDbOppId] = useState<string | null>(null);
 
@@ -63,13 +64,24 @@ const OpportunityDetail = () => {
 
     // Then check DB
     const fetchFromDb = async () => {
-      const { data, error } = await supabase
-        .from("opportunities")
-        .select("*, organizations(name)")
-        .eq("id", id)
-        .maybeSingle();
+      setLoadError(null);
 
-      if (data) {
+      try {
+        const { data, error } = await supabase
+          .from("opportunities")
+          .select("*, organizations(name)")
+          .eq("id", id)
+          .maybeSingle();
+
+        if (error) {
+          throw error;
+        }
+
+        if (!data) {
+          setOpp(null);
+          return;
+        }
+
         setDbOppId(data.id);
         setIsDbOpp(true);
         const timeCommitment = data.time_commitment || "";
@@ -89,18 +101,25 @@ const OpportunityDetail = () => {
           description: data.description,
         });
 
-        // Check if user is already registered
         if (user) {
-          const { data: reg } = await supabase
+          const { data: reg, error: registrationError } = await supabase
             .from("volunteer_registrations")
             .select("id")
             .eq("opportunity_id", data.id)
             .eq("user_id", user.id)
             .maybeSingle();
+
+          if (registrationError) {
+            throw registrationError;
+          }
+
           setJoined(!!reg);
         }
+      } catch (err) {
+        setLoadError(err instanceof Error ? err.message : "Failed to load opportunity details");
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchFromDb();
@@ -119,11 +138,15 @@ const OpportunityDetail = () => {
     try {
       if (joined) {
         if (isDbOpp) {
-          await supabase
+          const { error } = await supabase
             .from("volunteer_registrations")
             .delete()
             .eq("opportunity_id", oppId)
             .eq("user_id", user.id);
+
+          if (error) {
+            throw error;
+          }
         } else {
           await removeStaticRegistration(user.id, oppId);
         }
@@ -131,9 +154,13 @@ const OpportunityDetail = () => {
         toast({ title: "Registration cancelled" });
       } else {
         if (isDbOpp) {
-          await supabase
+          const { error } = await supabase
             .from("volunteer_registrations")
             .insert({ opportunity_id: oppId, user_id: user.id });
+
+          if (error) {
+            throw error;
+          }
         } else {
           await upsertStaticRegistration(user.id, oppId);
         }
@@ -143,7 +170,11 @@ const OpportunityDetail = () => {
       // Invalidate registrations query so Dashboard/Profile update
       queryClient.invalidateQueries({ queryKey: ["my-registrations"] });
     } catch (err) {
-      toast({ title: "Something went wrong", variant: "destructive" });
+      toast({
+        title: "Unable to update registration",
+        description: err instanceof Error ? err.message : "Please try again",
+        variant: "destructive",
+      });
     } finally {
       setRegistering(false);
     }
@@ -168,7 +199,8 @@ const OpportunityDetail = () => {
         <main className="pt-24 pb-16">
           <div className="container mx-auto px-6 max-w-4xl text-center">
             <div className="glass-card p-16">
-              <p className="text-xl text-muted-foreground mb-4">Opportunity not found</p>
+              <p className="text-xl text-muted-foreground mb-4">{loadError ? "Could not load opportunity" : "Opportunity not found"}</p>
+              {loadError && <p className="text-sm text-muted-foreground mb-4">{loadError}</p>}
               <Link to="/opportunities" className="text-primary hover:underline">← Back to Opportunities</Link>
             </div>
           </div>

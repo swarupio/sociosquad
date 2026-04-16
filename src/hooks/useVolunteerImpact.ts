@@ -176,6 +176,8 @@ export function useVolunteerImpact(userId: string | undefined, enabled = true) {
     summary,
     isLoading: registrationsQuery.isLoading || statsQuery.isLoading,
     isFetching: registrationsQuery.isFetching || statsQuery.isFetching,
+    isError: registrationsQuery.isError || statsQuery.isError,
+    error: registrationsQuery.error || statsQuery.error,
     refetch: async () => {
       await Promise.all([registrationsQuery.refetch(), statsQuery.refetch()]);
     },

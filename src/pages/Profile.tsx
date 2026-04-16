@@ -6,9 +6,11 @@ import { useVolunteerImpact } from "@/hooks/useVolunteerImpact";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ScrollReveal from "@/components/ScrollReveal";
+import AsyncStateCard from "@/components/AsyncStateCard";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 const badges = [
   { name: "First Responder", icon: Shield, earned: false },
@@ -22,10 +24,17 @@ const badges = [
 const Profile = () => {
   const { user, isReady } = useAuth();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
 
-  const { data: profile, isLoading: profileLoading } = useQuery({
+  const {
+    data: profile,
+    isLoading: profileLoading,
+    isError: profileHasError,
+    error: profileError,
+    refetch: refetchProfile,
+  } = useQuery({
     queryKey: ["profile", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -39,7 +48,14 @@ const Profile = () => {
     enabled: isReady && !!user,
   });
 
-  const { registrations, summary } = useVolunteerImpact(user?.id, isReady && !!user);
+  const {
+    registrations,
+    summary,
+    isLoading: impactLoading,
+    isError: impactHasError,
+    error: impactError,
+    refetch: refetchImpact,
+  } = useVolunteerImpact(user?.id, isReady && !!user);
 
   const updateProfile = useMutation({
     mutationFn: async (newName: string) => {
@@ -53,6 +69,13 @@ const Profile = () => {
       queryClient.invalidateQueries({ queryKey: ["profile", user?.id] });
       setEditing(false);
     },
+    onError: (error) => {
+      toast({
+        title: "Could not update profile",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive",
+      });
+    },
   });
 
   if (!isReady) {
@@ -64,6 +87,44 @@ const Profile = () => {
   }
 
   if (!user) return <Navigate to="/auth" />;
+
+  if (profileLoading || impactLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="pt-24 pb-16 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (profileHasError || impactHasError) {
+    const errorMessage = profileHasError
+      ? (profileError instanceof Error ? profileError.message : "Could not load profile")
+      : (impactError instanceof Error ? impactError.message : "Could not load impact data");
+
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="pt-24 pb-16">
+          <div className="container mx-auto px-6 max-w-3xl">
+            <AsyncStateCard
+              title="Unable to load profile"
+              description={errorMessage}
+              actionLabel="Retry"
+              onAction={() => {
+                refetchProfile();
+                refetchImpact();
+              }}
+            />
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   const displayName = profile?.full_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
   const initials = displayName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);

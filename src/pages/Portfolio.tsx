@@ -9,6 +9,7 @@ import { Navigate, Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ScrollReveal from "@/components/ScrollReveal";
+import AsyncStateCard from "@/components/AsyncStateCard";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
@@ -17,7 +18,7 @@ import {
 } from "recharts";
 import ImpactCertificate from "@/components/portfolio/ImpactCertificate";
 import { generateVolunteerResume } from "@/components/portfolio/VolunteerResumePDF";
-import { useMyRegistrations } from "@/hooks/useMyRegistrations";
+import { useVolunteerImpact } from "@/hooks/useVolunteerImpact";
 import { Loader2 } from "lucide-react";
 
 const Portfolio = () => {
@@ -25,7 +26,13 @@ const Portfolio = () => {
   const [copied, setCopied] = useState(false);
   const [showCertificate, setShowCertificate] = useState(false);
 
-  const { data: profile } = useQuery({
+  const {
+    data: profile,
+    isLoading: profileLoading,
+    isError: profileHasError,
+    error: profileError,
+    refetch: refetchProfile,
+  } = useQuery({
     queryKey: ["profile", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -39,44 +46,47 @@ const Portfolio = () => {
     enabled: isReady && !!user,
   });
 
-  const { data: stats } = useQuery({
-    queryKey: ["user-stats", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("user_stats")
-        .select("*")
-        .eq("user_id", user!.id)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: isReady && !!user,
-  });
-
-  const { data: registrations } = useMyRegistrations(user?.id);
+  const {
+    registrations,
+    summary,
+    isLoading: impactLoading,
+    isError: impactHasError,
+    error: impactError,
+    refetch: refetchImpact,
+  } = useVolunteerImpact(user?.id, isReady && !!user);
 
   // Derive cause breakdown from real registrations
   const causeBreakdown = useMemo(() => {
     if (!registrations || registrations.length === 0) return [];
     const causeMap = new Map<string, number>();
+    let hasCreditedHours = false;
+
     for (const reg of registrations) {
       const category = reg.category || "General";
-      const hours = reg.hours_credited && reg.hours_credited > 0 ? reg.hours_credited : 0;
-      causeMap.set(category, (causeMap.get(category) || 0) + hours);
+      const hours = Number(reg.hours_credited ?? 0);
+      if (hours > 0) {
+        hasCreditedHours = true;
+      }
+      causeMap.set(category, (causeMap.get(category) || 0) + Math.max(0, hours));
     }
-    // Also count registrations without hours as participation
-    if ([...causeMap.values()].every(v => v === 0)) {
-      // No hours credited yet — show registration counts instead
+
+    if (!hasCreditedHours) {
       causeMap.clear();
       for (const reg of registrations) {
         const category = reg.category || "General";
         causeMap.set(category, (causeMap.get(category) || 0) + 1);
       }
     }
+
     const colors = ["bg-primary", "bg-accent", "bg-teal", "bg-warm", "bg-secondary", "bg-destructive"];
     return [...causeMap.entries()]
       .sort((a, b) => b[1] - a[1])
-      .map(([cause, hours], i) => ({ cause, hours, color: colors[i % colors.length] }));
+      .map(([cause, value], i) => ({
+        cause,
+        value,
+        unit: hasCreditedHours ? ("hours" as const) : ("events" as const),
+        color: colors[i % colors.length],
+      }));
   }, [registrations]);
 
   // Derive skill profile from registration categories
@@ -114,11 +124,11 @@ const Portfolio = () => {
 
   // Derive badges from real achievements
   const badges = useMemo(() => {
-    const totalHours = stats?.total_hours ?? 0;
-    const tasksCompleted = stats?.tasks_completed ?? 0;
+    const totalHours = summary.totalHours;
+    const tasksCompleted = summary.completedEvents;
     const regCount = registrations?.length ?? 0;
     const uniqueCauses = new Set(registrations?.map(r => r.category) ?? []).size;
-    const streak = stats?.day_streak ?? 0;
+    const streak = summary.dayStreak;
 
     return [
       { name: "First Responder", icon: Shield, earned: regCount >= 1, date: regCount >= 1 ? "Earned" : null },
@@ -128,14 +138,14 @@ const Portfolio = () => {
       { name: "Mentor", icon: Award, earned: totalHours >= 100, date: totalHours >= 100 ? "Earned" : null },
       { name: "Globe Trotter", icon: MapPin, earned: uniqueCauses >= 5, date: uniqueCauses >= 5 ? "Earned" : null },
     ];
-  }, [stats, registrations]);
+  }, [summary, registrations]);
 
   // Derive milestones from real data
   const milestones = useMemo(() => {
-    const totalHours = stats?.total_hours ?? 0;
-    const tasksCompleted = stats?.tasks_completed ?? 0;
+    const totalHours = summary.totalHours;
+    const tasksCompleted = summary.completedEvents;
     const uniqueCauses = new Set(registrations?.map(r => r.category) ?? []).size;
-    const streak = stats?.day_streak ?? 0;
+    const streak = summary.dayStreak;
 
     return [
       { title: "100 Volunteer Hours", achieved: totalHours >= 100, icon: Clock },
@@ -144,7 +154,7 @@ const Portfolio = () => {
       { title: "30-Day Streak", achieved: streak >= 30, icon: Flame },
       { title: "First Registration", achieved: (registrations?.length ?? 0) >= 1, icon: Trophy },
     ];
-  }, [stats, registrations]);
+  }, [summary, registrations]);
 
   if (!isReady) {
     return (
@@ -156,16 +166,54 @@ const Portfolio = () => {
 
   if (!user) return <Navigate to="/auth" />;
 
+  if (profileLoading || impactLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="pt-24 pb-16 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (profileHasError || impactHasError) {
+    const errorMessage = profileHasError
+      ? (profileError instanceof Error ? profileError.message : "Could not load profile")
+      : (impactError instanceof Error ? impactError.message : "Could not load impact data");
+
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="pt-24 pb-16">
+          <div className="container mx-auto px-6 max-w-3xl">
+            <AsyncStateCard
+              title="Unable to load impact portfolio"
+              description={errorMessage}
+              actionLabel="Retry"
+              onAction={() => {
+                refetchProfile();
+                refetchImpact();
+              }}
+            />
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   const displayName = profile?.full_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Volunteer";
   const initials = displayName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
   const joinDate = new Date(user.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" });
-  const totalHours = stats?.total_hours ?? 0;
-  const tasksCompleted = stats?.tasks_completed ?? 0;
-  const impactScore = stats?.impact_score ?? 0;
-  const level = stats?.level ?? 1;
-  const streak = stats?.day_streak ?? 0;
-  const totalCauses = causeBreakdown.length;
-  const maxCauseHours = causeBreakdown.length > 0 ? Math.max(...causeBreakdown.map(c => c.hours)) : 1;
+  const totalHours = summary.totalHours;
+  const tasksCompleted = summary.completedEvents;
+  const impactScore = summary.impactScore;
+  const level = summary.level;
+  const streak = summary.dayStreak;
+  const totalCauses = summary.uniqueCauses;
+  const maxCauseHours = causeBreakdown.length > 0 ? Math.max(...causeBreakdown.map((c) => c.value)) : 1;
 
   const shareUrl = `${window.location.origin}/portfolio`;
 
@@ -193,9 +241,8 @@ const Portfolio = () => {
     // Map the array to match the expected ResumeData type
     causes: causeBreakdown.map(c => ({
       cause: c.cause,
-      value: c.hours,
-      // Logic to determine if the value represents hours or event counts
-      unit: c.hours > 0 ? "hours" : "events" 
+      value: c.value,
+      unit: c.unit,
     })),
     skills: skillData,
     badges,
@@ -316,12 +363,12 @@ const Portfolio = () => {
                       <div key={i}>
                         <div className="flex items-center justify-between text-sm mb-1.5">
                           <span className="text-foreground font-medium">{cause.cause}</span>
-                          <span className="text-muted-foreground">{cause.hours}{cause.hours > 0 ? 'h' : ' events'}</span>
+                          <span className="text-muted-foreground">{cause.value}{cause.unit === "hours" ? "h" : " events"}</span>
                         </div>
                         <div className="w-full h-2.5 rounded-full bg-secondary overflow-hidden">
                           <motion.div
                             initial={{ width: 0 }}
-                            whileInView={{ width: `${(cause.hours / maxCauseHours) * 100}%` }}
+                            whileInView={{ width: `${(cause.value / maxCauseHours) * 100}%` }}
                             viewport={{ once: true }}
                             transition={{ duration: 0.8, delay: i * 0.15 }}
                             className={`h-full rounded-full ${cause.color}`}

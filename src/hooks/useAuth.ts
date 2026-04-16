@@ -1,24 +1,48 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { User } from "@supabase/supabase-js";
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const isMountedRef = useRef(false);
 
   useEffect(() => {
+    isMountedRef.current = true;
+
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setIsReady(true);
+      if (isMountedRef.current) {
+        setUser(session?.user ?? null);
+        setIsReady(true);
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null);
+      async (_event, session) => {
+        if (isMountedRef.current) {
+          setUser(session?.user ?? null);
+          if (session?.user) {
+            const { user } = session;
+            const avatarUrl = user.user_metadata?.avatar_url;
+            if (avatarUrl) {
+              try {
+                await supabase
+                  .from('profiles')
+                  .update({ avatar_url: avatarUrl })
+                  .eq('user_id', user.id);
+              } catch (error) {
+                console.error('Failed to update profile avatar:', error);
+              }
+            }
+          }
+        }
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMountedRef.current = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {

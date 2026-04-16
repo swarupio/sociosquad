@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Search, Filter, MapPin, Clock, Users, ArrowRight, List, Map, Timer, Building2, CheckCircle } from "lucide-react";
+import { Search, Filter, MapPin, Clock, Users, ArrowRight, List, Map, Timer, Building2, CheckCircle, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -17,6 +17,7 @@ import {
   removeStaticRegistration,
   upsertStaticRegistration,
 } from "@/lib/staticRegistrationFallback";
+import AsyncStateCard from "@/components/AsyncStateCard";
 
 const categories = ["All", "Environment", "Education", "Healthcare", "General", "Community", "Health"];
 const timeFilters = [
@@ -30,13 +31,16 @@ const Opportunities = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { opportunities: dbOpps, loading, register, unregister } = usePublicOpportunities();
+  const { opportunities: dbOpps, loading, error, register, unregister, refetch } = usePublicOpportunities();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [timeFilter, setTimeFilter] = useState("All");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [isOrg, setIsOrg] = useState(false);
   const [staticRegisteredIds, setStaticRegisteredIds] = useState<Set<string>>(new Set());
+  const [staticRegistrationLoading, setStaticRegistrationLoading] = useState(false);
+  const [staticRegistrationError, setStaticRegistrationError] = useState<string | null>(null);
+  const [activeActionId, setActiveActionId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) { setIsOrg(false); return; }
@@ -45,23 +49,31 @@ const Opportunities = () => {
     });
   }, [user]);
 
-  useEffect(() => {
+  const loadStaticRegistrations = useCallback(async () => {
     if (!user) {
       setStaticRegisteredIds(new Set());
+      setStaticRegistrationLoading(false);
+      setStaticRegistrationError(null);
       return;
     }
 
-    const loadStaticRegistrations = async () => {
-      try {
-        const registeredIds = await fetchPersistedStaticRegistrationIds(user.id);
-        setStaticRegisteredIds(registeredIds);
-      } catch {
-        setStaticRegisteredIds(new Set());
-      }
-    };
+    setStaticRegistrationLoading(true);
+    setStaticRegistrationError(null);
 
-    loadStaticRegistrations();
+    try {
+      const registeredIds = await fetchPersistedStaticRegistrationIds(user.id);
+      setStaticRegisteredIds(registeredIds);
+    } catch (err) {
+      setStaticRegisteredIds(new Set());
+      setStaticRegistrationError(err instanceof Error ? err.message : "Failed to load saved registrations");
+    } finally {
+      setStaticRegistrationLoading(false);
+    }
   }, [user]);
+
+  useEffect(() => {
+    loadStaticRegistrations();
+  }, [loadStaticRegistrations]);
 
   // Convert DB opportunities to display format
   const realOpps = dbOpps.map(o => ({
@@ -124,13 +136,21 @@ const Opportunities = () => {
       return;
     }
 
+    setActiveActionId(oppId);
+
     try {
       if (isReal) {
         if (isRegistered) {
-          await unregister(oppId);
+          const result = await unregister(oppId);
+          if (!result.success) {
+            throw new Error(result.message || "Failed to cancel registration");
+          }
           toast({ title: "Registration cancelled" });
         } else {
-          await register(oppId);
+          const result = await register(oppId);
+          if (!result.success) {
+            throw new Error(result.message || "Failed to register for opportunity");
+          }
           toast({ title: "Registered! 🎉" });
         }
       } else {
@@ -148,8 +168,14 @@ const Opportunities = () => {
       }
 
       queryClient.invalidateQueries({ queryKey: ["my-registrations"] });
-    } catch {
-      toast({ title: "Something went wrong", variant: "destructive" });
+    } catch (err) {
+      toast({
+        title: "Unable to update registration",
+        description: err instanceof Error ? err.message : "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setActiveActionId(null);
     }
   };
 
@@ -230,7 +256,19 @@ const Opportunities = () => {
           </ScrollReveal>
 
           {/* Results */}
-          {filtered.length === 0 ? (
+          {loading || staticRegistrationLoading ? (
+            <AsyncStateCard title="Loading opportunities..." loading />
+          ) : error || staticRegistrationError ? (
+            <AsyncStateCard
+              title="Could not load opportunities"
+              description={error || staticRegistrationError || "Please try again"}
+              actionLabel="Retry"
+              onAction={() => {
+                refetch();
+                loadStaticRegistrations();
+              }}
+            />
+          ) : filtered.length === 0 ? (
             <div className="glass-card p-16 text-center">
               <p className="text-muted-foreground text-lg">No opportunities match your filters.</p>
               <button onClick={() => { setSearch(""); setCategory("All"); setTimeFilter("All"); }} className="text-primary text-sm mt-2 hover:underline">
@@ -276,10 +314,13 @@ const Opportunities = () => {
 
                     <Button
                       onClick={() => handleRegister(opp.id, !!(opp as any).is_registered, !!(opp as any).isReal)}
+                      disabled={activeActionId === opp.id}
                       variant={(opp as any).is_registered ? "outline" : "default"}
                       className="w-full rounded-xl text-sm"
                     >
-                      {(opp as any).is_registered ? (
+                      {activeActionId === opp.id ? (
+                        <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Updating...</>
+                      ) : (opp as any).is_registered ? (
                         <><CheckCircle className="w-4 h-4 mr-1" /> Registered</>
                       ) : (
                         <>{(opp as any).isReal ? "Register" : "Join This Opportunity"} <ArrowRight className="w-4 h-4 ml-1" /></>

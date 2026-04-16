@@ -10,6 +10,11 @@ import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  isStaticOpportunityRegistered,
+  removeStaticRegistration,
+  upsertStaticRegistration,
+} from "@/lib/staticRegistrationFallback";
 
 interface OppDisplay {
   title: string;
@@ -46,7 +51,13 @@ const OpportunityDetail = () => {
     if (staticOpp) {
       setOpp(staticOpp);
       setIsDbOpp(false);
-      setLoading(false);
+      if (user) {
+        isStaticOpportunityRegistered(user.id, staticOpp.id)
+          .then(setJoined)
+          .finally(() => setLoading(false));
+      } else {
+        setLoading(false);
+      }
       return;
     }
 
@@ -107,18 +118,25 @@ const OpportunityDetail = () => {
     setRegistering(true);
     try {
       if (joined) {
-        await supabase
-          .from("volunteer_registrations")
-          .delete()
-          .eq("opportunity_id", oppId)
-          .eq("user_id", user.id);
+        if (isDbOpp) {
+          await supabase
+            .from("volunteer_registrations")
+            .delete()
+            .eq("opportunity_id", oppId)
+            .eq("user_id", user.id);
+        } else {
+          await removeStaticRegistration(user.id, oppId);
+        }
         setJoined(false);
         toast({ title: "Registration cancelled" });
       } else {
-        // For static opps, we still record the registration in DB using the static ID
-        await supabase
-          .from("volunteer_registrations")
-          .insert({ opportunity_id: oppId, user_id: user.id });
+        if (isDbOpp) {
+          await supabase
+            .from("volunteer_registrations")
+            .insert({ opportunity_id: oppId, user_id: user.id });
+        } else {
+          await upsertStaticRegistration(user.id, oppId);
+        }
         setJoined(true);
         toast({ title: "Registered successfully! 🎉" });
       }

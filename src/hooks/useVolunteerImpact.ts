@@ -68,7 +68,7 @@ const deriveDayStreak = (registrations: Registration[]) => {
 
 export function useVolunteerImpact(userId: string | undefined, enabled = true) {
   const queryClient = useQueryClient();
-  const registrationsQuery = useMyRegistrations(userId);
+  const registrationsQuery = useMyRegistrations(userId, { enabled });
 
   const statsQuery = useQuery({
     queryKey: ["user-stats", userId],

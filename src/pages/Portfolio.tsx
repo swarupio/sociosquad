@@ -17,7 +17,7 @@ import {
 } from "recharts";
 import ImpactCertificate from "@/components/portfolio/ImpactCertificate";
 import { generateVolunteerResume } from "@/components/portfolio/VolunteerResumePDF";
-import { useVolunteerImpact } from "@/hooks/useVolunteerImpact";
+import { useMyRegistrations } from "@/hooks/useMyRegistrations";
 import { Loader2 } from "lucide-react";
 
 const Portfolio = () => {
@@ -39,33 +39,44 @@ const Portfolio = () => {
     enabled: isReady && !!user,
   });
 
-  const { registrations, summary } = useVolunteerImpact(user?.id, isReady && !!user);
+  const { data: stats } = useQuery({
+    queryKey: ["user-stats", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_stats")
+        .select("*")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: isReady && !!user,
+  });
+
+  const { data: registrations } = useMyRegistrations(user?.id);
 
   // Derive cause breakdown from real registrations
   const causeBreakdown = useMemo(() => {
     if (!registrations || registrations.length === 0) return [];
     const causeMap = new Map<string, number>();
-    let unit: "hours" | "events" = "hours";
-
     for (const reg of registrations) {
       const category = reg.category || "General";
-      const hours = reg.hours_credited && reg.hours_credited > 0 ? Number(reg.hours_credited) : 0;
+      const hours = reg.hours_credited && reg.hours_credited > 0 ? reg.hours_credited : 0;
       causeMap.set(category, (causeMap.get(category) || 0) + hours);
     }
-
-    if ([...causeMap.values()].every((value) => value === 0)) {
-      unit = "events";
+    // Also count registrations without hours as participation
+    if ([...causeMap.values()].every(v => v === 0)) {
+      // No hours credited yet — show registration counts instead
       causeMap.clear();
       for (const reg of registrations) {
         const category = reg.category || "General";
         causeMap.set(category, (causeMap.get(category) || 0) + 1);
       }
     }
-
     const colors = ["bg-primary", "bg-accent", "bg-teal", "bg-warm", "bg-secondary", "bg-destructive"];
     return [...causeMap.entries()]
       .sort((a, b) => b[1] - a[1])
-      .map(([cause, value], i) => ({ cause, value, unit, color: colors[i % colors.length] }));
+      .map(([cause, hours], i) => ({ cause, hours, color: colors[i % colors.length] }));
   }, [registrations]);
 
   // Derive skill profile from registration categories
@@ -101,11 +112,13 @@ const Portfolio = () => {
     }));
   }, [registrations]);
 
+  // Derive badges from real achievements
   const badges = useMemo(() => {
-    const totalHours = summary.totalHours;
-    const tasksCompleted = summary.completedEvents;
+    const totalHours = stats?.total_hours ?? 0;
+    const tasksCompleted = stats?.tasks_completed ?? 0;
     const regCount = registrations?.length ?? 0;
-    const uniqueCauses = new Set(registrations?.map((r) => r.category) ?? []).size;
+    const uniqueCauses = new Set(registrations?.map(r => r.category) ?? []).size;
+    const streak = stats?.day_streak ?? 0;
 
     return [
       { name: "First Responder", icon: Shield, earned: regCount >= 1, date: regCount >= 1 ? "Earned" : null },
@@ -115,13 +128,14 @@ const Portfolio = () => {
       { name: "Mentor", icon: Award, earned: totalHours >= 100, date: totalHours >= 100 ? "Earned" : null },
       { name: "Globe Trotter", icon: MapPin, earned: uniqueCauses >= 5, date: uniqueCauses >= 5 ? "Earned" : null },
     ];
-  }, [summary, registrations]);
+  }, [stats, registrations]);
 
+  // Derive milestones from real data
   const milestones = useMemo(() => {
-    const totalHours = summary.totalHours;
-    const tasksCompleted = summary.completedEvents;
-    const uniqueCauses = new Set(registrations?.map((r) => r.category) ?? []).size;
-    const streak = summary.dayStreak;
+    const totalHours = stats?.total_hours ?? 0;
+    const tasksCompleted = stats?.tasks_completed ?? 0;
+    const uniqueCauses = new Set(registrations?.map(r => r.category) ?? []).size;
+    const streak = stats?.day_streak ?? 0;
 
     return [
       { title: "100 Volunteer Hours", achieved: totalHours >= 100, icon: Clock },
@@ -130,7 +144,7 @@ const Portfolio = () => {
       { title: "30-Day Streak", achieved: streak >= 30, icon: Flame },
       { title: "First Registration", achieved: (registrations?.length ?? 0) >= 1, icon: Trophy },
     ];
-  }, [summary, registrations]);
+  }, [stats, registrations]);
 
   if (!isReady) {
     return (
@@ -145,13 +159,13 @@ const Portfolio = () => {
   const displayName = profile?.full_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Volunteer";
   const initials = displayName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
   const joinDate = new Date(user.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" });
-  const totalHours = summary.totalHours;
-  const tasksCompleted = summary.completedEvents;
-  const impactScore = summary.impactScore;
-  const level = summary.level;
-  const streak = summary.dayStreak;
+  const totalHours = stats?.total_hours ?? 0;
+  const tasksCompleted = stats?.tasks_completed ?? 0;
+  const impactScore = stats?.impact_score ?? 0;
+  const level = stats?.level ?? 1;
+  const streak = stats?.day_streak ?? 0;
   const totalCauses = causeBreakdown.length;
-  const maxCauseHours = causeBreakdown.length > 0 ? Math.max(...causeBreakdown.map((c) => c.value)) : 1;
+  const maxCauseHours = causeBreakdown.length > 0 ? Math.max(...causeBreakdown.map(c => c.hours)) : 1;
 
   const shareUrl = `${window.location.origin}/portfolio`;
 
@@ -167,21 +181,27 @@ const Portfolio = () => {
   };
 
   const handleDownloadResume = () => {
-    generateVolunteerResume({
-      name: displayName,
-      email: user.email || "",
-      joinDate,
-      level,
-      totalHours,
-      tasksCompleted,
-      impactScore,
-      streak,
-      causes: causeBreakdown,
-      skills: skillData,
-      badges,
-      milestones,
-    });
-  };
+  generateVolunteerResume({
+    name: displayName,
+    email: user.email || "",
+    joinDate,
+    level,
+    totalHours,
+    tasksCompleted,
+    impactScore,
+    streak,
+    // Map the array to match the expected ResumeData type
+    causes: causeBreakdown.map(c => ({
+      cause: c.cause,
+      value: c.hours,
+      // Logic to determine if the value represents hours or event counts
+      unit: c.hours > 0 ? "hours" : "events" 
+    })),
+    skills: skillData,
+    badges,
+    milestones,
+  });
+};
 
   return (
     <div className="min-h-screen bg-background">
@@ -296,12 +316,12 @@ const Portfolio = () => {
                       <div key={i}>
                         <div className="flex items-center justify-between text-sm mb-1.5">
                           <span className="text-foreground font-medium">{cause.cause}</span>
-                          <span className="text-muted-foreground">{cause.unit === "hours" ? `${cause.value}h` : `${cause.value} events`}</span>
+                          <span className="text-muted-foreground">{cause.hours}{cause.hours > 0 ? 'h' : ' events'}</span>
                         </div>
                         <div className="w-full h-2.5 rounded-full bg-secondary overflow-hidden">
                           <motion.div
                             initial={{ width: 0 }}
-                            whileInView={{ width: `${(cause.value / maxCauseHours) * 100}%` }}
+                            whileInView={{ width: `${(cause.hours / maxCauseHours) * 100}%` }}
                             viewport={{ once: true }}
                             transition={{ duration: 0.8, delay: i * 0.15 }}
                             className={`h-full rounded-full ${cause.color}`}

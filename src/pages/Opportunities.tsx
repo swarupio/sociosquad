@@ -12,6 +12,11 @@ import { useToast } from "@/hooks/use-toast";
 import { staticOpportunities } from "@/data/staticOpportunities";
 import { supabase } from "@/lib/supabaseClient";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  fetchPersistedStaticRegistrationIds,
+  removeStaticRegistration,
+  upsertStaticRegistration,
+} from "@/lib/staticRegistrationFallback";
 
 const categories = ["All", "Environment", "Education", "Healthcare", "General", "Community", "Health"];
 const timeFilters = [
@@ -31,12 +36,31 @@ const Opportunities = () => {
   const [timeFilter, setTimeFilter] = useState("All");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [isOrg, setIsOrg] = useState(false);
+  const [staticRegisteredIds, setStaticRegisteredIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!user) { setIsOrg(false); return; }
     supabase.from("user_roles").select("role").eq("user_id", user.id).then(({ data }) => {
       setIsOrg((data || []).some((r: any) => r.role === "organization"));
     });
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      setStaticRegisteredIds(new Set());
+      return;
+    }
+
+    const loadStaticRegistrations = async () => {
+      try {
+        const registeredIds = await fetchPersistedStaticRegistrationIds(user.id);
+        setStaticRegisteredIds(registeredIds);
+      } catch {
+        setStaticRegisteredIds(new Set());
+      }
+    };
+
+    loadStaticRegistrations();
   }, [user]);
 
   // Convert DB opportunities to display format
@@ -75,8 +99,8 @@ const Opportunities = () => {
     tags: o.tags,
     urgency: o.urgency,
     isReal: false,
-    is_registered: false,
-    registration_count: 0,
+    is_registered: staticRegisteredIds.has(o.id),
+    registration_count: staticRegisteredIds.has(o.id) ? 1 : 0,
     max_volunteers: o.spots,
     description: o.description,
     start_time: o.startTime,
@@ -94,20 +118,39 @@ const Opportunities = () => {
     return matchesSearch && matchesCat && matchesTime;
   });
 
-  const handleRegister = async (oppId: string, isRegistered: boolean) => {
+  const handleRegister = async (oppId: string, isRegistered: boolean, isReal: boolean) => {
     if (!user) {
       toast({ title: "Sign in to register", variant: "destructive" });
       return;
     }
-    if (isRegistered) {
-      await unregister(oppId);
-      toast({ title: "Registration cancelled" });
-    } else {
-      await register(oppId);
-      toast({ title: "Registered! 🎉" });
+
+    try {
+      if (isReal) {
+        if (isRegistered) {
+          await unregister(oppId);
+          toast({ title: "Registration cancelled" });
+        } else {
+          await register(oppId);
+          toast({ title: "Registered! 🎉" });
+        }
+      } else {
+        const nextIds = new Set(staticRegisteredIds);
+        if (isRegistered) {
+          await removeStaticRegistration(user.id, oppId);
+          nextIds.delete(oppId);
+          toast({ title: "Registration cancelled" });
+        } else {
+          await upsertStaticRegistration(user.id, oppId);
+          nextIds.add(oppId);
+          toast({ title: "Registered! 🎉" });
+        }
+        setStaticRegisteredIds(nextIds);
+      }
+
+      queryClient.invalidateQueries({ queryKey: ["my-registrations"] });
+    } catch {
+      toast({ title: "Something went wrong", variant: "destructive" });
     }
-    // Sync across Dashboard/Profile
-    queryClient.invalidateQueries({ queryKey: ["my-registrations"] });
   };
 
   return (
@@ -231,26 +274,17 @@ const Opportunities = () => {
                       </div>
                     )}
 
-                    {(opp as any).isReal ? (
-                      <Button
-                        onClick={() => handleRegister(opp.id, !!(opp as any).is_registered)}
-                        variant={(opp as any).is_registered ? "outline" : "default"}
-                        className="w-full rounded-xl text-sm"
-                      >
-                        {(opp as any).is_registered ? (
-                          <><CheckCircle className="w-4 h-4 mr-1" /> Registered</>
-                        ) : (
-                          <>Register <ArrowRight className="w-4 h-4 ml-1" /></>
-                        )}
-                      </Button>
-                    ) : (
-                      <Link
-                        to={`/opportunities/${opp.id}`}
-                        className="mt-auto w-full py-2.5 rounded-xl text-sm font-semibold bg-primary text-primary-foreground flex items-center justify-center gap-2 group"
-                      >
-                        View Details <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                      </Link>
-                    )}
+                    <Button
+                      onClick={() => handleRegister(opp.id, !!(opp as any).is_registered, !!(opp as any).isReal)}
+                      variant={(opp as any).is_registered ? "outline" : "default"}
+                      className="w-full rounded-xl text-sm"
+                    >
+                      {(opp as any).is_registered ? (
+                        <><CheckCircle className="w-4 h-4 mr-1" /> Registered</>
+                      ) : (
+                        <>{(opp as any).isReal ? "Register" : "Join This Opportunity"} <ArrowRight className="w-4 h-4 ml-1" /></>
+                      )}
+                    </Button>
                   </motion.div>
                 </ScrollReveal>
               ))}

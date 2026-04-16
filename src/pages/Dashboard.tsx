@@ -60,6 +60,29 @@ const Dashboard = () => {
   const xp = summary.xp;
   const xpMax = summary.xpMax;
   const xpPercent = xpMax > 0 ? (xp / xpMax) * 100 : 0;
+  const now = new Date();
+  const upcomingRegistrations = registrations
+    .filter((registration) => {
+      if (
+        registration.attended ||
+        registration.status === "verified" ||
+        registration.status === "absent" ||
+        Number(registration.hours_credited ?? 0) > 0
+      ) {
+        return false;
+      }
+
+      const eventBoundary = new Date(
+        `${registration.date}T${registration.end_time ?? registration.start_time ?? "23:59:59"}`
+      );
+
+      return !Number.isNaN(eventBoundary.getTime()) && eventBoundary >= now;
+    })
+    .sort((a, b) => {
+      const aTime = new Date(`${a.date}T${a.start_time ?? "00:00:00"}`).getTime();
+      const bTime = new Date(`${b.date}T${b.start_time ?? "00:00:00"}`).getTime();
+      return aTime - bTime;
+    });
 
   const formatTime = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
@@ -177,21 +200,10 @@ const Dashboard = () => {
                   Browse more <ExternalLink className="w-3 h-3" />
                 </Link>
               </div>
-              {registrations && registrations.length > 0 ? (
+              {upcomingRegistrations.length > 0 ? (
                 <div className="space-y-3">
-                  {registrations.map((reg) => {
+                  {upcomingRegistrations.map((reg) => {
                     const eventDate = new Date(reg.date);
-                    const isPast = eventDate < new Date();
-                    const statusColor = reg.attended
-                      ? "bg-emerald-100 text-emerald-700"
-                      : isPast
-                      ? "bg-amber-100 text-amber-700"
-                      : "bg-primary/10 text-primary";
-                    const statusLabel = reg.attended
-                      ? "Attended ✓"
-                      : isPast
-                      ? "Pending Verification"
-                      : "Upcoming";
 
                     return (
                       <div key={reg.id} className="flex items-center justify-between p-4 rounded-xl bg-secondary/50 border border-border/50 hover:border-primary/20 transition-colors">
@@ -220,13 +232,8 @@ const Dashboard = () => {
                           </div>
                         </div>
                         <div className="flex items-center gap-2 shrink-0 ml-2">
-                          {reg.hours_credited && reg.hours_credited > 0 && (
-                            <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                              {reg.hours_credited}h credited
-                            </span>
-                          )}
-                          <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full ${statusColor}`}>
-                            {statusLabel}
+                          <span className="text-[10px] font-semibold px-2.5 py-1 rounded-full bg-primary/10 text-primary">
+                            Upcoming
                           </span>
                         </div>
                       </div>
@@ -236,7 +243,7 @@ const Dashboard = () => {
               ) : (
                 <div className="text-center py-10">
                   <CalendarCheck className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-                  <p className="text-muted-foreground text-sm">No registered events yet.</p>
+                  <p className="text-muted-foreground text-sm">No upcoming registered events yet.</p>
                   <Link to="/opportunities" className="text-xs text-primary hover:underline mt-1 inline-block">
                     Explore opportunities →
                   </Link>

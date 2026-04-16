@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import { staticOpportunities } from "@/data/staticOpportunities";
+import { fetchPersistedStaticRegistrationIds } from "@/lib/staticRegistrationFallback";
 
 export interface Registration {
   id: string;
@@ -20,6 +21,7 @@ export interface Registration {
 }
 
 const staticOpportunityMap = new Map(staticOpportunities.map((opp) => [opp.id, opp]));
+const toISOStringSafe = (date: string) => new Date(`${date}T00:00:00`).toISOString();
 
 interface UseMyRegistrationsOptions {
   enabled?: boolean;
@@ -29,6 +31,8 @@ export function useMyRegistrations(userId: string | undefined, options?: UseMyRe
   return useQuery({
     queryKey: ["my-registrations", userId],
     queryFn: async (): Promise<Registration[]> => {
+      const persistedStaticIds = await fetchPersistedStaticRegistrationIds(userId!);
+
       const { data: regs, error } = await supabase
         .from("volunteer_registrations")
         .select("*")
@@ -36,11 +40,26 @@ export function useMyRegistrations(userId: string | undefined, options?: UseMyRe
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      if (!regs || regs.length === 0) return [];
+
+      const registrationRows = regs ?? [];
+      const registrationIds = new Set(registrationRows.map((reg: any) => reg.opportunity_id));
+      const fallbackStaticRegistrations = staticOpportunities
+        .filter((opportunity) => persistedStaticIds.has(opportunity.id) && !registrationIds.has(opportunity.id))
+        .map((opportunity) => ({
+          id: `static-${opportunity.id}`,
+          opportunity_id: opportunity.id,
+          status: "registered",
+          attended: false,
+          hours_credited: 0,
+          created_at: toISOStringSafe(opportunity.date),
+        }));
+
+      const mergedRegistrations = [...fallbackStaticRegistrations, ...registrationRows];
+      if (mergedRegistrations.length === 0) return [];
 
       const dbOpportunityIds = [
         ...new Set(
-          regs
+          mergedRegistrations
             .map((reg: any) => reg.opportunity_id)
             .filter((opportunityId: string) => opportunityId && !staticOpportunityMap.has(opportunityId))
         ),
@@ -68,7 +87,7 @@ export function useMyRegistrations(userId: string | undefined, options?: UseMyRe
 
       const orgMap = new Map((orgs || []).map((org: any) => [org.id, org.name]));
 
-      return regs.map((reg: any) => {
+      return mergedRegistrations.map((reg: any) => {
         const staticOpportunity = staticOpportunityMap.get(reg.opportunity_id);
         if (staticOpportunity) {
           return {

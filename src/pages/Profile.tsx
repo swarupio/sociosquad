@@ -152,6 +152,67 @@ const Profile = () => {
             ))}
           </div>
 
+                    {/* Past / Attended Events */}
+          <ScrollReveal>
+            <div className="glass-card p-6 mb-8">
+              <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+                <CalendarCheck className="w-5 h-5 text-primary" /> Past Events
+              </h3>
+              {(() => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const past = (registrations || []).filter((reg) => {
+                  const eventDate = new Date(reg.date);
+                  return eventDate < today || reg.attended;
+                });
+                return past.length > 0 ? (
+                  <div className="space-y-3">
+                    {past.slice(0, 10).map((reg) => {
+                      const eventDate = new Date(reg.date);
+                      return (
+                        <div key={reg.id} className="flex items-center justify-between p-3 rounded-xl bg-secondary/50 border border-border/50">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex flex-col items-center justify-center shrink-0">
+                              <span className="text-[9px] font-bold text-primary uppercase">
+                                {eventDate.toLocaleDateString("en-US", { month: "short" })}
+                              </span>
+                              <span className="text-xs font-bold text-primary leading-none">
+                                {eventDate.getDate()}
+                              </span>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate">{reg.title}</p>
+                              <p className="text-xs text-muted-foreground">{reg.org_name} • {reg.category}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {reg.hours_credited && reg.hours_credited > 0 && (
+                              <span className="text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                                {reg.hours_credited}h
+                              </span>
+                            )}
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${
+                              reg.attended ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                            }`}>
+                              {reg.attended ? "Attended ✓" : "Pending Verification"}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground text-sm">No past events yet. Start volunteering!</p>
+                    <Link to="/opportunities" className="text-xs text-primary hover:underline mt-1 inline-block">
+                      Explore opportunities →
+                    </Link>
+                  </div>
+                );
+              })()}
+            </div>
+          </ScrollReveal>
+
           {/* XP Bar */}
           <ScrollReveal>
             <div className="glass-card p-6 mb-8">
@@ -170,7 +231,7 @@ const Profile = () => {
             </div>
           </ScrollReveal>
 
-          {/* Upcoming Registrations */}
+          {/* Upcoming Registrations
           <ScrollReveal>
             <div className="glass-card p-6 mb-8">
               <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
@@ -221,7 +282,7 @@ const Profile = () => {
               )}
             </div>
           </ScrollReveal>
-
+ */}
 
           <ScrollReveal>
             <div className="glass-card p-6">

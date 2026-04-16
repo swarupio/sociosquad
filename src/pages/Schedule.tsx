@@ -75,7 +75,7 @@ const Schedule = () => {
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
-  // Derive selectedEvent from events so it stays in sync after registration toggles
+  // Always derive selectedEvent from live events so it stays in sync
   const selectedEvent = useMemo(
     () => (selectedEventId ? events.find((e) => e.id === selectedEventId) ?? null : null),
     [selectedEventId, events]

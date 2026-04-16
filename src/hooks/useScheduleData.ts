@@ -1,9 +1,15 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useQueryClient } from "@tanstack/react-query";
 import type { CalendarCategory, Task } from "@/components/schedule/types";
 import type { RawEvent } from "@/components/schedule/data";
 import { initialEvents, initialTasks } from "@/components/schedule/data";
 import { staticOpportunities } from "@/data/staticOpportunities";
+import {
+  fetchPersistedStaticRegistrationIds,
+  removeStaticRegistration,
+  upsertStaticRegistration,
+} from "@/lib/staticRegistrationFallback";
 
 const mapDbEvent = (e: any): RawEvent => ({
   id: e.id,
@@ -51,6 +57,7 @@ const mapOpportunityToEvent = (opp: any, isRegistered: boolean): RawEvent => {
 };
 
 export function useScheduleData() {
+  const queryClient = useQueryClient();
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [rawEvents, setRawEvents] = useState<RawEvent[]>([]);
@@ -69,14 +76,11 @@ export function useScheduleData() {
   useEffect(() => {
     if (!userId) return;
     const fetchStaticRegs = async () => {
-      const staticIds = staticOpportunities.map((o) => o.id);
-      const { data } = await supabase
-        .from("volunteer_registrations")
-        .select("opportunity_id")
-        .eq("user_id", userId)
-        .in("opportunity_id", staticIds);
-      if (data) {
-        setStaticRegistrations(new Set(data.map((r: any) => r.opportunity_id)));
+      try {
+        const staticIds = await fetchPersistedStaticRegistrationIds(userId);
+        setStaticRegistrations(staticIds);
+      } catch {
+        setStaticRegistrations(new Set());
       }
     };
     fetchStaticRegs();
@@ -322,11 +326,22 @@ export function useScheduleData() {
       });
 
       // DB sync
-      if (wasRegistered) {
-        await supabase.from("volunteer_registrations").delete().eq("opportunity_id", staticId).eq("user_id", userId);
-      } else {
-        await supabase.from("volunteer_registrations").insert({ opportunity_id: staticId, user_id: userId });
+      try {
+        if (wasRegistered) {
+          await removeStaticRegistration(userId, staticId);
+        } else {
+          await upsertStaticRegistration(userId, staticId);
+        }
+      } catch {
+        setStaticRegistrations((prev) => {
+          const next = new Set(prev);
+          if (wasRegistered) next.add(staticId);
+          else next.delete(staticId);
+          return next;
+        });
+        return wasRegistered;
       }
+      queryClient.invalidateQueries({ queryKey: ["my-registrations"] });
       return !wasRegistered;
     }
 
@@ -347,6 +362,7 @@ export function useScheduleData() {
       } else {
         await supabase.from("volunteer_registrations").insert({ opportunity_id: oppId, user_id: userId });
       }
+      queryClient.invalidateQueries({ queryKey: ["my-registrations"] });
       return newState;
     }
 
@@ -364,7 +380,7 @@ export function useScheduleData() {
       await supabase.from("user_events").update({ registered: newState }).eq("id", id);
     }
     return newState;
-  }, [userId, rawEvents, oppEvents, staticRegistrations]);
+  }, [userId, rawEvents, oppEvents, staticRegistrations, queryClient]);
 
   const changeCategory = useCallback(async (id: string, newCategory: string) => {
     setRawEvents((prev) =>

@@ -1,7 +1,23 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Search, Filter, MapPin, Clock, Users, ArrowRight, List, Map, Timer, Building2, CheckCircle, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
+// CLEANED UP IMPORTS: Removed duplicates and added Search as SearchIcon
+import { 
+  Search as SearchIcon, 
+  Filter, 
+  MapPin, 
+  Clock, 
+  Users, 
+  ArrowRight, 
+  List, 
+  Map, 
+  Timer, 
+  Building2, 
+  CheckCircle, 
+  Loader2, 
+  Eye 
+} from "lucide-react";
+
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ScrollReveal from "@/components/ScrollReveal";
@@ -32,6 +48,8 @@ const Opportunities = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { opportunities: dbOpps, loading, error, register, unregister, refetch } = usePublicOpportunities();
+  
+  // State variable 'search' (lowercase) is now safe because icon is 'SearchIcon'
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [timeFilter, setTimeFilter] = useState("All");
@@ -75,7 +93,6 @@ const Opportunities = () => {
     loadStaticRegistrations();
   }, [loadStaticRegistrations]);
 
-  // Convert DB opportunities to display format
   const realOpps = dbOpps.map(o => ({
     id: o.id,
     title: o.title,
@@ -97,7 +114,6 @@ const Opportunities = () => {
     end_time: o.end_time,
   }));
 
-  // Convert static opportunities to the same display format
   const staticOpps = staticOpportunities.map(o => ({
     id: o.id,
     title: o.title,
@@ -119,7 +135,6 @@ const Opportunities = () => {
     end_time: o.endTime,
   }));
 
-  // Merge: real opps first, then static showcase opps
   const allOpps = [...realOpps, ...staticOpps];
 
   const filtered = allOpps.filter((o) => {
@@ -135,22 +150,16 @@ const Opportunities = () => {
       toast({ title: "Sign in to register", variant: "destructive" });
       return;
     }
-
     setActiveActionId(oppId);
-
     try {
       if (isReal) {
         if (isRegistered) {
           const result = await unregister(oppId);
-          if (!result.success) {
-            throw new Error(result.message || "Failed to cancel registration");
-          }
+          if (!result.success) throw new Error(result.message || "Failed to cancel registration");
           toast({ title: "Registration cancelled" });
         } else {
           const result = await register(oppId);
-          if (!result.success) {
-            throw new Error(result.message || "Failed to register for opportunity");
-          }
+          if (!result.success) throw new Error(result.message || "Failed to register for opportunity");
           toast({ title: "Registered! 🎉" });
         }
       } else {
@@ -166,7 +175,6 @@ const Opportunities = () => {
         }
         setStaticRegisteredIds(nextIds);
       }
-
       queryClient.invalidateQueries({ queryKey: ["my-registrations"] });
     } catch (err) {
       toast({
@@ -187,9 +195,7 @@ const Opportunities = () => {
           <ScrollReveal>
             <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
               <div>
-                <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
-                  Explore Opportunities
-                </h1>
+                <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">Explore Opportunities</h1>
                 <p className="text-muted-foreground">{filtered.length} opportunities available</p>
               </div>
               <div className="flex items-center gap-3">
@@ -212,12 +218,12 @@ const Opportunities = () => {
             </div>
           </ScrollReveal>
 
-          {/* Search & Filters */}
           <ScrollReveal>
             <div className="glass-card p-4 mb-8">
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  {/* UPDATED: Using SearchIcon here */}
+                  <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <input
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
@@ -255,7 +261,6 @@ const Opportunities = () => {
             </div>
           </ScrollReveal>
 
-          {/* Results */}
           {loading || staticRegistrationLoading ? (
             <AsyncStateCard title="Loading opportunities..." loading />
           ) : error || staticRegistrationError ? (
@@ -263,26 +268,19 @@ const Opportunities = () => {
               title="Could not load opportunities"
               description={error || staticRegistrationError || "Please try again"}
               actionLabel="Retry"
-              onAction={() => {
-                refetch();
-                loadStaticRegistrations();
-              }}
+              onAction={() => { refetch(); loadStaticRegistrations(); }}
             />
           ) : filtered.length === 0 ? (
             <div className="glass-card p-16 text-center">
               <p className="text-muted-foreground text-lg">No opportunities match your filters.</p>
-              <button onClick={() => { setSearch(""); setCategory("All"); setTimeFilter("All"); }} className="text-primary text-sm mt-2 hover:underline">
-                Clear all filters
-              </button>
+              <button onClick={() => { setSearch(""); setCategory("All"); setTimeFilter("All"); }} className="text-primary text-sm mt-2 hover:underline">Clear all filters</button>
             </div>
           ) : (
             <div className={view === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
               {filtered.map((opp, i) => (
                 <ScrollReveal key={opp.id} delay={i * 0.06}>
                   <motion.div whileHover={{ y: -3 }} className="glass-card-hover p-6 h-full flex flex-col relative">
-                    {(opp as any).isReal && (
-                      <span className="absolute top-3 right-3 px-2 py-0.5 text-[9px] font-bold rounded-full bg-primary/10 text-primary">VERIFIED NGO</span>
-                    )}
+                    {(opp as any).isReal && <span className="absolute top-3 right-3 px-2 py-0.5 text-[9px] font-bold rounded-full bg-primary/10 text-primary">VERIFIED NGO</span>}
                     <div className="flex items-start justify-between mb-3">
                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${opp.urgency === "High" ? "bg-destructive/20 text-destructive" : "bg-amber-500/20 text-amber-600"}`}>
                         {opp.urgency === "High" ? "Filling Fast" : opp.category}
@@ -294,38 +292,23 @@ const Opportunities = () => {
                     <h3 className="font-bold text-foreground mb-1">{opp.title}</h3>
                     <p className="text-sm text-muted-foreground mb-4">{opp.org}</p>
                     <div className="space-y-2 mb-5 flex-1">
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <MapPin className="w-3.5 h-3.5 shrink-0" /> {opp.location}
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Clock className="w-3.5 h-3.5 shrink-0" /> {opp.date}{opp.start_time ? ` • ${opp.start_time}–${opp.end_time}` : ""}
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Users className="w-3.5 h-3.5 shrink-0" /> {opp.spots > 0 ? `${opp.spots} spots left` : "Full"}
-                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground"><MapPin className="w-3.5 h-3.5 shrink-0" /> {opp.location}</div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground"><Clock className="w-3.5 h-3.5 shrink-0" /> {opp.date}{opp.start_time ? ` • ${opp.start_time}–${opp.end_time}` : ""}</div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground"><Users className="w-3.5 h-3.5 shrink-0" /> {opp.spots > 0 ? `${opp.spots} spots left` : "Full"}</div>
                     </div>
                     {opp.tags && opp.tags.length > 0 && (
                       <div className="flex gap-1.5 flex-wrap mb-4">
-                        {opp.tags.slice(0, 3).map(tag => (
-                          <span key={tag} className="text-xs px-2.5 py-0.5 rounded-full bg-secondary text-muted-foreground">{tag}</span>
-                        ))}
+                        {opp.tags.slice(0, 3).map(tag => <span key={tag} className="text-xs px-2.5 py-0.5 rounded-full bg-secondary text-muted-foreground">{tag}</span>)}
                       </div>
                     )}
-
-                    <Button
-                      onClick={() => handleRegister(opp.id, !!(opp as any).is_registered, !!(opp as any).isReal)}
-                      disabled={activeActionId === opp.id}
-                      variant={(opp as any).is_registered ? "outline" : "default"}
-                      className="w-full rounded-xl text-sm"
-                    >
-                      {activeActionId === opp.id ? (
-                        <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Updating...</>
-                      ) : (opp as any).is_registered ? (
-                        <><CheckCircle className="w-4 h-4 mr-1" /> Registered</>
-                      ) : (
-                        <>{(opp as any).isReal ? "Register" : "Join This Opportunity"} <ArrowRight className="w-4 h-4 ml-1" /></>
-                      )}
-                    </Button>
+                    <div className="flex flex-col sm:flex-row gap-2 mt-auto">
+                      <Button asChild variant="outline" className="flex-1 rounded-xl text-sm border-primary/30 text-primary hover:bg-primary/10 hover:text-primary">
+                        <Link to={`/opportunities/${opp.id}`} aria-label={`View details for ${opp.title}`}><Eye className="w-4 h-4 mr-1.5" /> View Details</Link>
+                      </Button>
+                      <Button onClick={() => handleRegister(opp.id, !!(opp as any).is_registered, !!(opp as any).isReal)} disabled={activeActionId === opp.id} variant={(opp as any).is_registered ? "secondary" : "default"} className="flex-1 rounded-xl text-sm">
+                        {activeActionId === opp.id ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Updating...</> : (opp as any).is_registered ? <><CheckCircle className="w-4 h-4 mr-1.5" /> Registered</> : <>Join <ArrowRight className="w-4 h-4 ml-1.5" /></>}
+                      </Button>
+                    </div>
                   </motion.div>
                 </ScrollReveal>
               ))}

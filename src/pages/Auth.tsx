@@ -4,10 +4,12 @@ import { Eye, EyeOff, Mail, Lock, ArrowRight, ArrowLeft, Loader2, Users, Buildin
 import { Link, useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/hooks/useAuth";
 import heroVolunteers from "@/assets/hero-volunteers.jpg";
 
 const Auth = () => {
   const navigate = useNavigate();
+  const { user, isReady } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [signInEmail, setSignInEmail] = useState("");
   const [signInPassword, setSignInPassword] = useState("");
@@ -26,7 +28,31 @@ const Auth = () => {
   const [authError, setAuthError] = useState("");
   
 
-   const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    const validateEmail = (email: string) => {
+      // Basic email format validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      // Additionally require Gmail domain
+      return emailRegex.test(email) && email.endsWith('@gmail.com');
+    };
+
+  // Handle OAuth callback
+  useEffect(() => {
+    const handleOAuthCallback = () => {
+      const path = window.location.pathname;
+      if (path === '/auth/callback') {
+        // Clear the URL to remove code/state params
+        window.history.replaceState({}, document.title, window.location.origin + '/auth');
+        
+        // The session should be updated via onAuthStateChange in useAuth hook
+        // We'll just redirect to dashboard after a brief moment
+        setTimeout(() => {
+          navigate('/dashboard', { replace: true });
+        }, 1000);
+      }
+    };
+
+    handleOAuthCallback();
+  }, [navigate]);
 
   const handleGoogleSignIn = async () => {
     setAuthError("");

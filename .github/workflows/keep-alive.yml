@@ -1,0 +1,15 @@
+name: Keep SocioSquad Alive
+
+on:
+  schedule:
+    # Runs at 00:00 every 3 days
+    - cron: '0 0 */3 * *'
+  workflow_dispatch: 
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Opportunities Table
+        # We are asking the REST API to fetch just 1 row from your public opportunities table
+        run: curl -s "https://xonacoxvpkwxaiwvawru.supabase.co/rest/v1/opportunities?select=id&limit=1" -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvbmFjb3h2cGt3eGFpd3Zhd3J1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5OTE5NTUsImV4cCI6MjA4ODU2Nzk1NX0.0Ni9C0s5vnNmGNXzgksGhBka23Ni4b_o10dt8UVBOsA" > /dev/null

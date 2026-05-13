@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 import heroVolunteers from "@/assets/hero-volunteers.jpg";
 
 const Auth = () => {
@@ -54,53 +55,55 @@ const Auth = () => {
     handleOAuthCallback();
   }, [navigate]);
 
-  const handleGoogleSignIn = async () => {
-    setAuthError("");
-    setGoogleLoading(true);
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-          // You can add scopes if needed
-        },
-      });
-      if (error) throw error;
-      // Note: signInWithOAuth returns a URL for the user to redirect to.
-      // The user will be redirected to the provider and then back to our app.
-      // We don't need to do anything else here; the redirect will happen.
-      // However, we can set loading and then the onAuthStateChange will catch the session.
-      // But to avoid a blank screen, we can redirect manually if data.url is provided.
-      if (data?.url) {
-        window.location.href = data.url;
-      }
-    } catch (err: any) {
-      setAuthError(err.message || "An error occurred during Google sign-in.");
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
+   const handleGoogleSignIn = async () => {
+     setAuthError("");
+     setGoogleLoading(true);
+     try {
+       const { data, error } = await supabase.auth.signInWithOAuth({
+         provider: "google",
+         options: {
+           redirectTo: `${window.location.origin}/auth/callback`,
+           // You can add scopes if needed
+         },
+       });
+       if (error) throw error;
+       // Note: signInWithOAuth returns a URL for the user to redirect to.
+       // The user will be redirected to the provider and then back to our app.
+       // We don't need to do anything else here; the redirect will happen.
+       // However, we can set loading and then the onAuthStateChange will catch the session.
+       // But to avoid a blank screen, we can redirect manually if data.url is provided.
+       if (data?.url) {
+         window.location.href = data.url;
+       }
+     } catch (err: any) {
+       setAuthError(err.message || "An error occurred during Google sign-in.");
+       toast.error(err.message || "An error occurred during Google sign-in.");
+     } finally {
+       setGoogleLoading(false);
+     }
+   };
 
-  const handleGitHubSignIn = async () => {
-    setAuthError("");
-    setGitHubLoading(true);
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: "github",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-      if (error) throw error;
-      if (data?.url) {
-        window.location.href = data.url;
-      }
-    } catch (err: any) {
-      setAuthError(err.message || "An error occurred during GitHub sign-in.");
-    } finally {
-      setGitHubLoading(false);
-    }
-  };
+   const handleGitHubSignIn = async () => {
+     setAuthError("");
+     setGitHubLoading(true);
+     try {
+       const { data, error } = await supabase.auth.signInWithOAuth({
+         provider: "github",
+         options: {
+           redirectTo: `${window.location.origin}/auth/callback`,
+         },
+       });
+       if (error) throw error;
+       if (data?.url) {
+         window.location.href = data.url;
+       }
+     } catch (err: any) {
+       setAuthError(err.message || "An error occurred during GitHub sign-in.");
+       toast.error(err.message || "An error occurred during GitHub sign-in.");
+     } finally {
+       setGitHubLoading(false);
+     }
+   };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,9 +123,10 @@ const Auth = () => {
     });
     setSignInLoading(false);
 
-    if (error) {
-      setSignInApiError(error.message);
-    } else {
+     if (error) {
+       setSignInApiError(error.message);
+       toast.error(error.message);
+     } else {
       // Check if user is an organization → redirect to NGO dashboard
       const { data: { user: signedInUser } } = await supabase.auth.getUser();
       if (signedInUser) {
@@ -159,9 +163,10 @@ const Auth = () => {
     });
     setSignUpLoading(false);
 
-    if (error) {
-      setSignUpApiError(error.message);
-    } else {
+     if (error) {
+       setSignUpApiError(error.message);
+       toast.error(error.message);
+     } else {
       if (signUpRole === "organization") {
         // Add org role — the default volunteer role is added by trigger,
         // so we insert the org role on top
@@ -321,22 +326,24 @@ const Auth = () => {
                     </div>
                     {signInErrors.email && <p className="text-destructive text-xs mt-1">{signInErrors.email}</p>}
                   </div>
-                  <div>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Password"
-                        value={signInPassword}
-                        onChange={(e) => { setSignInPassword(e.target.value); setSignInErrors(p => ({ ...p, password: undefined })); }}
-                        className={inputClass}
-                      />
-                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                    {signInErrors.password && <p className="text-destructive text-xs mt-1">{signInErrors.password}</p>}
-                  </div>
+                   <div>
+                     <label htmlFor="signin-password" className="sr-only">Password</label>
+                     <div className="relative">
+                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                       <input
+                         id="signin-password"
+                         type={showPassword ? "text" : "password"}
+                         placeholder="Password"
+                         value={signInPassword}
+                         onChange={(e) => { setSignInPassword(e.target.value); setSignInErrors(p => ({ ...p, password: undefined })); }}
+                         className={inputClass}
+                       />
+                       <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                       </button>
+                     </div>
+                     {signInErrors.password && <p role="alert" className="text-destructive text-xs mt-1">{signInErrors.password}</p>}
+                   </div>
                   <div className="flex justify-end">
                     <button type="button" className="text-xs text-navy hover:underline">Forgot Password?</button>
                   </div>
@@ -382,36 +389,40 @@ const Auth = () => {
                         </button>
                       </div>
                     </div>
-                    <div>
-                      <div className="relative">
-                        <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        <input
-                          type="text"
-                          placeholder="Full name"
-                          value={signUpName}
-                          onChange={(e) => { setSignUpName(e.target.value); setSignUpErrors(p => ({ ...p, name: undefined })); }}
-                          className={inputClass}
-                          maxLength={100}
-                        />
-                      </div>
-                      {signUpErrors.name && <p className="text-destructive text-xs mt-1">{signUpErrors.name}</p>}
-                    </div>
-                    <div>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <input
-                          type="email"
-                          placeholder="Email address"
-                          value={signUpEmail}
-                          onChange={(e) => { setSignUpEmail(e.target.value); setSignUpErrors(p => ({ ...p, email: undefined })); }}
-                          className={inputClass}
-                          maxLength={255}
-                        />
-                      </div>
-                      {signUpErrors.email && <p className="text-destructive text-xs mt-1">{signUpErrors.email}</p>}
-                    </div>
+                     <div>
+                       <label htmlFor="signup-name" className="sr-only">Full name</label>
+                       <div className="relative">
+                         <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                           <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                         </svg>
+                         <input
+                           id="signup-name"
+                           type="text"
+                           placeholder="Full name"
+                           value={signUpName}
+                           onChange={(e) => { setSignUpName(e.target.value); setSignUpErrors(p => ({ ...p, name: undefined })); }}
+                           className={inputClass}
+                           maxLength={100}
+                         />
+                       </div>
+                       {signUpErrors.name && <p role="alert" className="text-destructive text-xs mt-1">{signUpErrors.name}</p>}
+                     </div>
+                     <div>
+                       <label htmlFor="signup-email" className="sr-only">Email address</label>
+                       <div className="relative">
+                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                         <input
+                           id="signup-email"
+                           type="email"
+                           placeholder="Email address"
+                           value={signUpEmail}
+                           onChange={(e) => { setSignUpEmail(e.target.value); setSignUpErrors(p => ({ ...p, email: undefined })); }}
+                           className={inputClass}
+                           maxLength={255}
+                         />
+                       </div>
+                       {signUpErrors.email && <p role="alert" className="text-destructive text-xs mt-1">{signUpErrors.email}</p>}
+                     </div>
                     <div>
                       <div className="relative">
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

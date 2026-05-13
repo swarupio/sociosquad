@@ -7,6 +7,7 @@ import ScrollReveal from "@/components/ScrollReveal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "@/hooks/use-toast";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface Post {
   id: string;
@@ -35,11 +36,24 @@ function timeAgo(dateStr: string) {
   return `${days}d ago`;
 }
 
+const fetchPosts = async () => {
+  const { data, error } = await supabase
+    .from("community_posts")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data;
+};
+
 const Community = () => {
+  const queryClient = useQueryClient();
+  const { data: posts, isLoading, error } = useQuery<Post[], Error>({
+    queryKey: ['communityPosts'],
+    queryFn: fetchPosts,
+  });
+
   const [newPost, setNewPost] = useState("");
   const [likedPosts, setLikedPosts] = useState<string[]>([]);
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
   const [currentUser, setCurrentUser] = useState<{ id: string; name: string; initials: string } | null>(null);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
@@ -59,34 +73,34 @@ const Community = () => {
     getUser();
   }, []);
 
-  // Fetch posts
+  // Realtime subscription for INSERT, UPDATE, DELETE
   useEffect(() => {
-    const fetchPosts = async () => {
-      const { data, error } = await supabase
-        .from("community_posts")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (!error && data) setPosts(data);
-      setLoading(false);
-    };
-    fetchPosts();
-
-    // Realtime subscription for INSERT, UPDATE, DELETE
     const channel = supabase
       .channel("community_posts_realtime")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "community_posts" }, (payload) => {
-        setPosts((prev) => [payload.new as Post, ...prev]);
+        queryClient.setQueryData<Post[]>(['communityPosts'], (oldPosts = []) => [
+          payload.new as Post,
+          ...oldPosts,
+        ]);
       })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "community_posts" }, (payload) => {
-        setPosts((prev) => prev.map((p) => p.id === (payload.new as Post).id ? (payload.new as Post) : p));
-      })
+       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "community_posts" }, (payload) => {
+         queryClient.setQueryData<Post[]>(['communityPosts'], (oldPosts = []) =>
+           oldPosts.map((p) =>
+             p.id === (payload.new as Post).id ? (payload.new as Post) : p
+           )
+         );
+       })
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "community_posts" }, (payload) => {
-        setPosts((prev) => prev.filter((p) => p.id !== (payload.old as any).id));
+        queryClient.setQueryData(['communityPosts'], (oldPosts = []) =>
+          oldPosts.filter((p) => p.id !== (payload.old as any).id)
+        );
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
-  }, []);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const handlePost = async () => {
     if (!newPost.trim()) return;
@@ -118,7 +132,10 @@ const Community = () => {
     if (error) {
       toast({ title: "Error", description: "Failed to update post.", variant: "destructive" });
     } else {
-      setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, content: editContent.trim() } : p));
+      // Update the query data to reflect the change
+      queryClient.setQueryData(['communityPosts'], (oldPosts = []) =>
+        oldPosts.map((p) => p.id === postId ? { ...p, content: editContent.trim() } : p)
+      );
       setEditingPostId(null);
       setEditContent("");
     }
@@ -133,7 +150,10 @@ const Community = () => {
     if (error) {
       toast({ title: "Error", description: "Failed to delete post.", variant: "destructive" });
     } else {
-      setPosts((prev) => prev.filter((p) => p.id !== postId));
+      // Remove the post from the query data
+      queryClient.setQueryData(['communityPosts'], (oldPosts = []) =>
+        oldPosts.filter((p) => p.id !== postId)
+      );
     }
     setDeletingPostId(null);
   };
@@ -186,7 +206,7 @@ const Community = () => {
               </ScrollReveal>
 
               {/* Loading Skeletons */}
-              {loading && (
+              {isLoading && (
                 <div className="space-y-6">
                   {[1, 2, 3].map((i) => (
                     <div key={i} className="glass-card p-6 space-y-4">
@@ -205,14 +225,14 @@ const Community = () => {
               )}
 
               {/* Posts */}
-              {!loading && posts.length === 0 && (
+              {!isLoading && (posts ?? []).length === 0 && (
                 <div className="glass-card p-10 text-center">
                   <p className="text-muted-foreground">No posts yet. Be the first to share!</p>
                 </div>
               )}
 
-              <AnimatePresence>
-                {!loading && posts.map((post, i) => {
+               <AnimatePresence>
+                 {!isLoading && (posts ?? []).map((post, i) => {
                   const isOwner = currentUser?.id === post.user_id;
                   const isEditing = editingPostId === post.id;
 

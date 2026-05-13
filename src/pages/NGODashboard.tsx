@@ -14,7 +14,8 @@ import { Navigate, Link } from "react-router-dom";
 const CATEGORIES = ["Environment", "Education", "Health", "Community", "Animals", "Disaster Relief", "Elderly Care", "General"];
 const SKILLS = ["Teaching", "Medical", "Driving", "Cooking", "Photography", "Counseling", "Tech", "Manual Labor", "Leadership", "Languages"];
 
-function PostOpportunityModal({ open, onClose, onCreate }: { open: boolean; onClose: () => void; onCreate: (d: any) => void }) {
+function PostOpportunityModal({ open, onClose, onCreate }: { open: boolean; onClose: () => void; onCreate: (d: any) => Promise<boolean> }) {
+  const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     title: "", description: "", category: "General", location: "", city: "Mumbai",
     date: new Date().toISOString().split("T")[0], start_time: "09:00", end_time: "17:00",
@@ -79,9 +80,22 @@ function PostOpportunityModal({ open, onClose, onCreate }: { open: boolean; onCl
         </div>
 
         <div className="flex gap-3">
-          <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl">Cancel</Button>
-          <Button onClick={() => { if (form.title.trim() && form.location.trim()) { onCreate(form); onClose(); } }} className="flex-1 rounded-xl" disabled={!form.title.trim()}>
-            Post <ArrowRight className="w-4 h-4 ml-1" />
+          <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl" disabled={submitting}>Cancel</Button>
+          <Button
+            onClick={async () => {
+              if (!form.title.trim() || !form.location.trim() || submitting) return;
+              setSubmitting(true);
+              try {
+                const ok = await onCreate(form);
+                if (ok) onClose();
+              } finally {
+                setSubmitting(false);
+              }
+            }}
+            className="flex-1 rounded-xl"
+            disabled={!form.title.trim() || !form.location.trim() || submitting}
+          >
+            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Post <ArrowRight className="w-4 h-4 ml-1" /></>}
           </Button>
         </div>
       </motion.div>

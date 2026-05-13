@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { geocodeLocation } from "@/lib/nominatimGeocode";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
 
@@ -33,6 +34,8 @@ export interface Opportunity {
   max_volunteers: number;
   time_commitment: string;
   status: string;
+  latitude?: number | null;
+  longitude?: number | null;
   created_at: string;
   organization?: Organization;
   registration_count?: number;
@@ -160,8 +163,17 @@ export function useOrgOpportunities(orgId: string | undefined) {
 
   useEffect(() => { fetchOpps(); }, [fetchOpps]);
 
-  const createOpportunity = async (opp: Partial<Opportunity>) => {
-    if (!user || !orgId) return;
+  const createOpportunity = async (opp: Partial<Opportunity>): Promise<boolean> => {
+    if (!user || !orgId) return false;
+
+    const { latitude, longitude } = await geocodeLocation(opp.location || "", opp.city || "Mumbai");
+    if (latitude === null || longitude === null) {
+      toast({
+        title: "Could not geocode location",
+        description: "The opportunity will be saved without map coordinates. Try a clearer address or city.",
+      });
+    }
+
     const { error } = await supabase
       .from("opportunities")
       .insert({
@@ -177,13 +189,16 @@ export function useOrgOpportunities(orgId: string | undefined) {
         max_volunteers: opp.max_volunteers || 50,
         time_commitment: opp.time_commitment || "Half Day",
         org_id: orgId,
+        latitude,
+        longitude,
       });
     if (error) {
       toast({ title: "Error creating opportunity", description: error.message, variant: "destructive" });
-      return;
+      return false;
     }
     toast({ title: "Opportunity posted! 📢" });
     fetchOpps();
+    return true;
   };
 
   const deleteOpportunity = async (id: string) => {

@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import Auth from '../pages/Auth';
 
 // Mock supabase
@@ -10,6 +10,7 @@ vi.mock('@/lib/supabaseClient', () => ({
       signInWithOAuth: vi.fn(),
       getUser: vi.fn(),
       signOut: vi.fn(),
+      getSession: vi.fn(() => Promise.resolve({ data: { session: null } })),
       onAuthStateChange: vi.fn(() => ({ 
         data: { 
           subscription: { 
@@ -27,18 +28,29 @@ describe('Auth Page OAuth Functionality', () => {
   });
 
   test('Google sign in button triggers Google OAuth', async () => {
-    render(<Auth />);
+    render(
+      <MemoryRouter>
+        <Auth />
+      </MemoryRouter>
+    );
     const googleButton = screen.getByRole('button', { name: /continue with google/i });
-    await userEvent.click(googleButton);
+    fireEvent.click(googleButton);
+    // Retrieve the mock from the module
+    const { supabase } = await import('@/lib/supabaseClient');
     expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith(
       expect.objectContaining({ provider: 'google' })
     );
   });
 
   test('GitHub sign in button triggers GitHub OAuth', async () => {
-    render(<Auth />);
+    render(
+      <MemoryRouter>
+        <Auth />
+      </MemoryRouter>
+    );
     const githubButton = screen.getByRole('button', { name: /continue with github/i });
-    await userEvent.click(githubButton);
+    fireEvent.click(githubButton);
+    const { supabase } = await import('@/lib/supabaseClient');
     expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith(
       expect.objectContaining({ provider: 'github' })
     );

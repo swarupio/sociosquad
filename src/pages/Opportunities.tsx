@@ -11,6 +11,7 @@ import {
   ArrowRight, 
   List, 
   Map, 
+  LayoutGrid,
   Timer, 
   Building2, 
   CheckCircle, 
@@ -34,6 +35,7 @@ import {
   upsertStaticRegistration,
 } from "@/lib/staticRegistrationFallback";
 import AsyncStateCard from "@/components/AsyncStateCard";
+import VolunteeringMap from "@/components/VolunteeringMap";
 
 const categories = ["All", "Environment", "Education", "Healthcare", "General", "Community", "Health"];
 const timeFilters = [
@@ -53,7 +55,7 @@ const Opportunities = () => {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [timeFilter, setTimeFilter] = useState("All");
-  const [view, setView] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "list" | "map">("grid");
   const [isOrg, setIsOrg] = useState(false);
   const [staticRegisteredIds, setStaticRegisteredIds] = useState<Set<string>>(new Set());
   const [staticRegistrationLoading, setStaticRegistrationLoading] = useState(false);
@@ -206,12 +208,37 @@ const Opportunities = () => {
                     </Button>
                   </Link>
                 )}
-                <div className="flex items-center gap-1">
-                  <button onClick={() => setView("grid")} className={`p-2 rounded-lg transition-colors ${view === "grid" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-                    <Map className="w-5 h-5" />
+                <div
+                  className="inline-flex items-center rounded-xl border border-border bg-secondary/40 p-1 gap-0.5"
+                  role="group"
+                  aria-label="View mode"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("grid")}
+                    aria-pressed={viewMode === "grid"}
+                    title="Grid view"
+                    className={`rounded-lg p-2 transition-colors ${viewMode === "grid" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    <LayoutGrid className="w-5 h-5" />
                   </button>
-                  <button onClick={() => setView("list")} className={`p-2 rounded-lg transition-colors ${view === "list" ? "bg-secondary text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("list")}
+                    aria-pressed={viewMode === "list"}
+                    title="List view"
+                    className={`rounded-lg p-2 transition-colors ${viewMode === "list" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                  >
                     <List className="w-5 h-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("map")}
+                    aria-pressed={viewMode === "map"}
+                    title="Map view"
+                    className={`rounded-lg p-2 transition-colors ${viewMode === "map" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    <Map className="w-5 h-5" />
                   </button>
                 </div>
               </div>
@@ -261,7 +288,13 @@ const Opportunities = () => {
             </div>
           </ScrollReveal>
 
-          {loading || staticRegistrationLoading ? (
+          {viewMode === "map" ? (
+            <ScrollReveal>
+              <div className="h-[600px] w-full rounded-xl overflow-hidden">
+                <VolunteeringMap variant="fill" />
+              </div>
+            </ScrollReveal>
+          ) : loading || staticRegistrationLoading ? (
             <AsyncStateCard title="Loading opportunities..." loading />
           ) : error || staticRegistrationError ? (
             <AsyncStateCard
@@ -276,7 +309,7 @@ const Opportunities = () => {
               <button onClick={() => { setSearch(""); setCategory("All"); setTimeFilter("All"); }} className="text-primary text-sm mt-2 hover:underline">Clear all filters</button>
             </div>
           ) : (
-            <div className={view === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
+            <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
               {filtered.map((opp, i) => (
                 <ScrollReveal key={opp.id} delay={i * 0.06}>
                   <motion.div whileHover={{ y: -3 }} className="glass-card-hover p-6 h-full flex flex-col relative">

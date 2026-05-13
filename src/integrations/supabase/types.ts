@@ -50,7 +50,9 @@ export type Database = {
           description: string
           end_time: string | null
           id: string
+          latitude: number | null
           location: string
+          longitude: number | null
           max_volunteers: number | null
           org_id: string
           skills_needed: string[] | null
@@ -68,7 +70,9 @@ export type Database = {
           description?: string
           end_time?: string | null
           id?: string
+          latitude?: number | null
           location?: string
+          longitude?: number | null
           max_volunteers?: number | null
           org_id: string
           skills_needed?: string[] | null
@@ -86,7 +90,9 @@ export type Database = {
           description?: string
           end_time?: string | null
           id?: string
+          latitude?: number | null
           location?: string
+          longitude?: number | null
           max_volunteers?: number | null
           org_id?: string
           skills_needed?: string[] | null

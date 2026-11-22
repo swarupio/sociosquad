@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
@@ -12,7 +12,7 @@ import { Loader2, MapPin } from "lucide-react";
 const MUMBAI_CENTER: [number, number] = [19.076, 72.8777];
 const DEFAULT_ZOOM = 11;
 
-type MapOpportunity = {
+export type MapOpportunity = {
   id: string;
   title: string;
   time_commitment: string | null;
@@ -28,22 +28,38 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
+function FitBounds({ points }: { points: [number, number][] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (points.length === 0) return;
+    if (points.length === 1) {
+      map.setView(points[0], 13);
+      return;
+    }
+    map.fitBounds(L.latLngBounds(points), { padding: [40, 40], maxZoom: 15 });
+  }, [map, points]);
+  return null;
+}
+
 type VolunteeringMapProps = {
+  /** When provided, these (already filtered) opportunities are shown and no fetch is made. */
+  opportunities?: MapOpportunity[];
   /** When set, the map fills the parent height (parent should set e.g. h-[600px]). */
   variant?: "default" | "fill";
 };
 
-export default function VolunteeringMap({ variant = "default" }: VolunteeringMapProps) {
+export default function VolunteeringMap({ variant = "default", opportunities: provided }: VolunteeringMapProps) {
   const fill = variant === "fill";
   const contentShell = fill ? "flex-1 min-h-0" : "h-[min(420px,55vh)]";
   const rootShell = fill ? "glass-card flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-border/60" : "glass-card overflow-hidden rounded-2xl border border-border/60";
 
-  const [mounted, setMounted] = useState(false);
-  const [opportunities, setOpportunities] = useState<MapOpportunity[]>([]);
-  const [loading, setLoading] = useState(true);
+  const controlled = provided !== undefined;
+  const [fetched, setFetched] = useState<MapOpportunity[]>([]);
+  const [loading, setLoading] = useState(!controlled);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    if (controlled) return;
     setLoading(true);
     setError(null);
     try {
@@ -56,43 +72,33 @@ export default function VolunteeringMap({ variant = "default" }: VolunteeringMap
         throw qError;
       }
 
-      setOpportunities((data || []) as MapOpportunity[]);
+      setFetched((data || []) as unknown as MapOpportunity[]);
     } catch (e) {
       const message = e instanceof Error ? e.message : "Failed to load map data";
       setError(message);
-      setOpportunities([]);
+      setFetched([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [controlled]);
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
     load();
-  }, [mounted, load]);
+  }, [load]);
 
-  const withCoords = opportunities.filter(
-    (opp): opp is MapOpportunity & { latitude: number; longitude: number } =>
-      opp.latitude != null && opp.longitude != null
+  const source = provided ?? fetched;
+  const withCoords = useMemo(
+    () =>
+      source.filter(
+        (opp): opp is MapOpportunity & { latitude: number; longitude: number } =>
+          Number.isFinite(opp.latitude) && Number.isFinite(opp.longitude)
+      ),
+    [source]
   );
-
-  if (!mounted) {
-    return (
-      <div
-        className={
-          fill
-            ? "glass-card flex h-full min-h-0 w-full items-center justify-center overflow-hidden rounded-xl border border-border/60"
-            : "glass-card flex h-[min(420px,55vh)] items-center justify-center overflow-hidden rounded-2xl"
-        }
-      >
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+  const points = useMemo<[number, number][]>(
+    () => withCoords.map((o) => [o.latitude, o.longitude]),
+    [withCoords]
+  );
 
   return (
     <div className={rootShell}>
@@ -110,8 +116,8 @@ export default function VolunteeringMap({ variant = "default" }: VolunteeringMap
             </p>
           </div>
         </div>
-        {!loading && !error && (
-          <Button type="button" variant="ghost" size="sm" className="shrink-0 rounded-lg text-xs" onClick={() => load()}>
+        {!controlled && !loading && !error && (
+          <Button type="button" variant="ghost" size="sm" className="shrink-0 rounded-lg text-xs" onClick={() => load()} aria-label="Refresh map pins">
             Refresh
           </Button>
         )}
@@ -134,8 +140,9 @@ export default function VolunteeringMap({ variant = "default" }: VolunteeringMap
           <MapContainer center={MUMBAI_CENTER} zoom={DEFAULT_ZOOM} scrollWheelZoom className="h-full w-full">
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
+            <FitBounds points={points} />
             {withCoords.map((opp) => (
               <Marker key={opp.id} position={[opp.latitude, opp.longitude]}>
                 <Popup>
@@ -152,6 +159,13 @@ export default function VolunteeringMap({ variant = "default" }: VolunteeringMap
               </Marker>
             ))}
           </MapContainer>
+          {!loading && withCoords.length === 0 && (
+            <div className="pointer-events-none absolute inset-x-0 bottom-4 z-[500] flex justify-center px-4">
+              <p className="rounded-lg bg-background/90 px-3 py-1.5 text-xs text-muted-foreground shadow">
+                No mapped opportunities to show.
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>

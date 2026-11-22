@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 // CLEANED UP IMPORTS: Removed duplicates and added Search as SearchIcon
@@ -22,12 +22,11 @@ import {
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ScrollReveal from "@/components/ScrollReveal";
-import { usePublicOpportunities } from "@/hooks/useOrganization";
+import { usePublicOpportunities, useUserRole } from "@/hooks/useOrganization";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { staticOpportunities } from "@/data/staticOpportunities";
-import { supabase } from "@/lib/supabaseClient";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   fetchPersistedStaticRegistrationIds,
@@ -56,18 +55,17 @@ const Opportunities = () => {
   const [category, setCategory] = useState("All");
   const [timeFilter, setTimeFilter] = useState("All");
   const [viewMode, setViewMode] = useState<"grid" | "list" | "map">("grid");
-  const [isOrg, setIsOrg] = useState(false);
+  const { isOrg } = useUserRole();
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [staticRegisteredIds, setStaticRegisteredIds] = useState<Set<string>>(new Set());
   const [staticRegistrationLoading, setStaticRegistrationLoading] = useState(false);
   const [staticRegistrationError, setStaticRegistrationError] = useState<string | null>(null);
   const [activeActionId, setActiveActionId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) { setIsOrg(false); return; }
-    supabase.from("user_roles").select("role").eq("user_id", user.id).then(({ data }) => {
-      setIsOrg((data || []).some((r: any) => r.role === "organization"));
-    });
-  }, [user]);
+    const t = setTimeout(() => setDebouncedSearch(search), 250);
+    return () => clearTimeout(t);
+  }, [search]);
 
   const loadStaticRegistrations = useCallback(async () => {
     if (!user) {
@@ -95,57 +93,91 @@ const Opportunities = () => {
     loadStaticRegistrations();
   }, [loadStaticRegistrations]);
 
-  const realOpps = dbOpps.map(o => ({
-    id: o.id,
-    title: o.title,
-    org: o.organization?.name || "Organization",
-    location: `${o.location}, ${o.city}`,
-    category: o.category,
-    spots: o.max_volunteers - (o.registration_count || 0),
-    date: o.date,
-    timeLabel: o.time_commitment,
-    timeHours: o.time_commitment === "Quick Impact" ? 0.5 : o.time_commitment === "Half Day" ? 3 : o.time_commitment === "Full Day" ? 6 : 4,
-    tags: o.skills_needed || [],
-    urgency: o.max_volunteers - (o.registration_count || 0) < 5 ? "High" : "Medium",
-    isReal: true,
-    is_registered: o.is_registered,
-    registration_count: o.registration_count,
-    max_volunteers: o.max_volunteers,
-    description: o.description,
-    start_time: o.start_time,
-    end_time: o.end_time,
-  }));
+  const formatLocation = (location?: string | null, city?: string | null) =>
+    [location, city].map((v) => v?.trim()).filter(Boolean).join(", ");
 
-  const staticOpps = staticOpportunities.map(o => ({
-    id: o.id,
-    title: o.title,
-    org: o.org,
-    location: o.location,
-    category: o.category,
-    spots: o.spots,
-    date: o.dateLabel,
-    timeLabel: o.timeLabel,
-    timeHours: o.timeHours,
-    tags: o.tags,
-    urgency: o.urgency,
-    isReal: false,
-    is_registered: staticRegisteredIds.has(o.id),
-    registration_count: staticRegisteredIds.has(o.id) ? 1 : 0,
-    max_volunteers: o.spots,
-    description: o.description,
-    start_time: o.startTime,
-    end_time: o.endTime,
-  }));
+  const realOpps = useMemo(
+    () =>
+      dbOpps.map((o) => {
+        const maxVol = o.max_volunteers ?? 0;
+        const spotsLeft = maxVol - (o.registration_count || 0);
+        return {
+          id: o.id,
+          title: o.title ?? "",
+          org: o.organization?.name || "Organization",
+          location: formatLocation(o.location, o.city),
+          category: o.category,
+          spots: spotsLeft,
+          date: o.date,
+          timeLabel: o.time_commitment,
+          timeHours: o.time_commitment === "Quick Impact" ? 0.5 : o.time_commitment === "Half Day" ? 3 : o.time_commitment === "Full Day" ? 6 : 4,
+          tags: o.skills_needed || [],
+          urgency: spotsLeft < 5 ? "High" : "Medium",
+          isReal: true,
+          is_registered: o.is_registered,
+          registration_count: o.registration_count,
+          max_volunteers: maxVol,
+          description: o.description,
+          start_time: o.start_time,
+          end_time: o.end_time,
+          latitude: o.latitude ?? null,
+          longitude: o.longitude ?? null,
+        };
+      }),
+    [dbOpps]
+  );
 
-  const allOpps = [...realOpps, ...staticOpps];
+  const staticOpps = useMemo(
+    () =>
+      staticOpportunities.map((o) => ({
+        id: o.id,
+        title: o.title,
+        org: o.org,
+        location: o.location,
+        category: o.category,
+        spots: o.spots,
+        date: o.dateLabel,
+        timeLabel: o.timeLabel,
+        timeHours: o.timeHours,
+        tags: o.tags,
+        urgency: o.urgency,
+        isReal: false,
+        is_registered: staticRegisteredIds.has(o.id),
+        registration_count: staticRegisteredIds.has(o.id) ? 1 : 0,
+        max_volunteers: o.spots,
+        description: o.description,
+        start_time: o.startTime,
+        end_time: o.endTime,
+        latitude: null as number | null,
+        longitude: null as number | null,
+      })),
+    [staticRegisteredIds]
+  );
 
-  const filtered = allOpps.filter((o) => {
-    const matchesSearch = o.title.toLowerCase().includes(search.toLowerCase()) || o.org.toLowerCase().includes(search.toLowerCase());
-    const matchesCat = category === "All" || o.category === category;
-    const activeTimeFilter = timeFilters.find(f => f.label === timeFilter)!;
-    const matchesTime = timeFilter === "All" || (o.timeHours >= activeTimeFilter.min && o.timeHours <= activeTimeFilter.max);
-    return matchesSearch && matchesCat && matchesTime;
-  });
+  const filtered = useMemo(() => {
+    const q = debouncedSearch.trim().toLowerCase();
+    const activeTimeFilter = timeFilters.find((f) => f.label === timeFilter) ?? timeFilters[0];
+    return [...realOpps, ...staticOpps].filter((o) => {
+      const matchesSearch = !q || (o.title ?? "").toLowerCase().includes(q) || (o.org ?? "").toLowerCase().includes(q);
+      const matchesCat = category === "All" || o.category === category;
+      const matchesTime = timeFilter === "All" || (o.timeHours >= activeTimeFilter.min && o.timeHours <= activeTimeFilter.max);
+      return matchesSearch && matchesCat && matchesTime;
+    });
+  }, [realOpps, staticOpps, debouncedSearch, category, timeFilter]);
+
+  const mapOpps = useMemo(
+    () =>
+      filtered
+        .filter((o) => o.isReal)
+        .map((o) => ({
+          id: o.id,
+          title: o.title,
+          time_commitment: o.timeLabel ?? null,
+          latitude: o.latitude,
+          longitude: o.longitude,
+        })),
+    [filtered]
+  );
 
   const handleRegister = async (oppId: string, isRegistered: boolean, isReal: boolean) => {
     if (!user) {
@@ -250,8 +282,10 @@ const Opportunities = () => {
               <div className="flex flex-col md:flex-row gap-4">
                 <div className="relative flex-1">
                   {/* UPDATED: Using SearchIcon here */}
-                  <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <SearchIcon aria-hidden="true" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <input
+                    type="search"
+                    aria-label="Search opportunities"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search opportunities..."
@@ -264,6 +298,8 @@ const Opportunities = () => {
                     {categories.map((c) => (
                       <button
                         key={c}
+                        type="button"
+                        aria-pressed={category === c}
                         onClick={() => setCategory(c)}
                         className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${category === c ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
                       >
@@ -278,6 +314,8 @@ const Opportunities = () => {
                 {timeFilters.map((tf) => (
                   <button
                     key={tf.label}
+                    type="button"
+                    aria-pressed={timeFilter === tf.label}
                     onClick={() => setTimeFilter(tf.label)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${timeFilter === tf.label ? "bg-accent text-accent-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
                   >
@@ -291,7 +329,7 @@ const Opportunities = () => {
           {viewMode === "map" ? (
             <ScrollReveal>
               <div className="h-[600px] w-full rounded-xl overflow-hidden">
-                <VolunteeringMap variant="fill" />
+                <VolunteeringMap variant="fill" opportunities={mapOpps} />
               </div>
             </ScrollReveal>
           ) : loading || staticRegistrationLoading ? (
@@ -306,7 +344,7 @@ const Opportunities = () => {
           ) : filtered.length === 0 ? (
             <div className="glass-card p-16 text-center">
               <p className="text-muted-foreground text-lg">No opportunities match your filters.</p>
-              <button onClick={() => { setSearch(""); setCategory("All"); setTimeFilter("All"); }} className="text-primary text-sm mt-2 hover:underline">Clear all filters</button>
+              <button type="button" onClick={() => { setSearch(""); setDebouncedSearch(""); setCategory("All"); setTimeFilter("All"); }} className="text-primary text-sm mt-2 hover:underline">Clear all filters</button>
             </div>
           ) : (
             <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
@@ -325,8 +363,8 @@ const Opportunities = () => {
                     <h3 className="font-bold text-foreground mb-1">{opp.title}</h3>
                     <p className="text-sm text-muted-foreground mb-4">{opp.org}</p>
                     <div className="space-y-2 mb-5 flex-1">
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground"><MapPin className="w-3.5 h-3.5 shrink-0" /> {opp.location}</div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground"><Clock className="w-3.5 h-3.5 shrink-0" /> {opp.date}{opp.start_time ? ` • ${opp.start_time}–${opp.end_time}` : ""}</div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground"><MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden="true" /> {opp.location || "Location not specified"}</div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground"><Clock className="w-3.5 h-3.5 shrink-0" /> {opp.date || "Date TBD"}{opp.start_time ? ` • ${opp.start_time}${opp.end_time ? `–${opp.end_time}` : ""}` : ""}</div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground"><Users className="w-3.5 h-3.5 shrink-0" /> {opp.spots > 0 ? `${opp.spots} spots left` : "Full"}</div>
                     </div>
                     {opp.tags && opp.tags.length > 0 && (

@@ -6,7 +6,7 @@ export interface StaticOpportunity {
   location: string;
   category: string;
   spots: number;
-  date: string;       // ISO date for calendar: "2026-04-15"
+  date: string;       // ISO date (local) generated relative to today
   dateLabel: string;   // Display label: "Apr 15, 2026"
   startTime: string;   // "09:00:00"
   endTime: string;     // "11:00:00"
@@ -17,6 +17,22 @@ export interface StaticOpportunity {
   description: string;
 }
 
+/**
+ * Showcase dates are generated relative to "now" at module load so the items are
+ * never presented as upcoming after they have passed.
+ */
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const daysAhead = (n: number) => {
+  const d = new Date();
+  d.setHours(12, 0, 0, 0);
+  d.setDate(d.getDate() + n);
+  const pad = (v: number) => String(v).padStart(2, "0");
+  return {
+    date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+    dateLabel: `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`,
+  };
+};
+
 export const staticOpportunities: StaticOpportunity[] = [
   {
     id: "h6",
@@ -25,8 +41,7 @@ export const staticOpportunities: StaticOpportunity[] = [
     location: "Juhu Beach, Mumbai",
     category: "Environment",
     spots: 25,
-    date: "2026-04-12",
-    dateLabel: "Apr 12, 2026",
+    ...daysAhead(7),
     startTime: "09:00:00",
     endTime: "11:30:00",
     timeLabel: "2.5 hrs",
@@ -42,8 +57,7 @@ export const staticOpportunities: StaticOpportunity[] = [
     location: "Online / Mumbai",
     category: "Education",
     spots: 10,
-    date: "2026-04-18",
-    dateLabel: "Apr 18, 2026",
+    ...daysAhead(10),
     startTime: "13:30:00",
     endTime: "15:00:00",
     timeLabel: "1.5 hrs",
@@ -59,8 +73,7 @@ export const staticOpportunities: StaticOpportunity[] = [
     location: "Community Center, Mumbai",
     category: "Community",
     spots: 20,
-    date: "2026-05-03",
-    dateLabel: "May 3, 2026",
+    ...daysAhead(14),
     startTime: "11:30:00",
     endTime: "13:00:00",
     timeLabel: "1.5 hrs",
@@ -76,8 +89,7 @@ export const staticOpportunities: StaticOpportunity[] = [
     location: "Aarey Colony, Mumbai",
     category: "Environment",
     spots: 30,
-    date: "2026-05-10",
-    dateLabel: "May 10, 2026",
+    ...daysAhead(18),
     startTime: "08:00:00",
     endTime: "09:30:00",
     timeLabel: "1.5 hrs",
@@ -93,8 +105,7 @@ export const staticOpportunities: StaticOpportunity[] = [
     location: "Palghar, Maharashtra",
     category: "Community",
     spots: 40,
-    date: "2026-05-17",
-    dateLabel: "May 17, 2026",
+    ...daysAhead(24),
     startTime: "16:00:00",
     endTime: "19:00:00",
     timeLabel: "3 hrs",
@@ -110,8 +121,7 @@ export const staticOpportunities: StaticOpportunity[] = [
     location: "Versova Beach, Andheri West, Mumbai",
     category: "Environment",
     spots: 30,
-    date: "2026-06-07",
-    dateLabel: "Jun 7, 2026",
+    ...daysAhead(30),
     startTime: "08:00:00",
     endTime: "10:00:00",
     timeLabel: "2 hrs",
@@ -127,8 +137,7 @@ export const staticOpportunities: StaticOpportunity[] = [
     location: "Indiranagar, Bangalore",
     category: "Education",
     spots: 15,
-    date: "2026-06-14",
-    dateLabel: "Jun 14, 2026",
+    ...daysAhead(37),
     startTime: "10:00:00",
     endTime: "11:00:00",
     timeLabel: "1 hr",
@@ -144,8 +153,7 @@ export const staticOpportunities: StaticOpportunity[] = [
     location: "Hauz Khas Village, New Delhi",
     category: "Community",
     spots: 20,
-    date: "2026-06-21",
-    dateLabel: "Jun 21, 2026",
+    ...daysAhead(44),
     startTime: "09:00:00",
     endTime: "12:00:00",
     timeLabel: "3 hrs",
@@ -161,8 +169,7 @@ export const staticOpportunities: StaticOpportunity[] = [
     location: "Viman Nagar, Pune",
     category: "Environment",
     spots: 25,
-    date: "2026-06-28",
-    dateLabel: "Jun 28, 2026",
+    ...daysAhead(51),
     startTime: "08:00:00",
     endTime: "12:00:00",
     timeLabel: "4 hrs",
@@ -178,8 +185,7 @@ export const staticOpportunities: StaticOpportunity[] = [
     location: "Salt Lake City, Kolkata",
     category: "Healthcare",
     spots: 12,
-    date: "2026-04-26",
-    dateLabel: "Apr 26, 2026",
+    ...daysAhead(58),
     startTime: "11:00:00",
     endTime: "13:00:00",
     timeLabel: "2 hrs",

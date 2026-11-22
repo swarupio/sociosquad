@@ -9,6 +9,12 @@ const staticOpportunityById = new Map(staticOpportunities.map((opportunity) => [
 const staticOpportunityByKey = new Map(
   staticOpportunities.map((opportunity) => [buildStaticKey(opportunity.title, opportunity.date), opportunity])
 );
+// Static dates are relative to "now", so persisted rows from earlier days carry a
+// different date. Match those on title + organisation (stored in `badge`) instead.
+const buildOrgKey = (title: string, org: string) => `${normalizeTitle(title)}|${org.trim().toLowerCase()}`;
+const staticOpportunityByOrgKey = new Map(
+  staticOpportunities.map((opportunity) => [buildOrgKey(opportunity.title, opportunity.org), opportunity])
+);
 
 const staticThemeMap: Record<string, { color: string; bg: string; border: string }> = {
   Environment: { color: "text-emerald-900", bg: "bg-emerald-100", border: "border-l-emerald-500" },
@@ -19,7 +25,15 @@ const staticThemeMap: Record<string, { color: string; bg: string; border: string
 
 export const getStaticOpportunityById = (opportunityId: string) => staticOpportunityById.get(opportunityId) ?? null;
 
-export const getStaticOpportunityFromEvent = (title: string, startTime: string | null | undefined) => {
+export const getStaticOpportunityFromEvent = (
+  title: string,
+  startTime: string | null | undefined,
+  badge?: string | null
+) => {
+  if (badge) {
+    const byOrg = staticOpportunityByOrgKey.get(buildOrgKey(title, badge));
+    if (byOrg) return byOrg;
+  }
   const date = startTime?.slice(0, 10);
   if (!date) return null;
 
@@ -29,7 +43,7 @@ export const getStaticOpportunityFromEvent = (title: string, startTime: string |
 export async function fetchPersistedStaticRegistrationIds(userId: string) {
   const { data, error } = await supabase
     .from("user_events")
-    .select("title, start_time")
+    .select("title, start_time, badge")
     .eq("user_id", userId)
     .eq("registered", true);
 
@@ -38,7 +52,7 @@ export async function fetchPersistedStaticRegistrationIds(userId: string) {
   const registeredIds = new Set<string>();
 
   (data ?? []).forEach((event) => {
-    const opportunity = getStaticOpportunityFromEvent(event.title, event.start_time);
+    const opportunity = getStaticOpportunityFromEvent(event.title, event.start_time, (event as { badge?: string | null }).badge);
     if (opportunity) {
       registeredIds.add(opportunity.id);
     }
@@ -79,45 +93,43 @@ export async function upsertStaticRegistration(userId: string, opportunityId: st
   const opportunity = getStaticOpportunityById(opportunityId);
   if (!opportunity) throw new Error("Static opportunity not found");
 
-  const startTime = toStaticDateTime(opportunity.date, opportunity.startTime);
   const payload = buildStaticUserEventPayload(opportunity, userId);
 
-  const { data: existingEvent, error: existingError } = await supabase
-    .from("user_events")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("title", opportunity.title)
-    .eq("start_time", startTime)
-    .maybeSingle();
-
-  if (existingError) throw existingError;
-
-  if (existingEvent) {
-    const { error: updateError } = await supabase
+  const updateExisting = async () => {
+    const { data, error } = await supabase
       .from("user_events")
       .update(payload)
-      .eq("id", existingEvent.id);
+      .eq("user_id", userId)
+      .eq("title", opportunity.title)
+      .eq("badge", opportunity.org)
+      .select("id");
+    if (error) throw error;
+    return (data ?? []).length > 0;
+  };
 
-    if (updateError) throw updateError;
-    return;
-  }
+  // Update-first avoids a select-then-insert race; on a concurrent insert
+  // (unique violation) retry the update.
+  if (await updateExisting()) return;
 
   const { error: insertError } = await supabase.from("user_events").insert(payload);
-  if (insertError) throw insertError;
+  if (insertError) {
+    if ((insertError as { code?: string }).code === "23505") {
+      if (await updateExisting()) return;
+    }
+    throw insertError;
+  }
 }
 
 export async function removeStaticRegistration(userId: string, opportunityId: string) {
   const opportunity = getStaticOpportunityById(opportunityId);
   if (!opportunity) throw new Error("Static opportunity not found");
 
-  const startTime = toStaticDateTime(opportunity.date, opportunity.startTime);
-
   const { error } = await supabase
     .from("user_events")
     .delete()
     .eq("user_id", userId)
     .eq("title", opportunity.title)
-    .eq("start_time", startTime)
+    .eq("badge", opportunity.org)
     .eq("registered", true);
 
   if (error) throw error;

@@ -44,86 +44,111 @@ const OpportunityDetail = () => {
   const [isDbOpp, setIsDbOpp] = useState(false);
   const [dbOppId, setDbOppId] = useState<string | null>(null);
 
+  const userId = user?.id ?? null;
+
   useEffect(() => {
+    let cancelled = false;
+
+    // Reset state whenever the id (or user) changes
+    setOpp(null);
+    setJoined(false);
+    setLoadError(null);
+    setIsDbOpp(false);
+    setDbOppId(null);
+
     if (!id) { setLoading(false); return; }
+    setLoading(true);
 
     // First check static opportunities
     const staticOpp = staticOpportunities.find(o => o.id === id);
     if (staticOpp) {
       setOpp(staticOpp);
       setIsDbOpp(false);
-      if (user) {
-        isStaticOpportunityRegistered(user.id, staticOpp.id)
-          .then(setJoined)
-          .finally(() => setLoading(false));
+      if (userId) {
+        isStaticOpportunityRegistered(userId, staticOpp.id)
+          .then((v) => { if (!cancelled) setJoined(v); })
+          .catch((err) => {
+            if (!cancelled) setLoadError(err instanceof Error ? err.message : "Failed to load registration status");
+          })
+          .finally(() => { if (!cancelled) setLoading(false); });
       } else {
         setLoading(false);
       }
-      return;
+      return () => { cancelled = true; };
     }
 
     // Then check DB
     const fetchFromDb = async () => {
-      setLoadError(null);
-
       try {
-        const { data, error } = await supabase
+        const { data: row, error } = await supabase
           .from("opportunities")
           .select("*, organizations(name)")
           .eq("id", id)
           .maybeSingle();
 
+        if (cancelled) return;
         if (error) {
           throw error;
         }
 
-        if (!data) {
+        if (!row) {
           setOpp(null);
           return;
         }
 
-        setDbOppId(data.id);
-        setIsDbOpp(true);
-        const timeCommitment = data.time_commitment || "";
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const data = row as any;
+        const timeCommitment: string = data.time_commitment || "";
         const timeHours = timeCommitment === "Quick Impact" ? 0.5 : timeCommitment === "Half Day" ? 3 : 6;
-        setOpp({
-          title: data.title,
-          org: (data as any).organizations?.name || "Organization",
-          location: `${data.location || ""}${data.city ? ", " + data.city : ""}`,
-          category: data.category,
-          spots: data.max_volunteers || 0,
-          dateLabel: data.date ? new Date(data.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "",
-          startTime: data.start_time || undefined,
-          endTime: data.end_time || undefined,
-          timeLabel: timeCommitment || `${timeHours} hrs`,
-          tags: data.skills_needed || [],
-          urgency: (data.max_volunteers || 0) < 10 ? "High" : "Medium",
-          description: data.description,
-        });
+        const locationLabel = [data.location, data.city]
+          .map((v: string | null | undefined) => v?.trim())
+          .filter(Boolean)
+          .join(", ");
+        const maxVolunteers: number = data.max_volunteers ?? 0;
 
-        if (user) {
+        let isJoined = false;
+        if (userId) {
           const { data: reg, error: registrationError } = await supabase
             .from("volunteer_registrations")
             .select("id")
             .eq("opportunity_id", data.id)
-            .eq("user_id", user.id)
+            .eq("user_id", userId)
             .maybeSingle();
 
+          if (cancelled) return;
           if (registrationError) {
             throw registrationError;
           }
-
-          setJoined(!!reg);
+          isJoined = !!reg;
         }
+
+        setDbOppId(data.id);
+        setIsDbOpp(true);
+        setOpp({
+          title: data.title ?? "Untitled opportunity",
+          org: data.organizations?.name || "Organization",
+          location: locationLabel || "Location not specified",
+          category: data.category ?? "General",
+          spots: maxVolunteers,
+          dateLabel: data.date ? new Date(data.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Date TBD",
+          startTime: data.start_time || undefined,
+          endTime: data.end_time || undefined,
+          timeLabel: timeCommitment || `${timeHours} hrs`,
+          tags: Array.isArray(data.skills_needed) ? data.skills_needed : [],
+          urgency: maxVolunteers < 10 ? "High" : "Medium",
+          description: data.description ?? "",
+        });
+        setJoined(isJoined);
       } catch (err) {
-        setLoadError(err instanceof Error ? err.message : "Failed to load opportunity details");
+        if (!cancelled) setLoadError(err instanceof Error ? err.message : "Failed to load opportunity details");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchFromDb();
-  }, [id, user]);
+    return () => { cancelled = true; };
+  }, [id, userId]);
 
   const handleToggleRegistration = async () => {
     if (!user) {
@@ -132,7 +157,7 @@ const OpportunityDetail = () => {
     }
 
     const oppId = isDbOpp ? dbOppId : id;
-    if (!oppId) return;
+    if (!oppId || registering) return;
 
     setRegistering(true);
     try {
@@ -268,14 +293,14 @@ const OpportunityDetail = () => {
                   <Clock className="w-5 h-5 text-primary shrink-0" />
                   <div>
                     <p className="text-xs text-muted-foreground">Time</p>
-                    <p className="text-sm font-medium text-foreground">{opp.startTime} – {opp.endTime}</p>
+                    <p className="text-sm font-medium text-foreground">{opp.startTime}{opp.endTime ? ` – ${opp.endTime}` : ""}</p>
                   </div>
                 </div>
               )}
 
-              {opp.tags.length > 0 && (
+              {(opp.tags ?? []).length > 0 && (
                 <div className="flex gap-2 flex-wrap mb-8">
-                  {opp.tags.map(tag => (
+                  {(opp.tags ?? []).map(tag => (
                     <span key={tag} className="text-xs px-3 py-1 rounded-full bg-secondary text-muted-foreground">{tag}</span>
                   ))}
                 </div>
@@ -291,6 +316,8 @@ const OpportunityDetail = () => {
                 whileTap={{ scale: 0.99 }}
                 onClick={handleToggleRegistration}
                 disabled={registering}
+                aria-busy={registering}
+                aria-label={registering ? "Updating registration" : joined ? "Registered. Click to cancel registration" : "Join this opportunity"}
                 className={`w-full py-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
                   joined
                     ? "bg-secondary text-foreground hover:bg-destructive/10 hover:text-destructive"

@@ -1,9 +1,10 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Menu, X, User as UserIcon, LogOut, LayoutDashboard, Award, Users, Building2 } from "lucide-react";
+import { ArrowRight, Menu, X, User as UserIcon, LogOut, LayoutDashboard, ShieldCheck, Award, Users, Building2 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useOrganization";
+import { useIsAdmin } from "@/hooks/useAdmin";
 
 const volunteerNavLinks = [
   { label: "Explore", to: "/opportunities" },
@@ -28,6 +29,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const { user, isReady, signOut } = useAuth();
   const { isOrg } = useUserRole();
+  const { isAdmin } = useIsAdmin();
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -133,6 +135,15 @@ const Navbar = () => {
                         </Link>
                       </>
                     )}
+                    {isAdmin && (
+                      <Link
+                        to="/admin"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors"
+                      >
+                        <ShieldCheck className="w-4 h-4 text-muted-foreground" /> Admin
+                      </Link>
+                    )}
                     <Link
                       to="/profile"
                       onClick={() => setDropdownOpen(false)}
@@ -196,6 +207,11 @@ const Navbar = () => {
           ))}
           {isReady && user ? (
             <>
+              {isAdmin && (
+                <Link to="/admin" onClick={() => setOpen(false)} className="block text-foreground font-body font-semibold">
+                  Admin
+                </Link>
+              )}
               <Link to="/profile" onClick={() => setOpen(false)} className="block text-foreground font-body font-semibold">
                 My Profile
               </Link>

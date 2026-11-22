@@ -9,6 +9,7 @@ import { Loader2 } from "lucide-react";
 import Index from "./pages/Index";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import AdminRoute from "@/components/AdminRoute";
 import { AuthProvider } from "@/hooks/useAuth";
 import { isClientError } from "@/lib/api";
 
@@ -26,6 +27,7 @@ const Schedule = lazy(() => import("./pages/Schedule"));
 const Squads = lazy(() => import("./pages/Squads"));
 const NGORegister = lazy(() => import("./pages/NGORegister"));
 const NGODashboard = lazy(() => import("./pages/NGODashboard"));
+const Admin = lazy(() => import("./pages/admin/Admin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -83,6 +85,8 @@ const App = () => (
                 <Route path="/squads/:id" element={<Squads />} />
                 <Route path="/ngo/register" element={<ProtectedRoute><NGORegister /></ProtectedRoute>} />
                 <Route path="/ngo/dashboard" element={<ProtectedRoute><NGODashboard /></ProtectedRoute>} />
+                <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
+                <Route path="/admin/:section" element={<AdminRoute><Admin /></AdminRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>

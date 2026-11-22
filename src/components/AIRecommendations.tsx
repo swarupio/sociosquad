@@ -1,66 +1,59 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Shuffle, MapPin, Clock, Users, Timer } from "lucide-react";
+import { ArrowRight, Shuffle, MapPin, Clock, Timer } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabaseClient";
 import ScrollReveal from "./ScrollReveal";
 
-const recommendations = [
-  {
-    id: "h6",
-    title: "Beach Cleanup",
-    org: "SocioSquad Community",
-    match: 94,
-    tags: ["Environment", "Outdoor"],
-    location: "Juhu Beach, Mumbai",
-    date: "Apr 12, 9:00 AM",
-    spots: "10/25 spots filled",
-    urgent: false,
-    urgencyLabel: "Medium Priority",
-    urgencyColor: "bg-amber-100 text-amber-700",
-    timeLabel: "2.5 hrs",
-  },
-  {
-    id: "h8",
-    title: "Food Drive Sorting",
-    org: "SocioSquad Community",
-    match: 91,
-    tags: ["Community", "Food"],
-    location: "Community Center, Mumbai",
-    date: "May 3, 11:30 AM",
-    spots: "12/20 spots filled",
-    urgent: true,
-    urgencyLabel: "High Priority",
-    urgencyColor: "bg-red-100 text-red-700",
-    timeLabel: "1.5 hrs",
-  },
-  {
-    id: "h1",
-    title: "Versova Beach Cleanup",
-    org: "Clean Coast Mumbai",
-    match: 87,
-    tags: ["Environment", "Outdoor"],
-    location: "Versova Beach, Andheri West",
-    date: "Jun 7, 8:00 AM",
-    spots: "20/30 spots filled",
-    urgent: false,
-    urgencyLabel: "High Priority",
-    urgencyColor: "bg-red-100 text-red-700",
-    timeLabel: "2 hrs",
-  },
-];
+interface UpcomingOpp {
+  id: string;
+  title: string;
+  category: string;
+  date: string;
+  start_time: string | null;
+  location: string;
+  time_commitment: string | null;
+}
 
-import { staticOpportunities } from "@/data/staticOpportunities";
+const fetchUpcoming = async (): Promise<UpcomingOpp[]> => {
+  const today = new Date().toISOString().slice(0, 10);
+  const { data, error } = await supabase
+    .from("opportunities")
+    .select("id, title, category, date, start_time, location, time_commitment")
+    .eq("status", "open")
+    .gte("date", today)
+    .order("date", { ascending: true })
+    .limit(3);
+  if (error) throw error;
+  return (data ?? []) as UpcomingOpp[];
+};
+
+const formatDate = (iso: string, time: string | null) => {
+  const d = new Date(`${iso}T00:00:00`);
+  const label = d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  return time ? `${label}, ${time.slice(0, 5)}` : label;
+};
 
 const AIRecommendations = () => {
   const navigate = useNavigate();
   const [isSpinning, setIsSpinning] = useState(false);
+  const { data: recommendations = [], isLoading } = useQuery({
+    queryKey: ["home-upcoming-opportunities"],
+    queryFn: fetchUpcoming,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const handleSurpriseMe = () => {
     setIsSpinning(true);
     setTimeout(() => {
-      const random = staticOpportunities[Math.floor(Math.random() * staticOpportunities.length)];
       setIsSpinning(false);
-      navigate(`/opportunities/${random.id}`);
+      if (recommendations.length > 0) {
+        const random = recommendations[Math.floor(Math.random() * recommendations.length)];
+        navigate(`/opportunities/${random.id}`);
+      } else {
+        navigate("/opportunities");
+      }
     }, 800);
   };
 
@@ -84,50 +77,45 @@ const AIRecommendations = () => {
           </div>
         </ScrollReveal>
 
+        {!isLoading && recommendations.length === 0 && (
+          <p className="text-center text-muted-foreground font-body mb-8">
+            No upcoming opportunities right now.{" "}
+            <Link to="/opportunities" className="text-primary font-semibold hover:underline">Browse all opportunities</Link>
+          </p>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {recommendations.map((rec, i) => (
-            <ScrollReveal key={i} delay={i * 0.15}>
+            <ScrollReveal key={rec.id} delay={i * 0.15}>
               <motion.div
                 whileHover={{ y: -4 }}
                 className="bg-card border border-border rounded-3xl p-6 h-full flex flex-col hover:shadow-lg transition-all duration-300"
               >
-                {/* Priority & Time */}
                 <div className="flex items-center justify-between mb-4">
-                  <span className={`text-xs px-3 py-1 rounded-full font-semibold font-body ${rec.urgencyColor}`}>
-                    {rec.urgencyLabel}
+                  <span className="text-xs px-3 py-1 rounded-full font-semibold font-body bg-secondary text-foreground">
+                    {rec.category}
                   </span>
-                  <span className="text-xs text-muted-foreground font-medium font-body flex items-center gap-1">
-                    <Timer className="w-3.5 h-3.5" /> {rec.timeLabel}
-                  </span>
-                </div>
-
-                <h3 className="font-display font-bold text-lg text-foreground mb-1">{rec.title}</h3>
-                <p className="text-sm text-muted-foreground font-body mb-4">{rec.org}</p>
-
-                {/* Details */}
-                <div className="space-y-2 mb-5 flex-1">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground font-body">
-                    <MapPin className="w-3.5 h-3.5 shrink-0" /> {rec.location}
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground font-body">
-                    <Clock className="w-3.5 h-3.5 shrink-0" /> {rec.date}
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground font-body">
-                    <Users className="w-3.5 h-3.5 shrink-0" /> {rec.spots}
-                  </div>
-                </div>
-
-                {/* Tags */}
-                <div className="flex gap-2 flex-wrap mb-5">
-                  {rec.tags.map((tag) => (
-                    <span key={tag} className="text-xs px-3 py-1 rounded-full border border-border text-muted-foreground font-medium font-body">
-                      {tag}
+                  {rec.time_commitment && (
+                    <span className="text-xs text-muted-foreground font-medium font-body flex items-center gap-1">
+                      <Timer className="w-3.5 h-3.5" /> {rec.time_commitment}
                     </span>
-                  ))}
+                  )}
+                </div>
+
+                <h3 className="font-display font-bold text-lg text-foreground mb-4">{rec.title}</h3>
+
+                <div className="space-y-2 mb-5 flex-1">
+                  {rec.location && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground font-body">
+                      <MapPin className="w-3.5 h-3.5 shrink-0" /> {rec.location}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground font-body">
+                    <Clock className="w-3.5 h-3.5 shrink-0" /> {formatDate(rec.date, rec.start_time)}
+                  </div>
                 </div>
 
                 <Link to={`/opportunities/${rec.id}`} className="w-full py-3 rounded-full text-sm font-semibold font-body bg-primary text-primary-foreground flex items-center justify-center gap-2 group">
-                  Apply Now <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  View Details <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </motion.div>
             </ScrollReveal>

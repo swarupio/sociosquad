@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { z } from "zod";
+import { useAuth } from "@/hooks/useAuth";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageSquare, Heart, Share2, Send, Users, TrendingUp, Loader2, Pencil, Trash2, X, Check } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -18,12 +20,7 @@ interface Post {
   created_at: string;
 }
 
-const trending = [
-  { tag: "#ClimateAction", posts: "1.2k" },
-  { tag: "#EducationForAll", posts: "890" },
-  { tag: "#YouthMentorship", posts: "654" },
-  { tag: "#EmergencyRelief", posts: "432" },
-];
+const postSchema = z.string().trim().min(1, "Post cannot be empty.").max(2000, "Post must be 2000 characters or fewer.");
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -47,31 +44,25 @@ const fetchPosts = async () => {
 
 const Community = () => {
   const queryClient = useQueryClient();
-  const { data: posts, isLoading, error } = useQuery<Post[], Error>({
+  const { data: posts, isLoading, error, refetch } = useQuery<Post[], Error>({
     queryKey: ['communityPosts'],
     queryFn: fetchPosts,
   });
 
   const [newPost, setNewPost] = useState("");
-  const [likedPosts, setLikedPosts] = useState<string[]>([]);
+  const [postError, setPostError] = useState<string | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
   const [posting, setPosting] = useState(false);
-  const [currentUser, setCurrentUser] = useState<{ id: string; name: string; initials: string } | null>(null);
+  const { user } = useAuth();
+  const currentUser = useMemo(() => {
+    if (!user) return null;
+    const name: string = user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
+    const initials = name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2);
+    return { id: user.id, name, initials };
+  }, [user]);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
   const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
-
-  // Fetch user session
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const name = user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
-        const initials = name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2);
-        setCurrentUser({ id: user.id, name, initials });
-      }
-    };
-    getUser();
-  }, []);
 
   // Realtime subscription for INSERT, UPDATE, DELETE
   useEffect(() => {
@@ -103,7 +94,9 @@ const Community = () => {
   }, [queryClient]);
 
   const handlePost = async () => {
-    if (!newPost.trim()) return;
+    const parsed = postSchema.safeParse(newPost);
+    if (!parsed.success) { setPostError(parsed.error.issues[0].message); return; }
+    setPostError(null);
     if (!currentUser) {
       toast({ title: "Please sign in", description: "You need to be logged in to post.", variant: "destructive" });
       return;
@@ -111,7 +104,7 @@ const Community = () => {
     setPosting(true);
     const { error } = await supabase.from("community_posts").insert({
       user_id: currentUser.id,
-      content: newPost.trim(),
+      content: parsed.data,
       author_name: currentUser.name,
       author_initials: currentUser.initials,
     });
@@ -124,17 +117,19 @@ const Community = () => {
   };
 
   const handleEdit = async (postId: string) => {
-    if (!editContent.trim()) return;
+    const parsed = postSchema.safeParse(editContent);
+    if (!parsed.success) { setEditError(parsed.error.issues[0].message); return; }
+    setEditError(null);
     const { error } = await supabase
       .from("community_posts")
-      .update({ content: editContent.trim() })
+      .update({ content: parsed.data })
       .eq("id", postId);
     if (error) {
       toast({ title: "Error", description: "Failed to update post.", variant: "destructive" });
     } else {
       // Update the query data to reflect the change
       queryClient.setQueryData(['communityPosts'], (oldPosts = []) =>
-        oldPosts.map((p) => p.id === postId ? { ...p, content: editContent.trim() } : p)
+        oldPosts.map((p) => p.id === postId ? { ...p, content: parsed.data } : p)
       );
       setEditingPostId(null);
       setEditContent("");
@@ -158,10 +153,6 @@ const Community = () => {
     setDeletingPostId(null);
   };
 
-  const toggleLike = (id: string) => {
-    setLikedPosts((prev) => prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]);
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -182,14 +173,20 @@ const Community = () => {
               {/* Create Post */}
               <ScrollReveal>
                 <div className="glass-card p-6">
+                  <label htmlFor="new-post" className="sr-only">Share your impact story</label>
                   <textarea
+                    id="new-post"
                     value={newPost}
-                    onChange={(e) => setNewPost(e.target.value)}
+                    maxLength={2100}
+                    aria-invalid={!!postError}
+                    aria-describedby={postError ? "new-post-error" : undefined}
+                    onChange={(e) => { setNewPost(e.target.value); setPostError(null); }}
                     placeholder={currentUser ? "Share your impact story..." : "Sign in to share your story..."}
                     disabled={!currentUser}
                     className="w-full bg-secondary/50 rounded-xl p-4 text-foreground placeholder:text-muted-foreground resize-none h-24 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-shadow disabled:opacity-50"
                     onKeyDown={(e) => { if (e.key === "Enter" && e.ctrlKey) handlePost(); }}
                   />
+                  {postError && <p id="new-post-error" role="alert" className="text-sm text-destructive mt-2">{postError}</p>}
                   <div className="flex justify-end mt-3">
                     <motion.button
                       whileHover={{ scale: 1.03 }}
@@ -225,7 +222,20 @@ const Community = () => {
               )}
 
               {/* Posts */}
-              {!isLoading && (posts ?? []).length === 0 && (
+              {!isLoading && error && (
+                <div className="glass-card p-10 text-center" role="alert">
+                  <p className="text-foreground font-semibold mb-2">Could not load posts</p>
+                  <p className="text-muted-foreground text-sm mb-4">{error.message}</p>
+                  <button
+                    onClick={() => refetch()}
+                    className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-primary text-primary-foreground"
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+
+              {!isLoading && !error && (posts ?? []).length === 0 && (
                 <div className="glass-card p-10 text-center">
                   <p className="text-muted-foreground">No posts yet. Be the first to share!</p>
                 </div>
@@ -263,6 +273,7 @@ const Community = () => {
                                 onClick={() => { setEditingPostId(post.id); setEditContent(post.content); }}
                                 className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
                                 title="Edit post"
+                                aria-label="Edit post"
                               >
                                 <Pencil className="w-3.5 h-3.5" />
                               </button>
@@ -271,6 +282,7 @@ const Community = () => {
                                 disabled={deletingPostId === post.id}
                                 className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
                                 title="Delete post"
+                                aria-label="Delete post"
                               >
                                 {deletingPostId === post.id ? (
                                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -285,12 +297,17 @@ const Community = () => {
                         {/* Post content or edit form */}
                         {isEditing ? (
                           <div className="mb-4">
+                            <label htmlFor={`edit-${post.id}`} className="sr-only">Edit post</label>
                             <textarea
+                              id={`edit-${post.id}`}
                               value={editContent}
-                              onChange={(e) => setEditContent(e.target.value)}
+                              maxLength={2100}
+                              aria-invalid={!!editError}
+                              onChange={(e) => { setEditContent(e.target.value); setEditError(null); }}
                               className="w-full bg-secondary/50 rounded-xl p-3 text-foreground resize-none h-24 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-shadow text-sm"
                               autoFocus
                             />
+                            {editError && <p role="alert" className="text-sm text-destructive mt-2">{editError}</p>}
                             <div className="flex justify-end gap-2 mt-2">
                               <button
                                 onClick={() => { setEditingPostId(null); setEditContent(""); }}
@@ -312,19 +329,21 @@ const Community = () => {
                         )}
 
                         <div className="flex items-center gap-6 pt-3 border-t border-border/50">
-                          <button
-                            onClick={() => toggleLike(post.id)}
-                            className={`flex items-center gap-1.5 text-sm transition-colors ${likedPosts.includes(post.id) ? "text-destructive" : "text-muted-foreground hover:text-foreground"}`}
-                          >
-                            <Heart className={`w-4 h-4 ${likedPosts.includes(post.id) ? "fill-current" : ""}`} />
-                            {likedPosts.includes(post.id) ? 1 : 0}
-                          </button>
-                          <button className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                            <MessageSquare className="w-4 h-4" /> 0
-                          </button>
-                          <button className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                            <Share2 className="w-4 h-4" /> Share
-                          </button>
+                          {[
+                            { Icon: Heart, label: "Like" },
+                            { Icon: MessageSquare, label: "Comment" },
+                            { Icon: Share2, label: "Share" },
+                          ].map(({ Icon, label }) => (
+                            <button
+                              key={label}
+                              disabled
+                              title={`${label} - coming soon`}
+                              aria-label={`${label} (coming soon)`}
+                              className="flex items-center gap-1.5 text-sm text-muted-foreground opacity-50 cursor-not-allowed"
+                            >
+                              <Icon className="w-4 h-4" /> {label}
+                            </button>
+                          ))}
                         </div>
                       </div>
                     </motion.div>
@@ -340,14 +359,7 @@ const Community = () => {
                   <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
                     <TrendingUp className="w-4 h-4 text-primary" /> Trending
                   </h3>
-                  <div className="space-y-3">
-                    {trending.map((t) => (
-                      <div key={t.tag} className="flex items-center justify-between py-2">
-                        <span className="text-sm font-medium text-foreground">{t.tag}</span>
-                        <span className="text-xs text-muted-foreground">{t.posts} posts</span>
-                      </div>
-                    ))}
-                  </div>
+                  <p className="text-sm text-muted-foreground">Coming soon</p>
                 </div>
               </ScrollReveal>
 
@@ -356,19 +368,7 @@ const Community = () => {
                   <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
                     <Users className="w-4 h-4 text-primary" /> Active Members
                   </h3>
-                  <div className="flex -space-x-2">
-                    {["SW", "SU", "GR", "PH", "AN", "PR"].map((initials, i) => (
-                      <div
-                        key={i}
-                        className="w-9 h-9 rounded-full border-2 border-background bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground"
-                      >
-                        {initials}
-                      </div>
-                    ))}
-                    <div className="w-9 h-9 rounded-full border-2 border-background bg-secondary flex items-center justify-center text-xs font-medium text-muted-foreground">
-                      +2k
-                    </div>
-                  </div>
+                  <p className="text-sm text-muted-foreground">Coming soon</p>
                 </div>
               </ScrollReveal>
             </div>

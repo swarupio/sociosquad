@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import AnimatedCounter from "./AnimatedCounter";
+import { siteStats, ILLUSTRATIVE_FOOTNOTE } from "@/lib/siteStats";
 import heroTreePlanting from "@/assets/hero-tree-planting.jpg";
 import heroFoodDrive from "@/assets/hero-food-drive.jpg";
 import heroTeaching from "@/assets/hero-teaching.jpg";
@@ -56,9 +57,9 @@ const HeroSection = () => {
               className="mt-12 flex gap-10"
             >
               {[
-                { value: 15, suffix: "K+", label: "Active Volunteers" },
-                { value: 100, suffix: "+", label: "Countries" },
-                { value: 600, suffix: "+", label: "NGO Partners" },
+                { ...siteStats.volunteers, label: "Active Volunteers" },
+                { ...siteStats.countries, label: "Countries" },
+                { ...siteStats.ngoPartners, label: "NGO Partners" },
               ].map((stat, i) => (
                 <div key={i}>
                   <div className="text-2xl md:text-3xl font-display font-bold text-foreground">
@@ -67,6 +68,9 @@ const HeroSection = () => {
                   <div className="text-sm text-muted-foreground font-body">{stat.label}</div>
                 </div>
               ))}
+              {siteStats.illustrative && (
+                <p className="sr-only">{ILLUSTRATIVE_FOOTNOTE}</p>
+              )}
             </motion.div>
           </motion.div>
 
@@ -80,16 +84,16 @@ const HeroSection = () => {
             <div className="relative w-[480px] h-[480px]">
               {/* Top-right: Large circle */}
               <div className="absolute top-0 right-0 w-[220px] h-[220px] rounded-full overflow-hidden border-[5px] border-background shadow-xl">
-                <img src={heroTreePlanting} alt="Volunteers planting trees" className="w-full h-full object-cover" />
+                <img src={heroTreePlanting} alt="Volunteers planting trees" className="w-full h-full object-cover" decoding="async" />
               </div>
               <div className="absolute top-12 left-4 w-[170px] h-[170px] rounded-full overflow-hidden border-[5px] border-background shadow-xl">
-                <img src={heroFoodDrive} alt="Food drive volunteers" className="w-full h-full object-cover" />
+                <img src={heroFoodDrive} alt="Food drive volunteers" className="w-full h-full object-cover" decoding="async" />
               </div>
               <div className="absolute bottom-12 right-8 w-[190px] h-[190px] rounded-full overflow-hidden border-[5px] border-background shadow-xl">
-                <img src={heroTeaching} alt="Teaching volunteers" className="w-full h-full object-cover" />
+                <img src={heroTeaching} alt="Teaching volunteers" className="w-full h-full object-cover" decoding="async" />
               </div>
               <div className="absolute bottom-4 left-12 w-[150px] h-[150px] rounded-full overflow-hidden border-[5px] border-background shadow-xl">
-                <img src={heroBeachCleanup} alt="Beach cleanup volunteers" className="w-full h-full object-cover" />
+                <img src={heroBeachCleanup} alt="Beach cleanup volunteers" className="w-full h-full object-cover" decoding="async" />
               </div>
 
               {/* Decorative dots */}

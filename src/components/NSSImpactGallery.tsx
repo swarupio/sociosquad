@@ -35,6 +35,8 @@ const galleryItems = [
 const NSSImpactGallery = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const swiperRef = useRef<SwiperType | null>(null);
+  const prefersReducedMotion =
+    typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
   return (
     <section className="relative py-20 md:py-28 overflow-hidden">
@@ -76,7 +78,7 @@ const NSSImpactGallery = () => {
                 loop
                 slidesPerView="auto"
                 speed={800}
-                autoplay={{ delay: 3000, disableOnInteraction: false }}
+                autoplay={prefersReducedMotion ? false : { delay: 3000, disableOnInteraction: false }}
                 coverflowEffect={{
                   rotate: 40,
                   stretch: -30,
@@ -105,6 +107,9 @@ const NSSImpactGallery = () => {
                             alt={item.title}
                             className="w-full h-full object-contain"
                             loading="lazy"
+                            decoding="async"
+                            width={480}
+                            height={460}
                           />
                         </div>
                       </div>

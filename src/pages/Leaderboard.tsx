@@ -1,29 +1,12 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Trophy, Medal, Crown, TrendingUp, MapPin, Users } from "lucide-react";
+import { Link } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ScrollReveal from "@/components/ScrollReveal";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
-
-const dummyLeaders = [
-  { rank: 1, name: "Swarup", city: "Mumbai", xp: 12400, hours: 580, level: 24 , isUser: true},
-  { rank: 2, name: "Suhani", city: "Mumbai", xp: 11200, hours: 520, level: 22 },
-  { rank: 3, name: "Gururaj", city: "Mumbai", xp: 10800, hours: 490, level: 21 },
-  { rank: 4, name: "Phillon", city: "Mumbai", xp: 9600, hours: 440, level: 20 },
-  { rank: 5, name: "Aditya S", city: "Mumbai", xp: 9400, hours: 420, level: 19 },
-  { rank: 6, name: "Aayush N", city: "Mumbai", xp: 9200, hours: 410, level: 18 },
-  { rank: 7, name: "Pramit", city: "Mumbai", xp: 8800, hours: 390, level: 17 },
-  { rank: 8, name: "Chaitanya", city: "Mumbai", xp: 8400, hours: 370, level: 17 },
-  { rank: 9, name: "Aayush B", city: "Mumbai", xp: 7900, hours: 350, level: 16 },
-  { rank: 10, name: "Pushkar", city: "Mumbai", xp: 7500, hours: 330, level: 15 },
-  { rank: 11, name: "Jeevan", city: "Mumbai", xp: 7100, hours: 310, level: 14 },
-  { rank: 12, name: "Nilay", city: "Mumbai", xp: 6700, hours: 290, level: 13 },
-  { rank: 13, name: "Jishnu", city: "Mumbai", xp: 6300, hours: 270, level: 12 },
-  { rank: 14, name: "Tanmay", city: "Mumbai", xp: 5900, hours: 250, level: 11 },
-  { rank: 15, name: "Soham", city: "Mumbai", xp: 5500, hours: 230, level: 10, isUser: true },
-];
 
 interface LeaderEntry {
   rank: number;
@@ -35,57 +18,64 @@ interface LeaderEntry {
   isUser?: boolean;
 }
 
+const LEADERBOARD_LIMIT = 50;
+
+const toEntry = (row: any, i: number, myId?: string): LeaderEntry => ({
+  rank: i + 1,
+  name: row.full_name || row.name || "Volunteer",
+  city: row.city || "",
+  xp: row.xp || 0,
+  hours: row.total_hours ?? row.hours ?? 0,
+  level: row.level || 1,
+  isUser: !!myId && row.user_id === myId,
+});
+
+async function loadLeaders(myId?: string): Promise<LeaderEntry[]> {
+  // Preferred: server-side RPC (joins profiles safely). Falls back to direct query.
+  const rpc = await (supabase as any).rpc("get_leaderboard", { limit_count: LEADERBOARD_LIMIT });
+  if (!rpc.error && Array.isArray(rpc.data)) {
+    return rpc.data.map((r: any, i: number) => toEntry(r, i, myId));
+  }
+
+  const { data: statsData, error } = await supabase
+    .from("user_stats")
+    .select("user_id, xp, total_hours, level")
+    .order("xp", { ascending: false })
+    .limit(LEADERBOARD_LIMIT);
+  if (error) throw error;
+  if (!statsData || statsData.length === 0) return [];
+
+  const userIds = statsData.map((s: any) => s.user_id);
+  const { data: profiles, error: pErr } = await supabase
+    .from("profiles")
+    .select("user_id, full_name")
+    .in("user_id", userIds);
+  if (pErr) throw pErr;
+  const profileMap = new Map((profiles || []).map((p: any) => [p.user_id, p.full_name]));
+  return statsData.map((s: any, i: number) => toEntry({ ...s, full_name: profileMap.get(s.user_id) }, i, myId));
+}
+
 const Leaderboard = () => {
   const { user, isReady } = useAuth();
-  const [tab, setTab] = useState<"global" | "city">("global");
   const [realLeaders, setRealLeaders] = useState<LeaderEntry[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
-  // Fetch real leaderboard data from user_stats + profiles when logged in
   useEffect(() => {
-    if (!isReady || !user) return;
-
-    const fetchLeaderboard = async () => {
-      setLoading(true);
-      const { data: statsData } = await supabase
-        .from("user_stats")
-        .select("user_id, xp, total_hours, level")
-        .order("xp", { ascending: false })
-        .limit(50);
-
-      if (!statsData || statsData.length === 0) {
-        setRealLeaders([]);
-        setLoading(false);
-        return;
-      }
-
-      const userIds = statsData.map((s: any) => s.user_id);
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .in("user_id", userIds);
-
-      const profileMap = new Map((profiles || []).map((p: any) => [p.user_id, p.full_name]));
-
-      const leaders: LeaderEntry[] = statsData.map((s: any, i: number) => ({
-        rank: i + 1,
-        name: profileMap.get(s.user_id) || "Volunteer",
-        city: "Mumbai",
-        xp: s.xp || 0,
-        hours: s.total_hours || 0,
-        level: s.level || 1,
-        isUser: s.user_id === user.id,
-      }));
-
-      setRealLeaders(leaders);
-      setLoading(false);
-    };
-
-    fetchLeaderboard();
-  }, [isReady, user]);
+    if (!isReady) return;
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    loadLeaders(user?.id)
+      .then((l) => { if (!cancelled) setRealLeaders(l); })
+      .catch((e) => { if (!cancelled) setError(e?.message || "Could not load the leaderboard."); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [isReady, user, attempt]);
 
   const isLoggedIn = isReady && !!user;
-  const leaders = isLoggedIn ? realLeaders : dummyLeaders;
+  const leaders = realLeaders;
 
   const getRankIcon = (rank: number) => {
     if (rank === 1) return <Crown className="w-5 h-5 text-cyan" />;
@@ -114,30 +104,53 @@ const Leaderboard = () => {
           {/* Tabs */}
           <ScrollReveal>
             <div className="flex justify-center gap-2 mb-8">
-              {(["global", "city"] as const).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setTab(t)}
-                  className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-colors capitalize ${tab === t ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
-                >
-                  {t === "global" ? "🌍 Global" : "🏙️ City"}
-                </button>
-              ))}
+              <button
+                className="px-5 py-2.5 rounded-xl text-sm font-medium transition-colors bg-primary text-primary-foreground"
+                aria-pressed="true"
+              >
+                🌍 Global
+              </button>
+              <button
+                disabled
+                title="City rankings are coming soon"
+                aria-label="City rankings (coming soon)"
+                className="px-5 py-2.5 rounded-xl text-sm font-medium bg-secondary text-muted-foreground opacity-50 cursor-not-allowed"
+              >
+                🏙️ City
+              </button>
             </div>
           </ScrollReveal>
 
-          {isLoggedIn && loading ? (
+          {loading ? (
             <div className="glass-card p-16 text-center">
               <p className="text-muted-foreground">Loading leaderboard...</p>
             </div>
-          ) : isLoggedIn && leaders.length === 0 ? (
+          ) : error ? (
+            <div className="glass-card p-16 text-center" role="alert">
+              <h3 className="text-lg font-semibold text-foreground mb-2">Could not load the leaderboard</h3>
+              <p className="text-muted-foreground text-sm mb-4">{error}</p>
+              <button
+                onClick={() => setAttempt((n) => n + 1)}
+                className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-primary text-primary-foreground"
+              >
+                Retry
+              </button>
+            </div>
+          ) : leaders.length === 0 ? (
             <ScrollReveal>
               <div className="glass-card p-16 text-center">
                 <Users className="w-10 h-10 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold text-foreground mb-2">No rankings yet</h3>
                 <p className="text-muted-foreground text-sm">
-                  Start volunteering to appear on the leaderboard! Complete tasks and earn XP to climb the ranks.
+                  {isLoggedIn
+                    ? "Start volunteering to appear on the leaderboard! Complete tasks and earn XP to climb the ranks."
+                    : "Sign in to see the leaderboard and start earning XP."}
                 </p>
+                {!isLoggedIn && (
+                  <Link to="/auth" className="inline-block mt-4 px-5 py-2.5 rounded-xl text-sm font-semibold bg-primary text-primary-foreground">
+                    Sign in
+                  </Link>
+                )}
               </div>
             </ScrollReveal>
           ) : (
@@ -186,7 +199,7 @@ const Leaderboard = () => {
                       <div className="w-8 flex justify-center">{getRankIcon(leader.rank)}</div>
                       <div>
                         <p className={`text-sm font-medium ${leader.isUser ? "gradient-text" : "text-foreground"}`}>{leader.name}</p>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" />{leader.city}</p>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="w-3 h-3" />{leader.city || "—"}</p>
                       </div>
                       <span className="hidden md:block text-sm text-muted-foreground">{leader.hours}h</span>
                       <span className="text-xs font-semibold px-2 py-1 rounded-lg bg-secondary text-foreground">Lv.{leader.level}</span>

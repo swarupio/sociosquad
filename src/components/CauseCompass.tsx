@@ -2,15 +2,16 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Heart, Leaf, GraduationCap, Stethoscope, Home, Palette, ArrowRight } from "lucide-react";
+import { siteStats } from "@/lib/siteStats";
 import ScrollReveal from "./ScrollReveal";
 
 const causes = [
-  { icon: Leaf, label: "Environment", color: "text-primary", count: "2.4k opportunities", desc: "Climate action, conservation, and sustainability" },
-  { icon: GraduationCap, label: "Education", color: "text-primary", count: "1.8k opportunities", desc: "Mentoring, tutoring, and skill development" },
-  { icon: Stethoscope, label: "Healthcare", color: "text-destructive", count: "1.2k opportunities", desc: "Medical aid, mental health, and wellness" },
-  { icon: Home, label: "Housing", color: "text-accent", count: "890 opportunities", desc: "Shelter, construction, and community building" },
-  { icon: Palette, label: "Arts & Culture", color: "text-primary", count: "650 opportunities", desc: "Creative programs, heritage, and expression" },
-  { icon: Heart, label: "Humanitarian", color: "text-destructive", count: "3.1k opportunities", desc: "Crisis relief, food security, and human rights" },
+  { icon: Leaf, label: "Environment", color: "text-primary", desc: "Climate action, conservation, and sustainability" },
+  { icon: GraduationCap, label: "Education", color: "text-primary", desc: "Mentoring, tutoring, and skill development" },
+  { icon: Stethoscope, label: "Healthcare", color: "text-destructive", desc: "Medical aid, mental health, and wellness" },
+  { icon: Home, label: "Housing", color: "text-accent", desc: "Shelter, construction, and community building" },
+  { icon: Palette, label: "Arts & Culture", color: "text-primary", desc: "Creative programs, heritage, and expression" },
+  { icon: Heart, label: "Humanitarian", color: "text-destructive", desc: "Crisis relief, food security, and human rights" },
 ];
 
 const CauseCompass = () => {
@@ -67,6 +68,8 @@ const CauseCompass = () => {
                   <motion.button
                     key={i}
                     onClick={() => setSelected(i)}
+                    aria-label={cause.label}
+                    aria-pressed={isActive}
                     className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 ${
                       isActive
                         ? "bg-card border-primary/40 border shadow-lg scale-110"
@@ -102,7 +105,7 @@ const CauseCompass = () => {
                   <h3 className="text-2xl font-display font-bold text-foreground">{causes[selected].label}</h3>
                 </div>
                 <p className="text-muted-foreground mb-4 text-lg font-body">{causes[selected].desc}</p>
-                <div className="text-sm text-primary font-semibold mb-6 font-body">{causes[selected].count}</div>
+                <div className="text-sm text-primary font-semibold mb-6 font-body">{siteStats.causeCounts[causes[selected].label]} opportunities{siteStats.illustrative ? " (illustrative)" : ""}</div>
                 <Link
                   to="/opportunities"
                   className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-semibold font-body bg-primary text-primary-foreground"

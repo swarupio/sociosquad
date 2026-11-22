@@ -3,13 +3,14 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import ScrollReveal from "./ScrollReveal";
 import AnimatedCounter from "./AnimatedCounter";
+import { siteStats, ILLUSTRATIVE_FOOTNOTE } from "@/lib/siteStats";
 import heroVolunteers from "@/assets/hero-volunteers.jpg";
 
 const stats = [
-  { icon: Globe, value: 120, suffix: "+", label: "Countries Active", bg: "bg-accent", textColor: "text-accent-foreground" },
-  { icon: Activity, value: 2400000, suffix: "+", label: "Hours Volunteered", bg: "bg-primary", textColor: "text-primary-foreground" },
-  { icon: Users, value: 50000, suffix: "+", label: "Active Volunteers", bg: "bg-primary", textColor: "text-primary-foreground" },
-  { icon: TrendingUp, value: 98, suffix: "%", label: "Satisfaction Rate", bg: "bg-accent", textColor: "text-accent-foreground" },
+  { icon: Globe, ...siteStats.countries, label: "Countries Active", bg: "bg-accent", textColor: "text-accent-foreground" },
+  { icon: Activity, ...siteStats.hoursVolunteered, label: "Hours Volunteered", bg: "bg-primary", textColor: "text-primary-foreground" },
+  { icon: Users, ...siteStats.volunteers, label: "Active Volunteers", bg: "bg-primary", textColor: "text-primary-foreground" },
+  { icon: TrendingUp, ...siteStats.satisfactionRate, label: "Satisfaction Rate", bg: "bg-accent", textColor: "text-accent-foreground" },
 ];
 
 const StatCard = ({ stat }: { stat: typeof stats[number] }) => {
@@ -55,6 +56,8 @@ const GlobalImpact = () => {
                 src={heroVolunteers}
                 alt="Volunteers in action"
                 className="w-full h-auto object-contain"
+                loading="lazy"
+                decoding="async"
               />
             </div>
           </div>
@@ -67,6 +70,9 @@ const GlobalImpact = () => {
             </ScrollReveal>
           ))}
         </div>
+        {siteStats.illustrative && (
+          <p className="text-xs text-muted-foreground font-body text-center mt-4">{ILLUSTRATIVE_FOOTNOTE}</p>
+        )}
       </div>
     </section>
   );

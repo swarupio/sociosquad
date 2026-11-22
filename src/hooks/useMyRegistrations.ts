@@ -35,7 +35,7 @@ export function useMyRegistrations(userId: string | undefined, options?: UseMyRe
 
       const { data: regs, error } = await supabase
         .from("volunteer_registrations")
-        .select("*")
+        .select("id, opportunity_id, status, attended, hours_credited, created_at")
         .eq("user_id", userId!)
         .order("created_at", { ascending: false });
 
@@ -128,5 +128,6 @@ export function useMyRegistrations(userId: string | undefined, options?: UseMyRe
       });
     },
     enabled: (options?.enabled ?? true) && !!userId,
+    staleTime: 30_000,
   });
 }

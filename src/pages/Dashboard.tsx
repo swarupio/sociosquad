@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { TrendingUp, Zap, Clock, Target, Flame, ArrowUpRight, Loader2, CalendarCheck, MapPin, ExternalLink } from "lucide-react";
-import { Navigate, Link } from "react-router-dom";
+import { Navigate, Link, useLocation } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ScrollReveal from "@/components/ScrollReveal";
@@ -12,22 +12,17 @@ import { useQuery } from "@tanstack/react-query";
 import { useVolunteerImpact } from "@/hooks/useVolunteerImpact";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
 } from "recharts";
 
-const skillData = [
-  { skill: "Teaching", value: 0 }, { skill: "Coding", value: 0 },
-  { skill: "Leadership", value: 0 }, { skill: "Design", value: 0 },
-  { skill: "Communication", value: 0 }, { skill: "Organizing", value: 0 },
-];
+const toLocalKey = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-const defaultWeeklyData = [
-  { day: "Mon", hours: 0 }, { day: "Tue", hours: 0 }, { day: "Wed", hours: 0 },
-  { day: "Thu", hours: 0 }, { day: "Fri", hours: 0 }, { day: "Sat", hours: 0 }, { day: "Sun", hours: 0 },
-];
+// Parse a date-only string (YYYY-MM-DD) as local time to avoid UTC day shifts.
+const parseLocalDate = (dateStr: string) => new Date(`${dateStr}T00:00:00`);
 
 const Dashboard = () => {
   const { user, isReady } = useAuth();
+  const location = useLocation();
 
   const {
     registrations,
@@ -49,7 +44,7 @@ const Dashboard = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("user_activities")
-        .select("*")
+        .select("id, action, target, xp, created_at")
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false })
         .limit(10);
@@ -67,14 +62,16 @@ const Dashboard = () => {
     );
   }
 
-  if (!user) return <Navigate to="/auth" />;
+  if (!user) return <Navigate to="/auth" replace state={{ from: location }} />;
 
   if (impactLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <main className="pt-24 pb-16 flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <main className="pt-24 pb-16">
+          <div className="container mx-auto px-6 max-w-3xl" role="status" aria-busy="true">
+            <AsyncStateCard title="Loading your dashboard..." loading />
+          </div>
         </main>
         <Footer />
       </div>
@@ -129,9 +126,27 @@ const Dashboard = () => {
       return aTime - bTime;
     });
 
+  // Real last-7-days hours from credited registrations (no placeholder data).
+  const weeklyData = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - (6 - i));
+    return { key: toLocalKey(d), day: d.toLocaleDateString("en-US", { weekday: "short" }), hours: 0 };
+  });
+  for (const reg of registrations) {
+    const hrs = Number(reg.hours_credited ?? 0);
+    if (!reg.date || !(hrs > 0)) continue;
+    const slot = weeklyData.find((w) => w.key === reg.date);
+    if (slot) slot.hours += hrs;
+  }
+  const hasWeeklyData = weeklyData.some((w) => w.hours > 0);
+
   const formatTime = (dateStr: string) => {
-    const diff = Date.now() - new Date(dateStr).getTime();
+    const t = new Date(dateStr).getTime();
+    if (Number.isNaN(t)) return "";
+    const diff = Math.max(0, Date.now() - t);
     const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "Just now";
     if (mins < 60) return `${mins}m ago`;
     const hrs = Math.floor(mins / 60);
     if (hrs < 24) return `${hrs}h ago`;
@@ -203,9 +218,15 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             <ScrollReveal>
               <div className="glass-card p-6 h-full">
-                <h3 className="font-semibold text-foreground mb-4">Weekly Impact</h3>
+                <h3 className="font-semibold text-foreground mb-4">Weekly Impact <span className="text-xs font-normal text-muted-foreground">(hours, last 7 days)</span></h3>
+                {!hasWeeklyData ? (
+                  <div className="text-center py-16">
+                    <Clock className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+                    <p className="text-muted-foreground text-sm">No volunteer hours logged in the last 7 days.</p>
+                  </div>
+                ) : (
                 <ResponsiveContainer width="100%" height={220}>
-                  <LineChart data={defaultWeeklyData}>
+                  <LineChart data={weeklyData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                     <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
@@ -216,20 +237,20 @@ const Dashboard = () => {
                     <Line type="monotone" dataKey="hours" stroke="hsl(var(--primary))" strokeWidth={3} dot={{ fill: "hsl(var(--primary))", r: 5, strokeWidth: 2, stroke: "hsl(var(--background))" }} activeDot={{ r: 7 }} />
                   </LineChart>
                 </ResponsiveContainer>
+                )}
               </div>
             </ScrollReveal>
 
             <ScrollReveal delay={0.1}>
               <div className="glass-card p-6 h-full">
                 <h3 className="font-semibold text-foreground mb-4">Skill Radar</h3>
-                <ResponsiveContainer width="100%" height={220}>
-                  <RadarChart data={skillData}>
-                    <PolarGrid stroke="hsl(var(--border))" />
-                    <PolarAngleAxis dataKey="skill" stroke="hsl(var(--muted-foreground))" fontSize={11} />
-                    <PolarRadiusAxis stroke="hsl(var(--border))" />
-                    <Radar dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.2} />
-                  </RadarChart>
-                </ResponsiveContainer>
+                <div className="text-center py-16">
+                  <Zap className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-muted-foreground text-sm">Your estimated skill profile is available on your portfolio.</p>
+                  <Link to="/portfolio" className="text-xs text-primary hover:underline mt-1 inline-block">
+                    View skill profile →
+                  </Link>
+                </div>
               </div>
             </ScrollReveal>
           </div>
@@ -248,7 +269,7 @@ const Dashboard = () => {
               {upcomingRegistrations.length > 0 ? (
                 <div className="space-y-3">
                   {upcomingRegistrations.map((reg) => {
-                    const eventDate = new Date(reg.date);
+                    const eventDate = parseLocalDate(reg.date);
 
                     return (
                       <div key={reg.id} className="flex items-center justify-between p-4 rounded-xl bg-secondary/50 border border-border/50 hover:border-primary/20 transition-colors">
@@ -270,7 +291,7 @@ const Dashboard = () => {
                               {reg.start_time && (
                                 <>
                                   <span>•</span>
-                                  <span>{reg.start_time.slice(0, 5)} – {reg.end_time?.slice(0, 5)}</span>
+                                  <span>{reg.start_time.slice(0, 5)}{reg.end_time ? ` – ${reg.end_time.slice(0, 5)}` : ""}</span>
                                 </>
                               )}
                             </div>
@@ -316,11 +337,12 @@ const Dashboard = () => {
                 </div>
               ) : activitiesLoading ? (
                 <div className="py-10 flex items-center justify-center">
-                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" aria-hidden="true" />
+                  <span className="sr-only">Loading recent activity</span>
                 </div>
               ) : activities && activities.length > 0 ? (
                 <div className="space-y-4">
-                  {activities.map((item: any) => (
+                  {activities.map((item) => (
                     <div key={item.id} className="flex items-center justify-between py-3 border-b border-border/50 last:border-0">
                       <div className="flex items-center gap-3">
                         <div className="w-2 h-2 rounded-full bg-primary" />

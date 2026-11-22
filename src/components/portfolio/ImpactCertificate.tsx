@@ -1,6 +1,7 @@
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { X, Download, Award, Shield } from "lucide-react";
-import { useRef } from "react";
+import { escapeHtml, safeNumber } from "@/lib/escapeHtml";
+import { toast } from "@/hooks/use-toast";
 
 interface ImpactCertificateProps {
   name: string;
@@ -13,17 +14,25 @@ interface ImpactCertificateProps {
 }
 
 const ImpactCertificate = ({ name, hours, tasks, causes, level, joinDate, onClose }: ImpactCertificateProps) => {
-  const certRef = useRef<HTMLDivElement>(null);
-
   const handleDownload = () => {
     const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
+    if (!printWindow) {
+      toast({ title: "Pop-up blocked", description: "Allow pop-ups for this site to download your certificate.", variant: "destructive" });
+      return;
+    }
+    printWindow.opener = null;
+    const safeName = escapeHtml(name);
+    const safeJoinDate = escapeHtml(joinDate);
+    const nHours = safeNumber(hours);
+    const nTasks = safeNumber(tasks);
+    const nCauses = safeNumber(causes);
+    const nLevel = safeNumber(level);
 
     printWindow.document.write(`
       <!DOCTYPE html>
       <html>
       <head>
-        <title>SocioSquad Impact Certificate - ${name}</title>
+        <title>SocioSquad Impact Certificate - ${safeName}</title>
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -77,22 +86,21 @@ const ImpactCertificate = ({ name, hours, tasks, causes, level, joinDate, onClos
           </div>
           <div class="title">Certificate of Impact</div>
           <div style="text-align:center;color:#888;font-size:13px;">This is to certify that</div>
-          <div class="recipient">${name}</div>
+          <div class="recipient">${safeName}</div>
           <div class="desc">
             has demonstrated exceptional commitment to social impact through volunteering,
-            contributing ${hours} hours across ${causes} causes since ${joinDate}.
+            contributing ${nHours} hours across ${nCauses} causes since ${safeJoinDate}.
           </div>
           <div class="stats">
-            <div class="stat"><div class="stat-value">${hours}</div><div class="stat-label">Hours</div></div>
-            <div class="stat"><div class="stat-value">${tasks}</div><div class="stat-label">Events</div></div>
-            <div class="stat"><div class="stat-value">${causes}</div><div class="stat-label">Causes</div></div>
-            <div class="stat"><div class="stat-value">${level}</div><div class="stat-label">Level</div></div>
+            <div class="stat"><div class="stat-value">${nHours}</div><div class="stat-label">Hours</div></div>
+            <div class="stat"><div class="stat-value">${nTasks}</div><div class="stat-label">Events</div></div>
+            <div class="stat"><div class="stat-value">${nCauses}</div><div class="stat-label">Causes</div></div>
+            <div class="stat"><div class="stat-value">${nLevel}</div><div class="stat-label">Level</div></div>
           </div>
           <div class="footer">
             <div class="footer-item"><div class="footer-line"></div><div class="footer-label">Date: ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div></div>
             <div class="footer-item"><div class="footer-line"></div><div class="footer-label">SocioSquad Platform</div></div>
           </div>
-          <div class="id">Certificate ID: SS-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}</div>
         </div>
         <script>window.onload = () => window.print();</script>
       </body>
@@ -102,11 +110,15 @@ const ImpactCertificate = ({ name, hours, tasks, causes, level, joinDate, onClos
   };
 
   return (
-    <AnimatePresence>
+    <>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Impact Certificate"
+        onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
         className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 backdrop-blur-sm p-4"
         onClick={onClose}
       >
@@ -121,12 +133,12 @@ const ImpactCertificate = ({ name, hours, tasks, causes, level, joinDate, onClos
             <h3 className="font-semibold text-foreground flex items-center gap-2">
               <Award className="w-5 h-5 text-primary" /> Impact Certificate
             </h3>
-            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground">
-              <X className="w-4 h-4" />
+            <button onClick={onClose} aria-label="Close certificate" autoFocus className="p-1.5 rounded-lg hover:bg-secondary transition-colors text-muted-foreground">
+              <X className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
 
-          <div className="p-6" ref={certRef}>
+          <div className="p-6">
             <div className="bg-background rounded-xl border-2 border-primary/20 p-8 relative overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-1.5 rounded-t-xl" style={{ background: "var(--gradient-primary)" }} />
 
@@ -194,7 +206,7 @@ const ImpactCertificate = ({ name, hours, tasks, causes, level, joinDate, onClos
           </div>
         </motion.div>
       </motion.div>
-    </AnimatePresence>
+    </>
   );
 };
 

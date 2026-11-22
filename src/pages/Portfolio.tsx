@@ -1,11 +1,11 @@
 import { motion } from "framer-motion";
 import {
-  Award, Clock, Target, Flame, Zap, Share2, Download, ExternalLink,
+  Award, Clock, Target, Flame, Zap, Share2, Download,
   Heart, Shield, Star, MapPin, Linkedin, Copy, Check, Trophy, TrendingUp,
   FileText,
 } from "lucide-react";
-import { useState, useMemo } from "react";
-import { Navigate, Link } from "react-router-dom";
+import { useState, useMemo, lazy, Suspense } from "react";
+import { Navigate, useLocation } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ScrollReveal from "@/components/ScrollReveal";
@@ -16,13 +16,15 @@ import { useQuery } from "@tanstack/react-query";
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer,
 } from "recharts";
-import ImpactCertificate from "@/components/portfolio/ImpactCertificate";
-import { generateVolunteerResume } from "@/components/portfolio/VolunteerResumePDF";
+import { toast } from "@/hooks/use-toast";
+
+const ImpactCertificate = lazy(() => import("@/components/portfolio/ImpactCertificate"));
 import { useVolunteerImpact } from "@/hooks/useVolunteerImpact";
 import { Loader2 } from "lucide-react";
 
 const Portfolio = () => {
   const { user, isReady } = useAuth();
+  const location = useLocation();
   const [copied, setCopied] = useState(false);
   const [showCertificate, setShowCertificate] = useState(false);
 
@@ -128,15 +130,14 @@ const Portfolio = () => {
     const tasksCompleted = summary.completedEvents;
     const regCount = registrations?.length ?? 0;
     const uniqueCauses = new Set(registrations?.map(r => r.category) ?? []).size;
-    const streak = summary.dayStreak;
 
     return [
-      { name: "First Responder", icon: Shield, earned: regCount >= 1, date: regCount >= 1 ? "Earned" : null },
-      { name: "Team Captain", icon: Star, earned: tasksCompleted >= 5, date: tasksCompleted >= 5 ? "Earned" : null },
-      { name: "Eco Warrior", icon: Heart, earned: uniqueCauses >= 3, date: uniqueCauses >= 3 ? "Earned" : null },
-      { name: "Code Hero", icon: Zap, earned: totalHours >= 50, date: totalHours >= 50 ? "Earned" : null },
-      { name: "Mentor", icon: Award, earned: totalHours >= 100, date: totalHours >= 100 ? "Earned" : null },
-      { name: "Globe Trotter", icon: MapPin, earned: uniqueCauses >= 5, date: uniqueCauses >= 5 ? "Earned" : null },
+      { name: "First Responder", icon: Shield, earned: regCount >= 1, date: regCount >= 1 ? "Unlocked" : null },
+      { name: "Team Captain", icon: Star, earned: tasksCompleted >= 5, date: tasksCompleted >= 5 ? "Unlocked" : null },
+      { name: "Eco Warrior", icon: Heart, earned: uniqueCauses >= 3, date: uniqueCauses >= 3 ? "Unlocked" : null },
+      { name: "Code Hero", icon: Zap, earned: totalHours >= 50, date: totalHours >= 50 ? "Unlocked" : null },
+      { name: "Mentor", icon: Award, earned: totalHours >= 100, date: totalHours >= 100 ? "Unlocked" : null },
+      { name: "Globe Trotter", icon: MapPin, earned: uniqueCauses >= 5, date: uniqueCauses >= 5 ? "Unlocked" : null },
     ];
   }, [summary, registrations]);
 
@@ -164,14 +165,16 @@ const Portfolio = () => {
     );
   }
 
-  if (!user) return <Navigate to="/auth" />;
+  if (!user) return <Navigate to="/auth" replace state={{ from: location }} />;
 
   if (profileLoading || impactLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <main className="pt-24 pb-16 flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <main className="pt-24 pb-16">
+          <div className="container mx-auto px-6 max-w-3xl" role="status" aria-busy="true">
+            <AsyncStateCard title="Loading your impact portfolio..." loading />
+          </div>
         </main>
         <Footer />
       </div>
@@ -205,7 +208,7 @@ const Portfolio = () => {
   }
 
   const displayName = profile?.full_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Volunteer";
-  const initials = displayName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
+  const initials = displayName.split(" ").filter(Boolean).map((n: string) => n[0]).join("") || "?".toUpperCase().slice(0, 2);
   const joinDate = new Date(user.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" });
   const totalHours = summary.totalHours;
   const tasksCompleted = summary.completedEvents;
@@ -213,22 +216,33 @@ const Portfolio = () => {
   const level = summary.level;
   const streak = summary.dayStreak;
   const totalCauses = summary.uniqueCauses;
-  const maxCauseHours = causeBreakdown.length > 0 ? Math.max(...causeBreakdown.map((c) => c.value)) : 1;
+  const maxCauseHours = causeBreakdown.length > 0 ? Math.max(...causeBreakdown.map((c) => c.value), 1) : 1;
+  const hasSkillData = skillData.some((s) => s.value > 0);
+  const fmt = (n: number) => Number(Number(n).toFixed(1));
 
   const shareUrl = `${window.location.origin}/portfolio`;
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(shareUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  // NOTE: /portfolio requires login, so this link is only useful to signed-in members.
+  // A public share route (/portfolio/:slug) is a Phase 4 candidate.
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast({ title: "Link copied", description: "Note: viewing this page requires signing in to SocioSquad." });
+    } catch {
+      toast({ title: "Could not copy link", description: `Copy it manually: ${shareUrl}`, variant: "destructive" });
+    }
   };
 
   const handleLinkedIn = () => {
     const text = encodeURIComponent(`🌟 Check out my volunteer impact portfolio on SocioSquad! ${totalHours} hours across ${totalCauses} causes. #Volunteering #SocialImpact`);
-    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}&summary=${text}`, '_blank');
+    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}&summary=${text}`, '_blank', 'noopener,noreferrer');
   };
 
-  const handleDownloadResume = () => {
+  const handleDownloadResume = async () => {
+  try {
+  const { generateVolunteerResume } = await import("@/components/portfolio/VolunteerResumePDF");
   generateVolunteerResume({
     name: displayName,
     email: user.email || "",
@@ -248,6 +262,9 @@ const Portfolio = () => {
     badges,
     milestones,
   });
+  } catch {
+    toast({ title: "Could not generate resume", description: "Please try again.", variant: "destructive" });
+  }
 };
 
   return (
@@ -295,7 +312,8 @@ const Portfolio = () => {
                     whileTap={{ scale: 0.95 }}
                     onClick={handleCopyLink}
                     className="p-2.5 rounded-xl bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-                    title="Copy link"
+                    title="Copy link (requires sign-in to view)"
+                    aria-label="Copy portfolio link"
                   >
                     {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
                   </motion.button>
@@ -305,6 +323,7 @@ const Portfolio = () => {
                     onClick={handleLinkedIn}
                     className="p-2.5 rounded-xl bg-secondary text-muted-foreground hover:text-foreground transition-colors"
                     title="Share on LinkedIn"
+                    aria-label="Share on LinkedIn"
                   >
                     <Linkedin className="w-4 h-4" />
                   </motion.button>
@@ -332,7 +351,7 @@ const Portfolio = () => {
           {/* Impact Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
             {[
-              { icon: Clock, label: "Volunteer Hours", value: totalHours, suffix: "h" },
+              { icon: Clock, label: "Volunteer Hours", value: fmt(totalHours), suffix: "h" },
               { icon: Target, label: "Tasks Completed", value: tasksCompleted, suffix: "" },
               { icon: TrendingUp, label: "Impact Score", value: impactScore, suffix: "%" },
               { icon: Heart, label: "Causes Supported", value: totalCauses, suffix: "" },
@@ -389,6 +408,10 @@ const Portfolio = () => {
                 <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
                   <Zap className="w-5 h-5 text-primary" /> Skill Profile
                 </h3>
+                <p className="text-xs text-muted-foreground -mt-2 mb-2">Estimated from the categories of events you have joined.</p>
+                {!hasSkillData ? (
+                  <p className="text-sm text-muted-foreground text-center py-16">Register for opportunities to build your skill profile</p>
+                ) : (
                 <ResponsiveContainer width="100%" height={240}>
                   <RadarChart data={skillData}>
                     <PolarGrid stroke="hsl(var(--border))" />
@@ -397,6 +420,7 @@ const Portfolio = () => {
                     <Radar dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.15} strokeWidth={2} />
                   </RadarChart>
                 </ResponsiveContainer>
+                )}
               </div>
             </ScrollReveal>
           </div>
@@ -407,6 +431,7 @@ const Portfolio = () => {
               <h3 className="font-semibold text-foreground mb-6 flex items-center gap-2">
                 <Award className="w-5 h-5 text-primary" /> Achievement Badges
               </h3>
+              <p className="text-xs text-muted-foreground -mt-4 mb-4">Badges are unlocked automatically from simple activity thresholds on SocioSquad; they are not official certifications.</p>
               <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
                 {badges.map((badge, i) => (
                   <motion.div
@@ -424,8 +449,9 @@ const Portfolio = () => {
                       <badge.icon className={`w-6 h-6 ${badge.earned ? "text-primary" : "text-muted-foreground"}`} />
                     </div>
                     <span className="text-xs text-center text-foreground font-medium">{badge.name}</span>
+                    <span className="sr-only">{badge.earned ? "Unlocked" : "Locked"}</span>
                     {badge.earned && badge.date && (
-                      <span className="text-[10px] text-muted-foreground">{badge.date}</span>
+                      <span className="text-[10px] text-muted-foreground" aria-hidden="true">{badge.date}</span>
                     )}
                   </motion.div>
                 ))}
@@ -481,7 +507,7 @@ const Portfolio = () => {
               <Share2 className="w-8 h-8 text-primary-foreground mx-auto mb-3" />
               <h3 className="text-xl font-bold text-primary-foreground mb-2">Share Your Impact</h3>
               <p className="text-primary-foreground/70 text-sm mb-5 max-w-md mx-auto">
-                Showcase your volunteer journey. Share with employers, schools, or your network.
+                Showcase your volunteer journey. Download a resume or certificate to share with employers or schools. Portfolio links open for signed-in members only.
               </p>
               <div className="flex flex-wrap items-center justify-center gap-3">
                 <motion.button
@@ -525,6 +551,7 @@ const Portfolio = () => {
 
       {/* Certificate Modal */}
       {showCertificate && (
+        <Suspense fallback={null}>
         <ImpactCertificate
           name={displayName}
           hours={totalHours}
@@ -534,6 +561,7 @@ const Portfolio = () => {
           joinDate={joinDate}
           onClose={() => setShowCertificate(false)}
         />
+        </Suspense>
       )}
     </div>
   );

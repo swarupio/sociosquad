@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import { useMyRegistrations, type Registration } from "@/hooks/useMyRegistrations";
@@ -75,7 +75,7 @@ export function useVolunteerImpact(userId: string | undefined, enabled = true) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("user_stats")
-        .select("*")
+        .select("total_hours, tasks_completed, impact_score, xp, level, xp_max, day_streak")
         .eq("user_id", userId!)
         .maybeSingle();
 
@@ -88,9 +88,18 @@ export function useVolunteerImpact(userId: string | undefined, enabled = true) {
   useEffect(() => {
     if (!enabled || !userId) return;
 
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let warned = false;
+
+    // Debounce bursts of realtime events into a single invalidation.
     const invalidate = () => {
-      queryClient.invalidateQueries({ queryKey: ["my-registrations", userId] });
-      queryClient.invalidateQueries({ queryKey: ["user-stats", userId] });
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (cancelled) return;
+        queryClient.invalidateQueries({ queryKey: ["my-registrations", userId] });
+        queryClient.invalidateQueries({ queryKey: ["user-stats", userId] });
+      }, 300);
     };
 
     const channel = supabase
@@ -115,9 +124,20 @@ export function useVolunteerImpact(userId: string | undefined, enabled = true) {
         },
         invalidate
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (cancelled) return;
+        if (status === "SUBSCRIBED") {
+          warned = false;
+        } else if ((status === "CHANNEL_ERROR" || status === "TIMED_OUT") && !warned) {
+          // Log once per outage; data still refreshes via react-query refetch-on-focus.
+          warned = true;
+          console.warn("Realtime updates unavailable for volunteer impact:", status);
+        }
+      });
 
     return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
       supabase.removeChannel(channel);
     };
   }, [enabled, userId, queryClient]);
@@ -170,6 +190,12 @@ export function useVolunteerImpact(userId: string | undefined, enabled = true) {
     };
   }, [registrations, rawStats]);
 
+  const { refetch: refetchRegistrations } = registrationsQuery;
+  const { refetch: refetchStats } = statsQuery;
+  const refetch = useCallback(async () => {
+    await Promise.all([refetchRegistrations(), refetchStats()]);
+  }, [refetchRegistrations, refetchStats]);
+
   return {
     registrations,
     rawStats,
@@ -178,8 +204,6 @@ export function useVolunteerImpact(userId: string | undefined, enabled = true) {
     isFetching: registrationsQuery.isFetching || statsQuery.isFetching,
     isError: registrationsQuery.isError || statsQuery.isError,
     error: registrationsQuery.error || statsQuery.error,
-    refetch: async () => {
-      await Promise.all([registrationsQuery.refetch(), statsQuery.refetch()]);
-    },
+    refetch,
   };
 }

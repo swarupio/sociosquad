@@ -1,3 +1,6 @@
+import { escapeHtml, safeNumber } from "@/lib/escapeHtml";
+import { toast } from "@/hooks/use-toast";
+
 interface ResumeData {
   name: string;
   email: string;
@@ -17,16 +20,21 @@ export function generateVolunteerResume(data: ResumeData) {
   const earnedBadges = data.badges.filter((badge) => badge.earned);
   const achievedMilestones = data.milestones.filter((milestone) => milestone.achieved);
   const topSkills = [...data.skills].sort((a, b) => b.value - a.value).slice(0, 6);
-  const maxCauseValue = Math.max(...data.causes.map((cause) => cause.value), 1);
+  const maxCauseValue = Math.max(...data.causes.map((cause) => safeNumber(cause.value)), 1);
 
   const printWindow = window.open("", "_blank");
-  if (!printWindow) return;
+  if (!printWindow) {
+    toast({ title: "Pop-up blocked", description: "Allow pop-ups for this site to download your resume.", variant: "destructive" });
+    return;
+  }
+  printWindow.opener = null;
+  const e = escapeHtml;
 
   printWindow.document.write(`
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Volunteer Resume - ${data.name}</title>
+      <title>Volunteer Resume - ${e(data.name)}</title>
       <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -251,8 +259,8 @@ export function generateVolunteerResume(data: ResumeData) {
         <div class="header">
           <div class="header-top">
             <div>
-              <h1>${data.name}</h1>
-              <div class="subtitle">Volunteer since ${data.joinDate} · Level ${data.level} · ${data.email}</div>
+              <h1>${e(data.name)}</h1>
+              <div class="subtitle">Volunteer since ${e(data.joinDate)} · Level ${safeNumber(data.level)} · ${e(data.email)}</div>
             </div>
             <div class="brand">
               SocioSquad
@@ -260,10 +268,10 @@ export function generateVolunteerResume(data: ResumeData) {
             </div>
           </div>
           <div class="header-stats">
-            <div class="header-stat"><div class="val">${data.totalHours}</div><div class="lbl">Volunteer Hours</div></div>
-            <div class="header-stat"><div class="val">${data.tasksCompleted}</div><div class="lbl">Events Completed</div></div>
-            <div class="header-stat"><div class="val">${data.impactScore}%</div><div class="lbl">Impact Score</div></div>
-            <div class="header-stat"><div class="val">${data.streak}</div><div class="lbl">Day Streak</div></div>
+            <div class="header-stat"><div class="val">${safeNumber(data.totalHours)}</div><div class="lbl">Volunteer Hours</div></div>
+            <div class="header-stat"><div class="val">${safeNumber(data.tasksCompleted)}</div><div class="lbl">Events Completed</div></div>
+            <div class="header-stat"><div class="val">${safeNumber(data.impactScore)}%</div><div class="lbl">Impact Score</div></div>
+            <div class="header-stat"><div class="val">${safeNumber(data.streak)}</div><div class="lbl">Day Streak</div></div>
           </div>
         </div>
 
@@ -273,9 +281,9 @@ export function generateVolunteerResume(data: ResumeData) {
               <div class="section-title">Cause Breakdown</div>
               ${data.causes.length > 0 ? data.causes.map((cause) => `
                 <div class="cause-row">
-                  <div class="cause-name">${cause.cause}</div>
-                  <div class="cause-bar-bg"><div class="cause-bar" style="width: ${((cause.value / maxCauseValue) * 100).toFixed(0)}%"></div></div>
-                  <div class="cause-val">${cause.unit === 'hours' ? `${cause.value}h` : `${cause.value} evt`}</div>
+                  <div class="cause-name">${e(cause.cause)}</div>
+                  <div class="cause-bar-bg"><div class="cause-bar" style="width: ${safeNumber((cause.value / maxCauseValue) * 100).toFixed(0)}%"></div></div>
+                  <div class="cause-val">${cause.unit === 'hours' ? `${safeNumber(cause.value)}h` : `${safeNumber(cause.value)} evt`}</div>
                 </div>
               `).join('') : '<div style="font-size:12px;color:#666;">No completed impact data yet</div>'}
             </div>
@@ -286,8 +294,8 @@ export function generateVolunteerResume(data: ResumeData) {
                 ${topSkills.map((skill) => `
                   <div class="skill-item">
                     <div class="skill-dot"></div>
-                    <div class="skill-name">${skill.skill}</div>
-                    <div class="skill-val">${skill.value}%</div>
+                    <div class="skill-name">${e(skill.skill)}</div>
+                    <div class="skill-val">${safeNumber(skill.value)}%</div>
                   </div>
                 `).join('')}
               </div>
@@ -299,7 +307,7 @@ export function generateVolunteerResume(data: ResumeData) {
             <div class="section-title">Achievement Badges</div>
             <div class="badge-grid">
               ${earnedBadges.map((badge) => `
-                <div class="badge-chip"><div class="dot"></div>${badge.name}${badge.date ? ` · ${badge.date}` : ''}</div>
+                <div class="badge-chip"><div class="dot"></div>${e(badge.name)}${badge.date ? ` · ${e(badge.date)}` : ''}</div>
               `).join('')}
             </div>
           </div>
@@ -310,7 +318,7 @@ export function generateVolunteerResume(data: ResumeData) {
             <div class="section-title">Milestones Achieved</div>
             <div class="milestone-list">
               ${achievedMilestones.map((milestone) => `
-                <div class="milestone-item">✓ ${milestone.title}</div>
+                <div class="milestone-item">✓ ${e(milestone.title)}</div>
               `).join('')}
             </div>
           </div>
@@ -318,8 +326,8 @@ export function generateVolunteerResume(data: ResumeData) {
         </div>
 
         <div class="footer">
-          <div>Generated on ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })} · Resume ID: SR-${Date.now().toString(36).toUpperCase()}</div>
-          <div class="verified-badge">✓ Verified by SocioSquad</div>
+          <div>Generated on ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
+          <div class="verified-badge">Generated by SocioSquad</div>
         </div>
       </div>
       <script>window.onload = () => window.print();</script>

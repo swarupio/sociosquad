@@ -1,0 +1,20 @@
+-- DB-15: indexes for FKs, RLS EXISTS subqueries and common filters. Additive, idempotent.
+BEGIN;
+CREATE INDEX IF NOT EXISTS idx_opps_org            ON public.opportunities(org_id);
+CREATE INDEX IF NOT EXISTS idx_opps_status_date    ON public.opportunities(status, date);
+CREATE INDEX IF NOT EXISTS idx_vr_user             ON public.volunteer_registrations(user_id);
+CREATE INDEX IF NOT EXISTS idx_vr_opportunity      ON public.volunteer_registrations(opportunity_id);
+CREATE INDEX IF NOT EXISTS idx_sm_user             ON public.squad_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_squads_created_by   ON public.squads(created_by);
+CREATE INDEX IF NOT EXISTS idx_sc_squad            ON public.squad_challenges(squad_id);
+CREATE INDEX IF NOT EXISTS idx_sal_squad_created   ON public.squad_activity_logs(squad_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_sal_challenge       ON public.squad_activity_logs(challenge_id, status);
+CREATE INDEX IF NOT EXISTS idx_sal_user            ON public.squad_activity_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_ue_user             ON public.user_events(user_id);
+CREATE INDEX IF NOT EXISTS idx_ut_user             ON public.user_tasks(user_id);
+CREATE INDEX IF NOT EXISTS idx_ua_user_created     ON public.user_activities(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_us_xp               ON public.user_stats(xp DESC);
+CREATE INDEX IF NOT EXISTS idx_cp_created          ON public.community_posts(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_cp_user             ON public.community_posts(user_id);
+CREATE INDEX IF NOT EXISTS idx_org_user            ON public.organizations(user_id);
+COMMIT;

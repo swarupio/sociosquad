@@ -22,17 +22,17 @@ const LEADERBOARD_LIMIT = 50;
 
 const toEntry = (row: any, i: number, myId?: string): LeaderEntry => ({
   rank: i + 1,
-  name: row.full_name || row.name || "Volunteer",
+  name: row.display_name || row.full_name || row.name || "Volunteer",
   city: row.city || "",
   xp: row.xp || 0,
   hours: row.total_hours ?? row.hours ?? 0,
   level: row.level || 1,
-  isUser: !!myId && row.user_id === myId,
+  isUser: row.is_me === true || (!!myId && row.user_id === myId),
 });
 
 async function loadLeaders(myId?: string): Promise<LeaderEntry[]> {
   // Preferred: server-side RPC (joins profiles safely). Falls back to direct query.
-  const rpc = await (supabase as any).rpc("get_leaderboard", { limit_count: LEADERBOARD_LIMIT });
+  const rpc = await (supabase as any).rpc("get_leaderboard", { p_limit: LEADERBOARD_LIMIT });
   if (!rpc.error && Array.isArray(rpc.data)) {
     return rpc.data.map((r: any, i: number) => toEntry(r, i, myId));
   }

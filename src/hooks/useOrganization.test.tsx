@@ -112,3 +112,27 @@ describe("usePublicOpportunities register/unregister reliability", () => {
     expect(response).toEqual({ success: false, message: "delete failed" });
   });
 });
+
+describe("usePublicOpportunities error handling", () => {
+  it("exposes error and clears loading when the query fails", async () => {
+    vi.resetModules();
+    vi.doMock("@/lib/supabaseClient", () => ({
+      supabase: {
+        from: () => ({
+          select: () => ({
+            eq: () => ({
+              gte: () => ({
+                order: () => Promise.resolve({ data: null, error: { message: "boom" } }),
+              }),
+            }),
+          }),
+        }),
+      },
+    }));
+    const mod = await import("./useOrganization");
+    const { result } = renderHook(() => mod.usePublicOpportunities());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.error).toBe("boom");
+    vi.doUnmock("@/lib/supabaseClient");
+  });
+});

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
+import AsyncStateCard from "@/components/AsyncStateCard";
 import { Navigate, Link } from "react-router-dom";
 
 const CATEGORIES = ["Environment", "Education", "Health", "Community", "Animals", "Disaster Relief", "Elderly Care", "General"];
@@ -72,7 +73,7 @@ function PostOpportunityModal({ open, onClose, onCreate }: { open: boolean; onCl
           <label className="text-xs text-muted-foreground mb-2 block">Skills Needed</label>
           <div className="flex flex-wrap gap-2">
             {SKILLS.map(s => (
-              <button key={s} onClick={() => toggleSkill(s)} className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${form.skills_needed.includes(s) ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-muted"}`}>
+              <button key={s} type="button" aria-pressed={form.skills_needed.includes(s)} onClick={() => toggleSkill(s)} className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${form.skills_needed.includes(s) ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:bg-muted"}`}>
                 {s}
               </button>
             ))}
@@ -105,7 +106,7 @@ function PostOpportunityModal({ open, onClose, onCreate }: { open: boolean; onCl
 
 function VolunteerManager({ opportunityId, opportunityTitle, startTime, endTime }: { opportunityId: string; opportunityTitle: string; startTime?: string; endTime?: string }) {
   const { user } = useAuth();
-  const { volunteers, loading, verifyAttendance } = useOpportunityVolunteers(opportunityId);
+  const { volunteers, loading, error, verifyAttendance } = useOpportunityVolunteers(opportunityId);
 
   // Calculate hours from opportunity times
   const calcHours = () => {
@@ -118,6 +119,7 @@ function VolunteerManager({ opportunityId, opportunityTitle, startTime, endTime 
   const hours = calcHours();
 
   if (loading) return <p className="text-sm text-muted-foreground">Loading volunteers...</p>;
+  if (error) return <p className="text-sm text-destructive">Could not load volunteers: {error}</p>;
 
   return (
     <div className="space-y-3">
@@ -143,10 +145,10 @@ function VolunteerManager({ opportunityId, opportunityTitle, startTime, endTime 
               </div>
               {v.status === "registered" && (
                 <div className="flex gap-1.5">
-                  <Button size="sm" variant="ghost" className="rounded-lg h-8 w-8 p-0 text-primary hover:bg-primary/10" onClick={() => verifyAttendance(v.id, true, hours, user!.id)}>
+                  <Button size="sm" variant="ghost" aria-label="Mark attended" className="rounded-lg h-8 w-8 p-0 text-primary hover:bg-primary/10" onClick={() => verifyAttendance(v.id, true, hours, user!.id)}>
                     <CheckCircle className="w-5 h-5" />
                   </Button>
-                  <Button size="sm" variant="ghost" className="rounded-lg h-8 w-8 p-0 text-destructive hover:bg-destructive/10" onClick={() => verifyAttendance(v.id, false, 0, user!.id)}>
+                  <Button size="sm" variant="ghost" aria-label="Mark absent" className="rounded-lg h-8 w-8 p-0 text-destructive hover:bg-destructive/10" onClick={() => verifyAttendance(v.id, false, 0, user!.id)}>
                     <XCircle className="w-5 h-5" />
                   </Button>
                 </div>
@@ -161,13 +163,13 @@ function VolunteerManager({ opportunityId, opportunityTitle, startTime, endTime 
 
 export default function NGODashboard() {
   const { user, isReady } = useAuth();
-  const { org, loading: orgLoading } = useMyOrganization();
-  const { opportunities, loading: oppsLoading, createOpportunity, deleteOpportunity } = useOrgOpportunities(org?.id);
+  const { org, loading: orgLoading, error: orgError, refetch: refetchOrg } = useMyOrganization();
+  const { opportunities, loading: oppsLoading, error: oppsError, refetch: refetchOpps, createOpportunity, deleteOpportunity } = useOrgOpportunities(org?.id);
   const [showPost, setShowPost] = useState(false);
   const [expandedOpp, setExpandedOpp] = useState<string | null>(null);
 
   if (isReady && !user) return <Navigate to="/auth" replace />;
-  if (!orgLoading && !org) return <Navigate to="/ngo/register" replace />;
+  if (isReady && user && !orgLoading && !orgError && !org) return <Navigate to="/ngo/register" replace />;
 
   const totalVolunteers = opportunities.reduce((s, o) => s + (o.registration_count || 0), 0);
   const activeOpps = opportunities.filter(o => o.status === "open").length;
@@ -176,8 +178,15 @@ export default function NGODashboard() {
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="container mx-auto px-6 pt-24 pb-16 max-w-6xl">
-        {orgLoading ? (
+        {!isReady || orgLoading ? (
           <div className="text-center py-20"><Loader2 className="w-8 h-8 mx-auto animate-spin text-muted-foreground" /></div>
+        ) : orgError || !org ? (
+          <AsyncStateCard
+            title="Unable to load your organization"
+            description={orgError || undefined}
+            actionLabel="Retry"
+            onAction={refetchOrg}
+          />
         ) : (
           <>
             {/* Org Header */}
@@ -218,6 +227,13 @@ export default function NGODashboard() {
             {/* Opportunities List */}
             {oppsLoading ? (
               <div className="text-center py-12 text-muted-foreground">Loading...</div>
+            ) : oppsError ? (
+              <AsyncStateCard
+                title="Unable to load opportunities"
+                description={oppsError}
+                actionLabel="Retry"
+                onAction={refetchOpps}
+              />
             ) : opportunities.length === 0 ? (
               <div className="bg-card border border-border rounded-3xl p-12 text-center">
                 <Calendar className="w-16 h-16 mx-auto text-muted-foreground/20 mb-4" />
@@ -243,10 +259,10 @@ export default function NGODashboard() {
                           <p className="text-sm text-muted-foreground line-clamp-1">{opp.description}</p>
                         </div>
                         <div className="flex gap-1.5 ml-4">
-                          <Button size="sm" variant="ghost" className="rounded-lg" onClick={() => setExpandedOpp(expandedOpp === opp.id ? null : opp.id)}>
+                          <Button size="sm" variant="ghost" aria-label="Toggle volunteers" className="rounded-lg" onClick={() => setExpandedOpp(expandedOpp === opp.id ? null : opp.id)}>
                             <Eye className="w-4 h-4" />
                           </Button>
-                          <Button size="sm" variant="ghost" className="rounded-lg text-destructive" onClick={() => deleteOpportunity(opp.id)}>
+                          <Button size="sm" variant="ghost" aria-label="Delete opportunity" className="rounded-lg text-destructive" onClick={() => deleteOpportunity(opp.id)}>
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
@@ -269,7 +285,7 @@ export default function NGODashboard() {
 
                       {/* Volunteer fill bar */}
                       <div className="mt-3">
-                        <Progress value={((opp.registration_count || 0) / opp.max_volunteers) * 100} className="h-1.5 rounded-full" />
+                        <Progress value={opp.max_volunteers > 0 ? Math.min(100, ((opp.registration_count || 0) / opp.max_volunteers) * 100) : 0} className="h-1.5 rounded-full" />
                       </div>
                     </div>
 

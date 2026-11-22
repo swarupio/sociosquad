@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Building2, Globe, Mail, Phone, MapPin, Loader2 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { z } from "zod";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -35,7 +36,8 @@ export default function NGORegister() {
     if (!form.name.trim()) e.name = "Organization name is required";
     if (!form.description.trim()) e.description = "Description is required";
     if (!form.contact_email.trim()) e.contact_email = "Contact email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.contact_email)) e.contact_email = "Invalid email";
+    else if (!z.string().trim().email().safeParse(form.contact_email).success) e.contact_email = "Invalid email";
+    if (form.website.trim() && !/^https?:\/\/\S+\.\S+/i.test(form.website.trim())) e.website = "Website must start with http:// or https://";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -44,9 +46,12 @@ export default function NGORegister() {
     e.preventDefault();
     if (!validate()) return;
     setLoading(true);
-    const result = await createOrg(form);
-    setLoading(false);
-    if (result) navigate("/ngo/dashboard");
+    try {
+      const result = await createOrg({ ...form, name: form.name.trim(), description: form.description.trim(), contact_email: form.contact_email.trim(), website: form.website.trim() });
+      if (result) navigate("/ngo/dashboard");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (isReady && !user) {
@@ -152,6 +157,7 @@ export default function NGORegister() {
                 <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input value={form.website} onChange={e => set("website", e.target.value)} placeholder="https://yourorg.org" className={`pl-10 ${inputClass}`} />
               </div>
+              {errors.website && <p className="text-destructive text-xs mt-1">{errors.website}</p>}
             </div>
 
             <div className="grid grid-cols-3 gap-3">

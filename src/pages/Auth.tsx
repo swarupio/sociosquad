@@ -1,16 +1,25 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Mail, Lock, ArrowRight, ArrowLeft, Loader2, Users, Building2 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { z } from "zod";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/lib/supabaseClient";
-import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import heroVolunteers from "@/assets/hero-volunteers.jpg";
 
+const emailSchema = z.string().trim().email().max(255);
+
+/** Accept only same-origin relative paths ("/x", not "//x" or "/\\x"). */
+const getSafeNext = (next: string | null): string | null => {
+  if (!next || !next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) return null;
+  return next;
+};
+
 const Auth = () => {
   const navigate = useNavigate();
-  const { user, isReady } = useAuth();
+  const [searchParams] = useSearchParams();
+  const nextParam = getSafeNext(searchParams.get("next"));
   const [showPassword, setShowPassword] = useState(false);
   const [signInEmail, setSignInEmail] = useState("");
   const [signInPassword, setSignInPassword] = useState("");
@@ -27,33 +36,23 @@ const Auth = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [githubLoading, setGitHubLoading] = useState(false);
   const [authError, setAuthError] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
   
 
-    const validateEmail = (email: string) => {
-      // Basic email format validation
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      // Additionally require Gmail domain
-      return emailRegex.test(email) && email.endsWith('@gmail.com');
-    };
+  const validateEmail = (email: string) => emailSchema.safeParse(email).success;
 
-  // Handle OAuth callback
-  useEffect(() => {
-    const handleOAuthCallback = () => {
-      const path = window.location.pathname;
-      if (path === '/auth/callback') {
-        // Clear the URL to remove code/state params
-        window.history.replaceState({}, document.title, window.location.origin + '/auth');
-        
-        // The session should be updated via onAuthStateChange in useAuth hook
-        // We'll just redirect to dashboard after a brief moment
-        setTimeout(() => {
-          navigate('/dashboard', { replace: true });
-        }, 1000);
-      }
-    };
+  const oauthRedirectTo = `${window.location.origin}/auth/callback${nextParam ? `?next=${encodeURIComponent(nextParam)}` : ""}`;
 
-    handleOAuthCallback();
-  }, [navigate]);
+  const redirectAfterLogin = async (userId: string) => {
+    let isOrg = false;
+    try {
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+      isOrg = (roles || []).some((r: any) => r.role === "organization");
+    } catch {
+      /* fall through to default route */
+    }
+    navigate(isOrg ? "/ngo/dashboard" : nextParam || "/dashboard", { replace: true });
+  };
 
    const handleGoogleSignIn = async () => {
      setAuthError("");
@@ -62,8 +61,7 @@ const Auth = () => {
        const { data, error } = await supabase.auth.signInWithOAuth({
          provider: "google",
          options: {
-           redirectTo: `${window.location.origin}/auth/callback`,
-           // You can add scopes if needed
+           redirectTo: oauthRedirectTo,
          },
        });
        if (error) throw error;
@@ -90,7 +88,7 @@ const Auth = () => {
        const { data, error } = await supabase.auth.signInWithOAuth({
          provider: "github",
          options: {
-           redirectTo: `${window.location.origin}/auth/callback`,
+           redirectTo: oauthRedirectTo,
          },
        });
        if (error) throw error;
@@ -117,27 +115,45 @@ const Auth = () => {
     if (Object.keys(errors).length > 0) return;
 
     setSignInLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: signInEmail.trim(),
-      password: signInPassword,
-    });
-    setSignInLoading(false);
-
-     if (error) {
-       setSignInApiError(error.message);
-       toast.error(error.message);
-     } else {
-      // Check if user is an organization → redirect to NGO dashboard
-      const { data: { user: signedInUser } } = await supabase.auth.getUser();
-      if (signedInUser) {
-        const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", signedInUser.id);
-        const isOrg = (roles || []).some((r: any) => r.role === "organization");
-        if (isOrg) {
-          navigate("/ngo/dashboard");
-          return;
-        }
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: signInEmail.trim(),
+        password: signInPassword,
+      });
+      if (error) {
+        setSignInApiError(error.message);
+        toast.error(error.message);
+        return;
       }
-      navigate("/dashboard");
+      const signedInUserId = data?.user?.id ?? (await supabase.auth.getUser()).data?.user?.id;
+      if (signedInUserId) await redirectAfterLogin(signedInUserId);
+      else navigate(nextParam || "/dashboard", { replace: true });
+    } catch (err: any) {
+      const message = err?.message || "Sign in failed. Please try again.";
+      setSignInApiError(message);
+      toast.error(message);
+    } finally {
+      setSignInLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    setSignInApiError("");
+    if (!validateEmail(signInEmail)) {
+      setSignInErrors((p) => ({ ...p, email: "Enter your email to reset your password" }));
+      return;
+    }
+    setResetLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(signInEmail.trim(), {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+      if (error) throw error;
+      toast.success("Password reset email sent. Check your inbox.");
+    } catch (err: any) {
+      toast.error(err?.message || "Could not send reset email.");
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -154,30 +170,44 @@ const Auth = () => {
     if (Object.keys(errors).length > 0) return;
 
     setSignUpLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email: signUpEmail.trim(),
-      password: signUpPassword,
-      options: {
-        data: { full_name: signUpName.trim() },
-      },
-    });
-    setSignUpLoading(false);
-
-     if (error) {
-       setSignUpApiError(error.message);
-       toast.error(error.message);
-     } else {
-      if (signUpRole === "organization") {
-        // Add org role — the default volunteer role is added by trigger,
-        // so we insert the org role on top
-        const { data: { user: newUser } } = await supabase.auth.getUser();
-        if (newUser) {
-          await supabase.from("user_roles").insert({ user_id: newUser.id, role: "organization" as any });
-        }
-        navigate("/ngo/register");
-      } else {
-        navigate("/dashboard");
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: signUpEmail.trim(),
+        password: signUpPassword,
+        options: {
+          data: { full_name: signUpName.trim(), role: signUpRole },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) {
+        setSignUpApiError(error.message);
+        toast.error(error.message);
+        return;
       }
+
+      if (!data?.session) {
+        // Email confirmation required: no session yet, so do not touch user_roles.
+        toast.success("Check your email to confirm your account, then sign in.");
+        return;
+      }
+
+      if (signUpRole === "organization") {
+        // Best-effort fallback only; a DB trigger assigns the role from signup metadata.
+        try {
+          await supabase.from("user_roles").insert({ user_id: data.session.user.id, role: "organization" as any });
+        } catch {
+          /* ignore */
+        }
+        navigate("/ngo/register", { replace: true });
+      } else {
+        navigate(nextParam || "/dashboard", { replace: true });
+      }
+    } catch (err: any) {
+      const message = err?.message || "Sign up failed. Please try again.";
+      setSignUpApiError(message);
+      toast.error(message);
+    } finally {
+      setSignUpLoading(false);
     }
   };
 
@@ -338,14 +368,14 @@ const Auth = () => {
                          onChange={(e) => { setSignInPassword(e.target.value); setSignInErrors(p => ({ ...p, password: undefined })); }}
                          className={inputClass}
                        />
-                       <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                       <button type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                        </button>
                      </div>
                      {signInErrors.password && <p role="alert" className="text-destructive text-xs mt-1">{signInErrors.password}</p>}
                    </div>
                   <div className="flex justify-end">
-                    <button type="button" className="text-xs text-navy hover:underline">Forgot Password?</button>
+                    <button type="button" onClick={handleForgotPassword} disabled={resetLoading} className="text-xs text-navy hover:underline disabled:opacity-50">Forgot Password?</button>
                   </div>
                   {signInApiError && (
                     <p className="text-destructive text-xs text-center">{signInApiError}</p>
@@ -433,7 +463,7 @@ const Auth = () => {
                           onChange={(e) => { setSignUpPassword(e.target.value); setSignUpErrors(p => ({ ...p, password: undefined })); }}
                           className={inputClass}
                         />
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                        <button type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                           {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>

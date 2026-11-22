@@ -60,51 +60,95 @@ interface MutationResult {
   message?: string;
 }
 
+async function fetchRegistrationCounts(opportunityIds: string[]): Promise<Record<string, number>> {
+  const counts: Record<string, number> = {};
+  if (opportunityIds.length === 0) return counts;
+  const { data, error } = await supabase
+    .from("volunteer_registrations")
+    .select("opportunity_id")
+    .in("opportunity_id", opportunityIds);
+  if (error) throw error;
+  (data || []).forEach((r: any) => {
+    counts[r.opportunity_id] = (counts[r.opportunity_id] || 0) + 1;
+  });
+  return counts;
+}
+
 export function useUserRole() {
   const { user } = useAuth();
   const [isOrg, setIsOrg] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) { setLoading(false); return; }
-    supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .then(({ data }) => {
+    if (!user) { setIsOrg(false); setError(null); setLoading(false); return; }
+    let cancelled = false;
+    setLoading(true);
+    (async () => {
+      try {
+        const { data, error: roleError } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id);
+        if (cancelled) return;
+        if (roleError) throw roleError;
         setIsOrg((data || []).some((r: any) => r.role === "organization"));
-        setLoading(false);
-      });
+        setError(null);
+      } catch (err) {
+        if (cancelled) return;
+        setIsOrg(false);
+        setError(err instanceof Error ? err.message : "Failed to load role");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [user]);
 
-  return { isOrg, loading };
+  return { isOrg, loading, error };
 }
+
+const ORG_COLUMNS = "id, user_id, name, description, website, contact_email, contact_phone, logo_url, address, city, verified, created_at";
 
 export function useMyOrganization() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [org, setOrg] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchOrg = useCallback(async () => {
-    if (!user) return;
-    const { data } = await supabase
-      .from("organizations")
-      .select("*")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    setOrg(data as any);
-    setLoading(false);
+    if (!user) { setOrg(null); setLoading(false); return; }
+    setLoading(true);
+    try {
+      const { data, error: orgError } = await supabase
+        .from("organizations")
+        .select(ORG_COLUMNS)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (orgError) throw orgError;
+      setOrg((data as unknown as Organization) ?? null);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : (err as any)?.message || "Failed to load organization");
+    } finally {
+      setLoading(false);
+    }
   }, [user]);
 
   useEffect(() => { fetchOrg(); }, [fetchOrg]);
 
   const createOrg = async (orgData: Partial<Organization>) => {
-    if (!user) return;
-    // Add org role
-    await supabase.from("user_roles").insert({ user_id: user.id, role: "organization" as any });
+    if (!user) return null;
 
-    const { data, error } = await supabase
+    // Best-effort role fallback (a DB trigger is the source of truth); failure is ignored.
+    try {
+      await supabase.from("user_roles").insert({ user_id: user.id, role: "organization" as any });
+    } catch {
+      /* ignore */
+    }
+
+    const { data, error: insertError } = await supabase
       .from("organizations")
       .insert({
         name: orgData.name || "",
@@ -116,19 +160,25 @@ export function useMyOrganization() {
         city: orgData.city || "Mumbai",
         user_id: user.id,
       })
-      .select()
+      .select(ORG_COLUMNS)
       .single();
 
-    if (error) {
-      toast({ title: "Error creating organization", description: error.message, variant: "destructive" });
+    if (insertError) {
+      if ((insertError as any).code === "23505") {
+        toast({ title: "Organization already registered", description: "Your account already has an organization." });
+        await fetchOrg();
+        return null;
+      }
+      toast({ title: "Error creating organization", description: insertError.message, variant: "destructive" });
       return null;
     }
     toast({ title: "Organization registered! 🎉" });
-    setOrg(data as any);
+    setOrg(data as unknown as Organization);
+    setError(null);
     return data;
   };
 
-  return { org, loading, createOrg, refetch: fetchOrg };
+  return { org, loading, error, createOrg, refetch: fetchOrg };
 }
 
 export function useOrgOpportunities(orgId: string | undefined) {
@@ -137,28 +187,29 @@ export function useOrgOpportunities(orgId: string | undefined) {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [error, setError] = useState<string | null>(null);
+
   const fetchOpps = useCallback(async () => {
-    if (!orgId) return;
-    const { data } = await supabase
-      .from("opportunities")
-      .select("*")
-      .eq("org_id", orgId)
-      .order("date", { ascending: true });
+    if (!orgId) { setOpportunities([]); setLoading(false); return; }
+    setLoading(true);
+    try {
+      const { data, error: oppsError } = await supabase
+        .from("opportunities")
+        .select("*")
+        .eq("org_id", orgId)
+        .order("date", { ascending: true });
+      if (oppsError) throw oppsError;
 
-    // Get registration counts
-    const opps = data || [];
-    const enriched = await Promise.all(
-      opps.map(async (o: any) => {
-        const { count } = await supabase
-          .from("volunteer_registrations")
-          .select("*", { count: "exact", head: true })
-          .eq("opportunity_id", o.id);
-        return { ...o, registration_count: count || 0 };
-      })
-    );
-
-    setOpportunities(enriched as any);
-    setLoading(false);
+      const opps = data || [];
+      const counts = await fetchRegistrationCounts(opps.map((o: any) => o.id));
+      setOpportunities(opps.map((o: any) => ({ ...o, registration_count: counts[o.id] || 0 })) as any);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : (err as any)?.message || "Failed to load opportunities");
+      setOpportunities([]);
+    } finally {
+      setLoading(false);
+    }
   }, [orgId]);
 
   useEffect(() => { fetchOpps(); }, [fetchOpps]);
@@ -166,7 +217,7 @@ export function useOrgOpportunities(orgId: string | undefined) {
   const createOpportunity = async (opp: Partial<Opportunity>): Promise<boolean> => {
     if (!user || !orgId) return false;
 
-    const { latitude, longitude } = await geocodeLocation(opp.location || "", opp.city || "Mumbai");
+    const { latitude, longitude } = await geocodeLocation(opp.location || "", opp.city || "Mumbai", { existing: opp });
     if (latitude === null || longitude === null) {
       toast({
         title: "Could not geocode location",
@@ -214,7 +265,7 @@ export function useOrgOpportunities(orgId: string | undefined) {
     fetchOpps();
   };
 
-  return { opportunities, loading, createOpportunity, deleteOpportunity, refetch: fetchOpps };
+  return { opportunities, loading, error, createOpportunity, deleteOpportunity, refetch: fetchOpps };
 }
 
 export function useOpportunityVolunteers(opportunityId: string | undefined) {
@@ -222,28 +273,40 @@ export function useOpportunityVolunteers(opportunityId: string | undefined) {
   const [volunteers, setVolunteers] = useState<VolunteerRegistration[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [error, setError] = useState<string | null>(null);
+
   const fetchVolunteers = useCallback(async () => {
-    if (!opportunityId) return;
-    const { data } = await supabase
-      .from("volunteer_registrations")
-      .select("*")
-      .eq("opportunity_id", opportunityId)
-      .order("created_at");
+    if (!opportunityId) { setVolunteers([]); setLoading(false); return; }
+    setLoading(true);
+    try {
+      const { data, error: regError } = await supabase
+        .from("volunteer_registrations")
+        .select("*")
+        .eq("opportunity_id", opportunityId)
+        .order("created_at");
+      if (regError) throw regError;
 
-    const userIds = (data || []).map((v: any) => v.user_id);
-    let profiles: any[] = [];
-    if (userIds.length > 0) {
-      const { data: p } = await supabase.from("profiles").select("user_id, full_name, avatar_url").in("user_id", userIds);
-      profiles = p || [];
+      const userIds = (data || []).map((v: any) => v.user_id);
+      let profiles: any[] = [];
+      if (userIds.length > 0) {
+        const { data: p, error: profileError } = await supabase.from("profiles").select("user_id, full_name, avatar_url").in("user_id", userIds);
+        if (profileError) throw profileError;
+        profiles = p || [];
+      }
+
+      setVolunteers(
+        (data || []).map((v: any) => ({
+          ...v,
+          profile: profiles.find((p: any) => p.user_id === v.user_id) || null,
+        }))
+      );
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : (err as any)?.message || "Failed to load volunteers");
+      setVolunteers([]);
+    } finally {
+      setLoading(false);
     }
-
-    setVolunteers(
-      (data || []).map((v: any) => ({
-        ...v,
-        profile: profiles.find((p: any) => p.user_id === v.user_id) || null,
-      }))
-    );
-    setLoading(false);
   }, [opportunityId]);
 
   useEffect(() => { fetchVolunteers(); }, [fetchVolunteers]);
@@ -267,7 +330,7 @@ export function useOpportunityVolunteers(opportunityId: string | undefined) {
     fetchVolunteers();
   };
 
-  return { volunteers, loading, verifyAttendance, refetch: fetchVolunteers };
+  return { volunteers, loading, error, verifyAttendance, refetch: fetchVolunteers };
 }
 
 export function usePublicOpportunities() {
@@ -304,45 +367,30 @@ export function usePublicOpportunities() {
         throw orgsError;
       }
 
-      const enriched = await Promise.all(
-        (data || []).map(async (o: any) => {
-          const { count, error: countError } = await supabase
-            .from("volunteer_registrations")
-            .select("*", { count: "exact", head: true })
-            .eq("opportunity_id", o.id);
+      const ids = data.map((o: any) => o.id);
+      const counts = await fetchRegistrationCounts(ids);
 
-          if (countError) {
-            throw countError;
-          }
+      const registeredIds = new Set<string>();
+      if (user) {
+        const { data: mine, error: registrationError } = await supabase
+          .from("volunteer_registrations")
+          .select("opportunity_id")
+          .eq("user_id", user.id)
+          .in("opportunity_id", ids);
+        if (registrationError) throw registrationError;
+        (mine || []).forEach((r: any) => registeredIds.add(r.opportunity_id));
+      }
 
-          let is_registered = false;
-          if (user) {
-            const { data: reg, error: registrationError } = await supabase
-              .from("volunteer_registrations")
-              .select("id")
-              .eq("opportunity_id", o.id)
-              .eq("user_id", user.id)
-              .maybeSingle();
-
-            if (registrationError) {
-              throw registrationError;
-            }
-
-            is_registered = !!reg;
-          }
-
-          return {
-            ...o,
-            organization: (orgs || []).find((org: any) => org.id === o.org_id) || null,
-            registration_count: count || 0,
-            is_registered,
-          };
-        })
-      );
+      const enriched = data.map((o: any) => ({
+        ...o,
+        organization: (orgs || []).find((org: any) => org.id === o.org_id) || null,
+        registration_count: counts[o.id] || 0,
+        is_registered: registeredIds.has(o.id),
+      }));
 
       setOpportunities(enriched as any);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to load opportunities";
+      const message = err instanceof Error ? err.message : (err as any)?.message || "Failed to load opportunities";
       setError(message);
       setOpportunities([]);
     } finally {

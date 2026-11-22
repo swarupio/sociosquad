@@ -68,6 +68,7 @@ const Profile = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["profile", user?.id] });
       setEditing(false);
+      toast({ title: "Profile updated" });
     },
     onError: (error) => {
       toast({
@@ -86,7 +87,7 @@ const Profile = () => {
     );
   }
 
-  if (!user) return <Navigate to="/auth" />;
+  if (!user) return <Navigate to="/auth" replace />;
 
   if (profileLoading || impactLoading) {
     return (
@@ -127,7 +128,7 @@ const Profile = () => {
   }
 
   const displayName = profile?.full_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
-  const initials = displayName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
+  const initials = displayName.split(" ").filter(Boolean).map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
   const joinDate = new Date(user.created_at).toLocaleDateString("en-US", { month: "short", year: "numeric" });
 
   const level = summary.level;
@@ -136,11 +137,24 @@ const Profile = () => {
   const xpPercent = xpMax > 0 ? (xp / xpMax) * 100 : 0;
 
   const handleSave = () => {
-    if (editName.trim()) {
-      updateProfile.mutate(editName.trim());
-    } else {
+    const trimmed = editName.trim();
+    if (!trimmed) {
       setEditing(false);
+      return;
     }
+    if (trimmed.length < 2 || trimmed.length > 100) {
+      toast({
+        title: "Invalid name",
+        description: "Name must be between 2 and 100 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (trimmed === displayName) {
+      setEditing(false);
+      return;
+    }
+    updateProfile.mutate(trimmed);
   };
 
   return (
@@ -162,12 +176,16 @@ const Profile = () => {
                         <input
                           value={editName}
                           onChange={(e) => setEditName(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") setEditing(false); }}
+                          maxLength={100}
+                          aria-label="Your name"
                           className="px-3 py-2 rounded-xl bg-secondary text-foreground text-lg font-bold focus:outline-none focus:ring-2 focus:ring-primary/30 border border-border"
                           placeholder="Your name"
                           autoFocus
                         />
                         <button
                           onClick={handleSave}
+                          aria-label="Save name"
                           disabled={updateProfile.isPending}
                           className="p-2 rounded-xl bg-primary text-primary-foreground hover:brightness-105 transition-all"
                         >
@@ -188,6 +206,7 @@ const Profile = () => {
                 </div>
                 <button
                   onClick={() => { setEditing(!editing); setEditName(displayName); }}
+                  aria-label={editing ? "Cancel editing" : "Edit name"}
                   className="p-2 rounded-xl bg-secondary text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <Edit3 className="w-4 h-4" />

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId, useRef, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Users, Plus, Hash, ArrowRight, Trophy, Target, Copy, LogOut, Crown, Swords, Trash2, CheckCircle, XCircle, Clock, Send, Calendar } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -10,35 +10,93 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
-import { Link, Navigate, useParams } from "react-router-dom";
-import { initialEvents, DAYS } from "@/components/schedule/data";
-import { supabase } from "@/lib/supabaseClient";
+import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
+import { initialEvents } from "@/components/schedule/data";
 
 const EMOJIS = ["🌍", "🔥", "💚", "⚡", "🌊", "🌱", "🦁", "🚀"];
 
-function CreateSquadModal({ open, onClose, onCreate }: { open: boolean; onClose: () => void; onCreate: (n: string, d: string, e: string) => void }) {
-  const [name, setName] = useState("");
-  const [desc, setDesc] = useState("");
-  const [emoji, setEmoji] = useState("🌍");
+/** Shared accessible modal shell: role=dialog, aria-modal, Escape to close, focus on open. */
+function ModalShell({ onClose, maxWidth, className = "", title, children }: {
+  onClose: () => void;
+  maxWidth: string;
+  className?: string;
+  title: string;
+  children: ReactNode;
+}) {
+  const titleId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
-  if (!open) return null;
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    const panel = panelRef.current;
+    const first = panel?.querySelector<HTMLElement>("input, textarea, select, button:not([disabled])");
+    (first ?? panel)?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCloseRef.current();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      previouslyFocused?.focus?.();
+    };
+  }, []);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <motion.div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-card border border-border rounded-3xl p-8 w-full max-w-md mx-4 shadow-2xl"
+        className={`bg-card border border-border rounded-3xl p-8 w-full ${maxWidth} mx-4 shadow-2xl outline-none ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 className="text-2xl font-display font-bold text-foreground mb-6">Create a Squad</h3>
-        
+        <h3 id={titleId} className="text-2xl font-display font-bold text-foreground mb-6">{title}</h3>
+        {children}
+      </motion.div>
+    </div>
+  );
+}
+
+function CreateSquadModal({ open, onClose, onCreate }: { open: boolean; onClose: () => void; onCreate: (n: string, d: string, e: string) => Promise<boolean> }) {
+  const [name, setName] = useState("");
+  const [desc, setDesc] = useState("");
+  const [emoji, setEmoji] = useState("🌍");
+  const [busy, setBusy] = useState(false);
+
+  if (!open) return null;
+
+  const submit = async () => {
+    if (!name.trim() || busy) return;
+    setBusy(true);
+    try {
+      const ok = await onCreate(name, desc, emoji);
+      if (ok) {
+        setName(""); setDesc("");
+        onClose();
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <ModalShell onClose={onClose} maxWidth="max-w-md" title="Create a Squad">
+
         <div className="mb-4">
           <label className="text-sm font-medium text-muted-foreground mb-2 block">Squad Icon</label>
           <div className="flex gap-2 flex-wrap">
             {EMOJIS.map((e) => (
               <button
                 key={e}
+                type="button"
+                aria-label={`Squad icon ${e}`}
+                aria-pressed={emoji === e}
                 onClick={() => setEmoji(e)}
                 className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all ${emoji === e ? "bg-primary/20 ring-2 ring-primary" : "bg-secondary hover:bg-muted"}`}
               >
@@ -65,19 +123,18 @@ function CreateSquadModal({ open, onClose, onCreate }: { open: boolean; onClose:
         <div className="flex gap-3">
           <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl">Cancel</Button>
           <Button
-            onClick={() => { if (name.trim()) { onCreate(name, desc, emoji); onClose(); setName(""); setDesc(""); } }}
+            onClick={submit}
             className="flex-1 rounded-xl"
-            disabled={!name.trim()}
+            disabled={!name.trim() || busy}
           >
             Create <Plus className="w-4 h-4 ml-1" />
           </Button>
         </div>
-      </motion.div>
-    </div>
+    </ModalShell>
   );
 }
 
-function CreateChallengeModal({ open, onClose, onCreate }: { open: boolean; onClose: () => void; onCreate: (t: string, d: string, v: number, u: string) => void }) {
+function CreateChallengeModal({ open, onClose, onCreate }: { open: boolean; onClose: () => void; onCreate: (t: string, d: string, v: number, u: string) => Promise<boolean> }) {
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [target, setTarget] = useState("100");
@@ -92,30 +149,36 @@ function CreateChallengeModal({ open, onClose, onCreate }: { open: boolean; onCl
     setSelectedEvents(prev => prev.includes(id) ? prev.filter(e => e !== id) : [...prev, id]);
   };
 
-  const handleCreate = () => {
+  const [busy, setBusy] = useState(false);
+
+  const handleCreate = async () => {
+    if (busy) return;
+    let promise: Promise<boolean> | null = null;
     if (mode === "events" && selectedEvents.length > 0) {
       const eventNames = upcomingEvents.filter(e => selectedEvents.includes(e.id)).map(e => e.title);
       const autoTitle = title.trim() || `Complete ${selectedEvents.length} event${selectedEvents.length > 1 ? "s" : ""} together`;
       const autoDesc = `Squad goal: ${eventNames.join(", ")}`;
-      onCreate(autoTitle, autoDesc, selectedEvents.length, "events");
+      promise = onCreate(autoTitle, autoDesc, selectedEvents.length, "events");
     } else if (title.trim()) {
-      onCreate(title, desc, parseInt(target) || 100, unit);
+      promise = onCreate(title, desc, Number(target), unit);
     }
-    onClose();
-    setTitle(""); setDesc(""); setSelectedEvents([]); setMode("custom");
+    if (!promise) return;
+    setBusy(true);
+    try {
+      const ok = await promise;
+      if (ok) {
+        setTitle(""); setDesc(""); setSelectedEvents([]); setMode("custom");
+        onClose();
+      }
+    } finally {
+      setBusy(false);
+    }
   };
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        className="bg-card border border-border rounded-3xl p-8 w-full max-w-lg mx-4 shadow-2xl max-h-[85vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3 className="text-2xl font-display font-bold text-foreground mb-4">New Challenge</h3>
+    <ModalShell onClose={onClose} maxWidth="max-w-lg" className="max-h-[85vh] overflow-y-auto" title="New Challenge">
 
         {/* Mode toggle */}
         <div className="flex gap-2 mb-5">
@@ -185,17 +248,16 @@ function CreateChallengeModal({ open, onClose, onCreate }: { open: boolean; onCl
           <Button
             onClick={handleCreate}
             className="flex-1 rounded-xl"
-            disabled={mode === "custom" ? !title.trim() : selectedEvents.length === 0}
+            disabled={busy || (mode === "custom" ? !title.trim() : selectedEvents.length === 0)}
           >
             Launch Challenge <Swords className="w-4 h-4 ml-1" />
           </Button>
         </div>
-      </motion.div>
-    </div>
+    </ModalShell>
   );
 }
 
-function SquadCard({ squad, onLeave }: { squad: any; onLeave: (id: string) => void }) {
+function SquadCard({ squad }: { squad: any }) {
   const { toast } = useToast();
 
   return (
@@ -231,9 +293,14 @@ function SquadCard({ squad, onLeave }: { squad: any; onLeave: (id: string) => vo
               size="sm"
               variant="ghost"
               className="rounded-xl text-xs text-muted-foreground"
-              onClick={() => {
-                navigator.clipboard.writeText(squad.invite_code);
-                toast({ title: "Invite code copied!" });
+              aria-label="Copy invite code"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(squad.invite_code);
+                  toast({ title: "Invite code copied!" });
+                } catch {
+                  toast({ title: "Couldn't copy invite code", variant: "destructive" });
+                }
               }}
             >
               <Copy className="w-3 h-3" />
@@ -249,18 +316,38 @@ function SquadCard({ squad, onLeave }: { squad: any; onLeave: (id: string) => vo
   );
 }
 
-function SubmitActivityModal({ open, onClose, challenges, onSubmit }: { open: boolean; onClose: () => void; challenges: any[]; onSubmit: (challengeId: string, desc: string, value: number) => void }) {
+function SubmitActivityModal({ open, onClose, challenges, onSubmit }: { open: boolean; onClose: () => void; challenges: any[]; onSubmit: (challengeId: string, desc: string, value: number) => Promise<boolean> }) {
   const [challengeId, setChallengeId] = useState(challenges[0]?.id || "");
   const [desc, setDesc] = useState("");
   const [value, setValue] = useState("1");
+  const [busy, setBusy] = useState(false);
+
+  // Challenges load asynchronously; fall back to the first one if nothing valid is selected
+  useEffect(() => {
+    if (challenges.length > 0 && !challenges.some((c: any) => c.id === challengeId)) {
+      setChallengeId(challenges[0].id);
+    }
+  }, [challenges, challengeId]);
 
   if (!open) return null;
   const selectedChallenge = challenges.find((c: any) => c.id === challengeId);
 
+  const submit = async () => {
+    if (!desc.trim() || !challengeId || busy) return;
+    setBusy(true);
+    try {
+      const ok = await onSubmit(challengeId, desc, Number(value));
+      if (ok) {
+        setDesc(""); setValue("1");
+        onClose();
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-card border border-border rounded-3xl p-8 w-full max-w-md mx-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-2xl font-display font-bold text-foreground mb-6">Log Activity</h3>
+    <ModalShell onClose={onClose} maxWidth="max-w-md" title="Log Activity">
         <p className="text-xs text-muted-foreground mb-4">Your activity will be submitted for leader approval before counting toward progress.</p>
         
         <select value={challengeId} onChange={(e) => setChallengeId(e.target.value)} className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm mb-3">
@@ -273,24 +360,25 @@ function SubmitActivityModal({ open, onClose, challenges, onSubmit }: { open: bo
         </div>
         <div className="flex gap-3">
           <Button variant="outline" onClick={onClose} className="flex-1 rounded-xl">Cancel</Button>
-          <Button onClick={() => { if (desc.trim() && challengeId) { onSubmit(challengeId, desc, parseInt(value) || 1); onClose(); setDesc(""); setValue("1"); } }} className="flex-1 rounded-xl" disabled={!desc.trim()}>
+          <Button onClick={submit} className="flex-1 rounded-xl" disabled={!desc.trim() || busy}>
             Submit <Send className="w-4 h-4 ml-1" />
           </Button>
         </div>
-      </motion.div>
-    </div>
+    </ModalShell>
   );
 }
 
-function SquadDetailView({ squadId, onDelete, onBack }: { squadId: string; onDelete: (id: string) => void; onBack: () => void }) {
-  const { squad, members, challenges, contributions, activityLogs, isLeader, loading, createChallenge, submitActivity, reviewActivity } = useSquadDetail(squadId);
+function SquadDetailView({ squadId, onDelete, onBack }: { squadId: string; onDelete: (id: string) => Promise<boolean>; onBack: () => void }) {
+  const { squad, members, challenges, contributions, activityLogs, isLeader, loading, error, createChallenge, submitActivity, reviewActivity } = useSquadDetail(squadId);
   const [showChallenge, setShowChallenge] = useState(false);
   const [showSubmit, setShowSubmit] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
   if (loading) return <div className="text-center py-20 text-muted-foreground">Loading squad...</div>;
+  if (error) return <div role="alert" className="text-center py-20 text-destructive">Couldn't load squad: {error}</div>;
   if (!squad) return <div className="text-center py-20 text-muted-foreground">Squad not found</div>;
 
   return (
@@ -306,7 +394,14 @@ function SquadDetailView({ squadId, onDelete, onBack }: { squadId: string; onDel
         </div>
         <div className="flex items-center gap-4 mt-4">
           <button
-            onClick={() => { navigator.clipboard.writeText(squad.invite_code); toast({ title: "Invite code copied!" }); }}
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(squad.invite_code);
+                toast({ title: "Invite code copied!" });
+              } catch {
+                toast({ title: "Couldn't copy invite code", variant: "destructive" });
+              }
+            }}
             className="flex items-center gap-2 px-4 py-2 bg-secondary rounded-xl text-sm font-mono hover:bg-muted transition-colors"
           >
             <Hash className="w-4 h-4 text-primary" />
@@ -318,7 +413,20 @@ function SquadDetailView({ squadId, onDelete, onBack }: { squadId: string; onDel
             confirmDelete ? (
               <div className="flex items-center gap-2 ml-auto">
                 <span className="text-xs text-destructive font-medium">Delete this squad?</span>
-                <Button size="sm" variant="destructive" className="rounded-xl text-xs" onClick={() => { onDelete(squad.id); onBack(); }}>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="rounded-xl text-xs"
+                  disabled={deleting}
+                  onClick={async () => {
+                    setDeleting(true);
+                    try {
+                      if (await onDelete(squad.id)) onBack();
+                    } finally {
+                      setDeleting(false);
+                    }
+                  }}
+                >
                   Yes, delete
                 </Button>
                 <Button size="sm" variant="outline" className="rounded-xl text-xs" onClick={() => setConfirmDelete(false)}>
@@ -382,7 +490,7 @@ function SquadDetailView({ squadId, onDelete, onBack }: { squadId: string; onDel
           ) : (
             <div className="space-y-4">
               {challenges.map((c) => {
-                const pct = Math.min((c.live_progress / c.target_value) * 100, 100);
+                const pct = c.target_value > 0 ? Math.min((c.live_progress / c.target_value) * 100, 100) : 0;
                 const memberContribs = contributions[c.id] || [];
                 return (
                   <motion.div
@@ -416,7 +524,7 @@ function SquadDetailView({ squadId, onDelete, onBack }: { squadId: string; onDel
                       <div className="mt-4 pt-3 border-t border-border">
                         <p className="text-xs font-medium text-muted-foreground mb-2">Member Contributions</p>
                         <div className="space-y-1.5">
-                          {memberContribs
+                          {[...memberContribs]
                             .sort((a, b) => b.contribution - a.contribution)
                             .map((mc) => (
                             <div key={mc.user_id} className="flex items-center gap-2 text-xs">
@@ -458,10 +566,10 @@ function SquadDetailView({ squadId, onDelete, onBack }: { squadId: string; onDel
                     <p className="text-[10px] text-muted-foreground mt-0.5">for: {challenge?.title || "Unknown challenge"}</p>
                   </div>
                   <div className="flex gap-1.5">
-                    <Button size="sm" variant="ghost" className="rounded-lg h-8 w-8 p-0 text-primary hover:bg-primary/10" onClick={() => reviewActivity(log.id, true)}>
+                    <Button size="sm" variant="ghost" aria-label="Approve activity" className="rounded-lg h-8 w-8 p-0 text-primary hover:bg-primary/10" onClick={() => reviewActivity(log.id, true)}>
                       <CheckCircle className="w-5 h-5" />
                     </Button>
-                    <Button size="sm" variant="ghost" className="rounded-lg h-8 w-8 p-0 text-destructive hover:bg-destructive/10" onClick={() => reviewActivity(log.id, false)}>
+                    <Button size="sm" variant="ghost" aria-label="Reject activity" className="rounded-lg h-8 w-8 p-0 text-destructive hover:bg-destructive/10" onClick={() => reviewActivity(log.id, false)}>
                       <XCircle className="w-5 h-5" />
                     </Button>
                   </div>
@@ -505,16 +613,30 @@ function SquadDetailView({ squadId, onDelete, onBack }: { squadId: string; onDel
 
 export default function Squads() {
   const { id: routeSquadId } = useParams();
+  const navigate = useNavigate();
   const { user, isReady } = useAuth();
-  const { squads, loading, createSquad, joinByCode, leaveSquad, deleteSquad } = useSquads();
+  const { squads, loading, error, createSquad, joinByCode, deleteSquad } = useSquads();
   const [showCreate, setShowCreate] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
-  const [selectedSquad, setSelectedSquad] = useState<string | null>(routeSquadId || null);
+  const [joining, setJoining] = useState(false);
+  const selectedSquad = routeSquadId || null;
 
   if (isReady && !user) return <Navigate to="/auth" replace />;
 
-  const mySquads = squads.filter((s) => s.is_member);
-  const discoverSquads = squads.filter((s) => !s.is_member);
+  // useSquads only loads squads the user belongs to
+  const mySquads = squads;
+
+  const handleJoin = async () => {
+    const code = inviteCode.trim();
+    if (!code || joining) return;
+    setJoining(true);
+    try {
+      // Keep the code in the input on failure so it can be corrected
+      if (await joinByCode(code)) setInviteCode("");
+    } finally {
+      setJoining(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -523,12 +645,12 @@ export default function Squads() {
         {selectedSquad ? (
           <>
             <button
-              onClick={() => setSelectedSquad(null)}
+              onClick={() => navigate("/squads")}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors mb-6 flex items-center gap-1"
             >
               ← Back to Squads
             </button>
-            <SquadDetailView squadId={selectedSquad} onDelete={deleteSquad} onBack={() => setSelectedSquad(null)} />
+            <SquadDetailView squadId={selectedSquad} onDelete={deleteSquad} onBack={() => navigate("/squads")} />
           </>
         ) : (
           <>
@@ -553,13 +675,15 @@ export default function Squads() {
                     value={inviteCode}
                     onChange={(e) => setInviteCode(e.target.value)}
                     className="border-0 rounded-none bg-transparent text-sm w-40"
-                    onKeyDown={(e) => { if (e.key === "Enter" && inviteCode) { joinByCode(inviteCode); setInviteCode(""); } }}
+                    aria-label="Invite code"
+                    onKeyDown={(e) => { if (e.key === "Enter") handleJoin(); }}
                   />
                   <Button
                     size="sm"
                     variant="ghost"
                     className="rounded-none px-3"
-                    onClick={() => { if (inviteCode) { joinByCode(inviteCode); setInviteCode(""); } }}
+                    disabled={joining || !inviteCode.trim()}
+                    onClick={handleJoin}
                   >
                     Join
                   </Button>
@@ -572,48 +696,37 @@ export default function Squads() {
 
             {loading ? (
               <div className="text-center py-20 text-muted-foreground">Loading squads...</div>
+            ) : error ? (
+              <div role="alert" className="text-center py-20 text-destructive">Couldn't load squads: {error}</div>
             ) : (
               <>
                 {/* My Squads */}
-                {mySquads.length > 0 && (
+                {mySquads.length > 0 ? (
                   <section className="mb-12">
                     <h2 className="text-xl font-display font-bold text-foreground mb-5 flex items-center gap-2">
                       <Trophy className="w-5 h-5 text-accent" /> My Squads
                     </h2>
                     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
                       {mySquads.map((s) => (
-                        <div key={s.id} onClick={() => setSelectedSquad(s.id)} className="cursor-pointer">
-                          <SquadCard squad={s} onLeave={leaveSquad} />
-                        </div>
+                        <SquadCard key={s.id} squad={s} />
                       ))}
                     </div>
                   </section>
-                )}
-
-                {/* Discover */}
+                ) : (
                 <section>
                   <h2 className="text-xl font-display font-bold text-foreground mb-5 flex items-center gap-2">
-                    <Users className="w-5 h-5 text-primary" /> {mySquads.length > 0 ? "Discover Squads" : "All Squads"}
+                    <Users className="w-5 h-5 text-primary" /> My Squads
                   </h2>
-                  {squads.length === 0 ? (
                     <div className="bg-card border border-border rounded-3xl p-12 text-center">
                       <Users className="w-16 h-16 mx-auto text-muted-foreground/20 mb-4" />
                       <h3 className="text-xl font-display font-bold text-foreground mb-2">No squads yet</h3>
-                      <p className="text-muted-foreground mb-6">Be the first to create a squad and invite your friends!</p>
+                      <p className="text-muted-foreground mb-6">Create a squad or join one with an invite code!</p>
                       <Button onClick={() => setShowCreate(true)} className="rounded-xl">
                         <Plus className="w-4 h-4 mr-1" /> Create First Squad
                       </Button>
                     </div>
-                  ) : discoverSquads.length > 0 ? (
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                      {discoverSquads.map((s) => (
-                        <SquadCard key={s.id} squad={s} onLeave={leaveSquad} />
-                      ))}
-                    </div>
-                  ) : mySquads.length > 0 ? (
-                    <p className="text-muted-foreground text-center py-8">You've joined all available squads!</p>
-                  ) : null}
                 </section>
+                )}
               </>
             )}
           </>

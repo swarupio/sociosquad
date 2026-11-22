@@ -23,24 +23,21 @@ interface Props {
   event: CalEvent | null;
   open: boolean;
   onClose: () => void;
-  onDelete: (id: string) => void;
   onToggleRegistration: (id: string) => void;
   onChangeCategory?: (id: string, category: string) => void;
   availableCategories?: string[];
 }
 
-const EventDetailModal = ({ event, open, onClose, onDelete, onToggleRegistration, onChangeCategory, availableCategories = [] }: Props) => {
+const EventDetailModal = ({ event, open, onClose, onToggleRegistration, onChangeCategory, availableCategories = [] }: Props) => {
   const [editingCategory, setEditingCategory] = useState(false);
 
   const start = event ? new Date(event.startTime) : new Date();
   const end = event ? new Date(event.endTime) : new Date();
   const dateStr = event ? start.toLocaleDateString("default", { weekday: "long", month: "long", day: "numeric", year: "numeric" }) : "";
-  const isOppEvent = event ? event.id.startsWith("opp-") : false;
+  // NGO and showcase events are not user-owned, so their category is not editable
+  const isOppEvent = event ? event.id.startsWith("opp-") || event.id.startsWith("static-") : false;
 
   if (!event) return null;
-
-
-
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) { onClose(); setEditingCategory(false); } }}>
@@ -93,6 +90,7 @@ const EventDetailModal = ({ event, open, onClose, onDelete, onToggleRegistration
                 {event.category}
                 {!isOppEvent && onChangeCategory && (
                   <button
+                    aria-label="Change category"
                     onClick={() => setEditingCategory(true)}
                     className="p-0.5 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
                   >

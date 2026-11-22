@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { addDays, addMonths, subDays, subMonths } from "date-fns";
 import EventDetailModal from "@/components/schedule/EventDetailModal";
 import ScheduleSidebar from "@/components/schedule/ScheduleSidebar";
 import type { CalEvent, CalendarCategory, CalendarToggle } from "@/components/schedule/types";
@@ -22,44 +23,67 @@ const iconMap: Record<string, React.ReactNode> = {
   Bus: <Bus className="w-3.5 h-3.5" />,
 };
 
+const CATEGORY_COLORS: Record<string, string> = {
+  "Personal Calendar": "bg-sky-400",
+  "SocioSquad Events": "bg-amber-400",
+  "NSS Camps": "bg-emerald-400",
+  "Urgent Relief": "bg-rose-400",
+  "Environment": "bg-green-400",
+  "Education": "bg-indigo-400",
+  "Healthcare": "bg-pink-400",
+  "Community": "bg-orange-400",
+};
+const FALLBACK_COLORS = ["bg-violet-400", "bg-cyan-400", "bg-orange-400", "bg-fuchsia-400", "bg-lime-400"];
+
+// Calendar grid shows 08:00 to 20:00 (HOURS 8..19, 80px per hour)
+const GRID_START_MIN = 8 * 60;
+const GRID_END_MIN = 20 * 60;
+const MIN_EVENT_MIN = 30;
+
+const clamp = (n: number, lo: number, hi: number) => Math.min(Math.max(n, lo), hi);
+
+const onActivateKey = (fn: () => void) => (e: React.KeyboardEvent) => {
+  if (e.target !== e.currentTarget) return;
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    fn();
+  }
+};
+
 const Schedule = () => {
   const navigate = useNavigate();
-  const now = new Date();
-  const [currentTime, setCurrentTime] = useState(now);
+  const [currentTime, setCurrentTime] = useState(() => new Date());
   const [view, setView] = useState<"Week" | "Month">("Week");
   const [activeCategories, setActiveCategories] = useState<Record<string, boolean>>({});
+  const [searchQuery, setSearchQuery] = useState("");
 
   const {
-    loading, rawEvents, tasks,
-    toggleTask, addTask, editTask, deleteTask, deleteEvent, toggleRegistration, changeCategory,
+    loading, error, rawEvents, tasks,
+    toggleTask, addTask, editTask, deleteTask, toggleRegistration, changeCategory,
   } = useScheduleData();
 
-  const events: CalEvent[] = useMemo(
-    () => rawEvents.map((e) => ({ ...e, icon: iconMap[e.iconName], registered: e.registered })),
-    [rawEvents]
-  );
+  const events: CalEvent[] = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return rawEvents
+      .filter((e) =>
+        !q ||
+        e.title.toLowerCase().includes(q) ||
+        (e.description || "").toLowerCase().includes(q) ||
+        e.category.toLowerCase().includes(q)
+      )
+      .map((e) => ({ ...e, icon: iconMap[e.iconName], registered: e.registered }));
+  }, [rawEvents, searchQuery]);
 
-  // Derive calendar toggles dynamically from events
-  const CATEGORY_COLORS: Record<string, string> = {
-    "Personal Calendar": "bg-sky-400",
-    "SocioSquad Events": "bg-amber-400",
-    "NSS Camps": "bg-emerald-400",
-    "Urgent Relief": "bg-rose-400",
-    "Environment": "bg-green-400",
-    "Education": "bg-indigo-400",
-    "Healthcare": "bg-pink-400",
-    "Community": "bg-orange-400",
-  };
-  const FALLBACK_COLORS = ["bg-violet-400", "bg-cyan-400", "bg-orange-400", "bg-fuchsia-400", "bg-lime-400"];
+  // Calendar toggles come from all events (not the search-filtered subset)
+  const allCategories = useMemo(() => [...new Set(rawEvents.map((e) => e.category))], [rawEvents]);
 
   const dynamicCalendars: CalendarToggle[] = useMemo(() => {
-    const categories = [...new Set(events.map((e) => e.category))];
     let fallbackIdx = 0;
-    return categories.map((cat) => ({
+    return allCategories.map((cat) => ({
       label: cat,
       color: CATEGORY_COLORS[cat] || FALLBACK_COLORS[fallbackIdx++ % FALLBACK_COLORS.length],
     }));
-  }, [events]);
+  }, [allCategories]);
 
   // Auto-enable new categories
   useEffect(() => {
@@ -77,8 +101,11 @@ const Schedule = () => {
 
   // Always derive selectedEvent from live events so it stays in sync
   const selectedEvent = useMemo(
-    () => (selectedEventId ? events.find((e) => e.id === selectedEventId) ?? null : null),
-    [selectedEventId, events]
+    () => {
+      const raw = selectedEventId ? rawEvents.find((e) => e.id === selectedEventId) : undefined;
+      return raw ? ({ ...raw, icon: iconMap[raw.iconName], registered: raw.registered } as CalEvent) : null;
+    },
+    [selectedEventId, rawEvents]
   );
   const [activeDate, setActiveDate] = useState(new Date());
 
@@ -128,27 +155,11 @@ const Schedule = () => {
   }, []);
 
   const prevPeriod = useCallback(() => {
-    setActiveDate((prev) => {
-      const d = new Date(prev);
-      if (view === "Month") {
-        d.setMonth(d.getMonth() - 1);
-      } else {
-        d.setDate(d.getDate() - 7);
-      }
-      return d;
-    });
+    setActiveDate((prev) => (view === "Month" ? subMonths(prev, 1) : subDays(prev, 7)));
   }, [view]);
 
   const nextPeriod = useCallback(() => {
-    setActiveDate((prev) => {
-      const d = new Date(prev);
-      if (view === "Month") {
-        d.setMonth(d.getMonth() + 1);
-      } else {
-        d.setDate(d.getDate() + 7);
-      }
-      return d;
-    });
+    setActiveDate((prev) => (view === "Month" ? addMonths(prev, 1) : addDays(prev, 7)));
   }, [view]);
 
   const openEventDetail = useCallback((ev: CalEvent) => {
@@ -160,8 +171,8 @@ const Schedule = () => {
     <div className="flex h-screen w-full overflow-hidden bg-background">
       {/* Icon rail */}
       <nav className="w-[56px] shrink-0 flex flex-col items-center py-6 gap-6 border-r border-border bg-card">
-        <button onClick={() => navigate("/")} className="p-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"><Home className="w-5 h-5" /></button>
-        <button className="p-2.5 rounded-xl bg-navy/10 text-navy transition-colors"><CalendarDays className="w-5 h-5" /></button>
+        <button aria-label="Home" onClick={() => navigate("/")} className="p-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"><Home className="w-5 h-5" /></button>
+        <button aria-label="Schedule" aria-current="page" className="p-2.5 rounded-xl bg-navy/10 text-navy transition-colors"><CalendarDays className="w-5 h-5" /></button>
       </nav>
 
       {/* Sidebar */}
@@ -176,6 +187,8 @@ const Schedule = () => {
         onAddTask={addTask}
         onEditTask={editTask}
         onDeleteTask={deleteTask}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
       />
 
       {/* Main calendar */}
@@ -183,13 +196,13 @@ const Schedule = () => {
         <header className="shrink-0 flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <button onClick={prevPeriod} className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
+              <button aria-label="Previous period" onClick={prevPeriod} className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <h1 className="text-xl font-bold text-foreground">
                 {activeDate.toLocaleString("default", { month: "long" })} {activeDate.getFullYear()}
               </h1>
-              <button onClick={nextPeriod} className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
+              <button aria-label="Next period" onClick={nextPeriod} className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
@@ -208,6 +221,11 @@ const Schedule = () => {
           </div>
         </header>
 
+        {error && !loading && (
+          <div role="alert" className="shrink-0 px-6 py-2 text-xs font-medium text-destructive bg-destructive/10 border-b border-border">
+            Couldn't load your schedule: {error}
+          </div>
+        )}
         {loading ? (
           <div className="flex-1 flex items-center justify-center">
             <Loader2 className="w-8 h-8 text-navy animate-spin" />
@@ -253,6 +271,12 @@ const Schedule = () => {
                     return (
                       <div
                         key={i}
+                        {...(day ? {
+                          role: "button" as const,
+                          tabIndex: 0,
+                          "aria-label": new Date(year, month, day).toLocaleDateString("default", { weekday: "long", month: "long", day: "numeric" }),
+                          onKeyDown: onActivateKey(() => setActiveDate(new Date(year, month, day))),
+                        } : {})}
                         onClick={() => day && setActiveDate(new Date(year, month, day))}
                         className={`bg-card min-h-[100px] p-1.5 cursor-pointer transition-colors hover:bg-secondary/50 ${day === null ? "opacity-30" : ""}`}
                       >
@@ -269,6 +293,12 @@ const Schedule = () => {
                               {dayEvents.slice(0, 3).map((ev) => (
                                 <div
                                   key={ev.id}
+                                  role="button"
+                                  tabIndex={0}
+                                  onKeyDown={(e) => {
+                                    if (e.target !== e.currentTarget) return;
+                                    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); openEventDetail(ev); }
+                                  }}
                                   onClick={(e) => { e.stopPropagation(); openEventDetail(ev); }}
                                   className={`${ev.bg} ${ev.color} text-[10px] font-medium px-1.5 py-0.5 rounded truncate cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-1`}
                                 >
@@ -326,8 +356,12 @@ const Schedule = () => {
                       const evStart = new Date(ev.startTime);
                       const evEnd = new Date(ev.endTime);
                       const dayIndex = (evStart.getDay() + 6) % 7;
-                      const startMin = evStart.getHours() * 60 + evStart.getMinutes();
-                      const endMin = evEnd.getHours() * 60 + evEnd.getMinutes();
+                      const rawStartMin = evStart.getHours() * 60 + evStart.getMinutes();
+                      const sameDay = evEnd.toDateString() === evStart.toDateString();
+                      const rawEndMin = sameDay && evEnd > evStart ? evEnd.getHours() * 60 + evEnd.getMinutes() : GRID_END_MIN;
+                      // Clamp into the visible 08:00-20:00 grid with a minimum height
+                      const startMin = clamp(rawStartMin, GRID_START_MIN, GRID_END_MIN - MIN_EVENT_MIN);
+                      const endMin = clamp(rawEndMin, startMin + MIN_EVENT_MIN, GRID_END_MIN);
                       return { ev, dayIndex, startMin, endMin };
                     });
 
@@ -372,16 +406,12 @@ const Schedule = () => {
                       });
                     });
 
-                    return layoutItems.map(({ ev, dayIndex }) => {
+                    return layoutItems.map(({ ev, dayIndex, startMin, endMin }) => {
                       const evStart = new Date(ev.startTime);
                       const evEnd = new Date(ev.endTime);
-                      const startHour = evStart.getHours();
-                      const startMinute = evStart.getMinutes();
-                      const endHour = evEnd.getHours();
-                      const endMinute = evEnd.getMinutes();
 
-                      const totalMinStart = (startHour - 8) * 80 + (startMinute / 60) * 80;
-                      const totalMinEnd = (endHour - 8) * 80 + (endMinute / 60) * 80;
+                      const totalMinStart = ((startMin - GRID_START_MIN) / 60) * 80;
+                      const totalMinEnd = ((endMin - GRID_START_MIN) / 60) * 80;
                       const height = totalMinEnd - totalMinStart;
                       const top = totalMinStart + 64;
 
@@ -395,6 +425,10 @@ const Schedule = () => {
                         <motion.div key={ev.id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ duration: 0.25 }}
                           className={`absolute pointer-events-auto cursor-pointer rounded-lg ${ev.bg} border-l-[3px] ${ev.border} px-2 py-1.5 transition-all duration-200 hover:scale-[1.02] hover:shadow-md ${ev.registered ? "ring-2 ring-emerald-400/50 ring-offset-1 ring-offset-background" : ""}`}
                           style={{ top, left, width, height, paddingRight: 4 }}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`${ev.title}, ${formatTime(evStart)} to ${formatTime(evEnd)}`}
+                          onKeyDown={onActivateKey(() => openEventDetail(ev))}
                           onClick={() => openEventDetail(ev)}
                         >
                           <div className={`flex items-center gap-1 ${ev.color} mb-0.5`}>
@@ -441,7 +475,6 @@ const Schedule = () => {
         event={selectedEvent}
         open={modalOpen}
         onClose={() => { setModalOpen(false); setSelectedEventId(null); }}
-        onDelete={deleteEvent}
         onToggleRegistration={toggleRegistration}
         onChangeCategory={changeCategory}
         availableCategories={dynamicCalendars.map((c) => c.label)}

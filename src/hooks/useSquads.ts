@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
@@ -52,76 +52,149 @@ export interface SquadChallenge {
   ends_at: string | null;
 }
 
+const errText = (e: unknown): string =>
+  e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : "Something went wrong";
+
+const isMissingFunction = (e: { code?: string; message?: string } | null | undefined) =>
+  !!e && (e.code === "PGRST202" || (e.message ?? "").includes("Could not find the function"));
+
 export function useSquads() {
-  const { user } = useAuth();
+  const { user, isReady } = useAuth();
   const { toast } = useToast();
   const [squads, setSquads] = useState<Squad[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const requestRef = useRef(0);
 
   const fetchSquads = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-    
-    const { data: allSquads, error } = await supabase
-      .from("squads")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("Error fetching squads:", error);
-      setLoading(false);
+    const reqId = ++requestRef.current;
+    if (!user) {
+      setSquads([]);
+      setError(null);
+      if (isReady) setLoading(false);
       return;
     }
+    setLoading(true);
+    setError(null);
 
-    const { data: members } = await supabase
-      .from("squad_members")
-      .select("squad_id, user_id");
+    try {
+      // Only the squads this user belongs to
+      const { data: mine, error: mineErr } = await supabase
+        .from("squad_members")
+        .select("squad_id")
+        .eq("user_id", user.id);
+      if (mineErr) throw mineErr;
+      const squadIds = [...new Set((mine || []).map((m: any) => m.squad_id as string))];
 
-    const enriched = (allSquads || []).map((s: any) => {
-      const squadMembers = (members || []).filter((m: any) => m.squad_id === s.id);
-      return {
-        ...s,
-        member_count: squadMembers.length,
-        is_member: squadMembers.some((m: any) => m.user_id === user.id),
-      };
-    });
+      if (squadIds.length === 0) {
+        if (reqId !== requestRef.current) return;
+        setSquads([]);
+        return;
+      }
 
-    setSquads(enriched);
-    setLoading(false);
-  }, [user]);
+      const [squadsRes, countsRes] = await Promise.all([
+        supabase.from("squads").select("*").in("id", squadIds).order("created_at", { ascending: false }),
+        supabase.from("squad_members").select("squad_id").in("squad_id", squadIds),
+      ]);
+      if (squadsRes.error) throw squadsRes.error;
+      if (countsRes.error) throw countsRes.error;
 
-  useEffect(() => { fetchSquads(); }, [fetchSquads]);
+      const counts: Record<string, number> = {};
+      (countsRes.data || []).forEach((m: any) => { counts[m.squad_id] = (counts[m.squad_id] || 0) + 1; });
 
-  const createSquad = async (name: string, description: string, emoji: string) => {
-    if (!user) return;
-    const { data, error } = await supabase
+      if (reqId !== requestRef.current) return;
+      setSquads(
+        (squadsRes.data || []).map((s: any) => ({
+          ...s,
+          member_count: counts[s.id] || 1,
+          is_member: true,
+        }))
+      );
+    } catch (e) {
+      if (reqId !== requestRef.current) return;
+      console.error("Error fetching squads:", e);
+      setError(errText(e));
+    } finally {
+      if (reqId === requestRef.current) setLoading(false);
+    }
+  }, [user, isReady]);
+
+  useEffect(() => {
+    fetchSquads();
+    return () => { requestRef.current++; };
+  }, [fetchSquads]);
+
+  const createSquad = async (name: string, description: string, emoji: string): Promise<boolean> => {
+    if (!user) return false;
+    const { data, error: insErr } = await supabase
       .from("squads")
-      .insert({ name, description, avatar_emoji: emoji, created_by: user.id })
+      .insert({ name: name.trim(), description: description.trim(), avatar_emoji: emoji, created_by: user.id })
       .select()
       .single();
 
-    if (error) {
-      toast({ title: "Error creating squad", description: error.message, variant: "destructive" });
-      return;
+    if (insErr || !data) {
+      toast({ title: "Error creating squad", description: insErr ? insErr.message : undefined, variant: "destructive" });
+      return false;
     }
 
     // Auto-join as leader
-    await supabase.from("squad_members").insert({ squad_id: data.id, user_id: user.id, role: "leader" });
+    const { error: leaderErr } = await supabase
+      .from("squad_members")
+      .insert({ squad_id: data.id, user_id: user.id, role: "leader" });
+    if (leaderErr) {
+      // Don't leave an orphan squad with no leader behind
+      await supabase.from("squads").delete().eq("id", data.id).eq("created_by", user.id);
+      toast({ title: "Error creating squad", description: leaderErr.message, variant: "destructive" });
+      return false;
+    }
+
     toast({ title: "Squad created! 🎉", description: `Share code: ${data.invite_code}` });
-    fetchSquads();
+    await fetchSquads();
+    return true;
   };
 
-  const joinByCode = async (code: string) => {
-    if (!user) return;
-    const { data: squad, error } = await supabase
+  const joinByCode = async (code: string): Promise<boolean> => {
+    if (!user) return false;
+    const cleaned = code.trim().toLowerCase();
+    if (!cleaned) return false;
+
+    const reportJoinError = (e: { message?: string; code?: string }) => {
+      const msg = (e.message ?? "").toLowerCase();
+      if (e.code === "23505" || msg.includes("duplicate") || msg.includes("already")) {
+        toast({ title: "Already a member!", variant: "destructive" });
+      } else if (msg.includes("invalid") || msg.includes("not found")) {
+        toast({ title: "Invalid invite code", variant: "destructive" });
+      } else {
+        toast({ title: "Error joining", description: e.message, variant: "destructive" });
+      }
+    };
+
+    // Preferred: server-side RPC
+    const { error: rpcErr } = await (supabase as any).rpc("join_squad_by_code", { p_code: cleaned });
+    if (!rpcErr) {
+      toast({ title: "Joined squad! 🚀" });
+      await fetchSquads();
+      return true;
+    }
+    if (!isMissingFunction(rpcErr)) {
+      reportJoinError(rpcErr);
+      return false;
+    }
+
+    // Fallback for databases without the RPC
+    const { data: squad, error: lookupErr } = await supabase
       .from("squads")
       .select("id")
-      .eq("invite_code", code.trim().toLowerCase())
-      .single();
+      .eq("invite_code", cleaned)
+      .maybeSingle();
 
-    if (error || !squad) {
+    if (lookupErr) {
+      toast({ title: "Error joining", description: lookupErr.message, variant: "destructive" });
+      return false;
+    }
+    if (!squad) {
       toast({ title: "Invalid invite code", variant: "destructive" });
-      return;
+      return false;
     }
 
     const { error: joinErr } = await supabase
@@ -129,33 +202,49 @@ export function useSquads() {
       .insert({ squad_id: squad.id, user_id: user.id });
 
     if (joinErr) {
-      toast({ title: joinErr.message.includes("duplicate") ? "Already a member!" : "Error joining", variant: "destructive" });
-      return;
+      reportJoinError(joinErr);
+      return false;
     }
 
     toast({ title: "Joined squad! 🚀" });
-    fetchSquads();
+    await fetchSquads();
+    return true;
   };
 
-  const leaveSquad = async (squadId: string) => {
-    if (!user) return;
-    await supabase.from("squad_members").delete().eq("squad_id", squadId).eq("user_id", user.id);
+  const leaveSquad = async (squadId: string): Promise<boolean> => {
+    if (!user) return false;
+    const { error: delErr } = await supabase.from("squad_members").delete().eq("squad_id", squadId).eq("user_id", user.id);
+    if (delErr) {
+      toast({ title: "Error leaving squad", description: delErr.message, variant: "destructive" });
+      return false;
+    }
     toast({ title: "Left squad" });
-    fetchSquads();
+    await fetchSquads();
+    return true;
   };
 
-  const deleteSquad = async (squadId: string) => {
-    if (!user) return;
-    const { error } = await supabase.from("squads").delete().eq("id", squadId).eq("created_by", user.id);
-    if (error) {
-      toast({ title: "Only the creator can delete a squad", variant: "destructive" });
-      return;
+  const deleteSquad = async (squadId: string): Promise<boolean> => {
+    if (!user) return false;
+    const { data, error: delErr } = await supabase
+      .from("squads")
+      .delete()
+      .eq("id", squadId)
+      .eq("created_by", user.id)
+      .select("id");
+    if (delErr || !data || data.length === 0) {
+      toast({
+        title: "Couldn't delete squad",
+        description: delErr ? delErr.message : "Only the creator can delete a squad",
+        variant: "destructive",
+      });
+      return false;
     }
     toast({ title: "Squad deleted" });
-    fetchSquads();
+    await fetchSquads();
+    return true;
   };
 
-  return { squads, loading, createSquad, joinByCode, leaveSquad, deleteSquad, refetch: fetchSquads };
+  return { squads, loading, error, createSquad, joinByCode, leaveSquad, deleteSquad, refetch: fetchSquads };
 }
 
 export interface MemberContribution {
@@ -165,7 +254,7 @@ export interface MemberContribution {
 }
 
 export function useSquadDetail(squadId: string | undefined) {
-  const { user } = useAuth();
+  const { user, isReady } = useAuth();
   const { toast } = useToast();
   const [members, setMembers] = useState<SquadMember[]>([]);
   const [challenges, setChallenges] = useState<(SquadChallenge & { live_progress: number })[]>([]);
@@ -173,122 +262,140 @@ export function useSquadDetail(squadId: string | undefined) {
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [squad, setSquad] = useState<Squad | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isLeader, setIsLeader] = useState(false);
+  const requestRef = useRef(0);
 
   const fetchDetail = useCallback(async () => {
-    if (!squadId || !user) return;
-    setLoading(true);
-
-    const [squadRes, membersRes, challengesRes] = await Promise.all([
-      supabase.from("squads").select("*").eq("id", squadId).single(),
-      supabase.from("squad_members").select("*").eq("squad_id", squadId).order("joined_at"),
-      supabase.from("squad_challenges").select("*").eq("squad_id", squadId).order("created_at", { ascending: false }),
-    ]);
-
-    if (squadRes.data) setSquad(squadRes.data as any);
-    
-    let profilesMap: Record<string, { full_name: string | null; avatar_url: string | null }> = {};
-    if (membersRes.data) {
-      const userIds = membersRes.data.map((m: any) => m.user_id);
-      const { data: profiles } = await supabase.from("profiles").select("user_id, full_name, avatar_url").in("user_id", userIds);
-      
-      (profiles || []).forEach((p: any) => { profilesMap[p.user_id] = p; });
-      
-      const enriched = membersRes.data.map((m: any) => ({
-        ...m,
-        profile: profilesMap[m.user_id] || null,
-      }));
-      setMembers(enriched);
-
-      // Check if current user is leader
-      setIsLeader(enriched.some((m: any) => m.user_id === user.id && m.role === "leader"));
-    }
-
-    // Fetch activity logs
-    const { data: logs } = await supabase
-      .from("squad_activity_logs")
-      .select("*")
-      .eq("squad_id", squadId)
-      .order("created_at", { ascending: false });
-
-    setActivityLogs(((logs as any[]) || []).map((l: any) => ({
-      ...l,
-      profile: profilesMap[l.user_id] || null,
-    })));
-
-    // Fetch auto-calculated progress for each challenge
-    if (challengesRes.data && challengesRes.data.length > 0) {
-      const challengesWithProgress = await Promise.all(
-        challengesRes.data.map(async (c: any) => {
-          const { data: progressData } = await supabase.rpc("get_challenge_progress", { challenge_id: c.id });
-          return { ...c, live_progress: (progressData as number) || 0 };
-        })
-      );
-      setChallenges(challengesWithProgress);
-
-      const contribs: Record<string, MemberContribution[]> = {};
-      await Promise.all(
-        challengesRes.data.map(async (c: any) => {
-          const { data } = await supabase.rpc("get_member_contributions", {
-            p_squad_id: squadId,
-            p_unit: c.unit,
-            p_since: c.created_at,
-          });
-          contribs[c.id] = ((data as any[]) || []).map((d: any) => ({
-            ...d,
-            profile: profilesMap[d.user_id] || null,
-          }));
-        })
-      );
-      setContributions(contribs);
-    } else {
-      setChallenges([]);
-    }
-
-    setLoading(false);
-  }, [squadId, user]);
-
-  useEffect(() => { fetchDetail(); }, [fetchDetail]);
-
-  const createChallenge = async (title: string, description: string, targetValue: number, unit: string) => {
-    if (!user || !squadId) return;
-    const { error } = await supabase.from("squad_challenges").insert({
-      squad_id: squadId, title, description, target_value: targetValue, unit, created_by: user.id,
-    });
-    if (error) {
-      toast({ title: "Error creating challenge", variant: "destructive" });
+    const reqId = ++requestRef.current;
+    if (!squadId || !user) {
+      setSquad(null);
+      if (isReady || !squadId) setLoading(false);
       return;
+    }
+    setLoading(true);
+    setError(null);
+
+    try {
+      const [squadRes, membersRes, challengesRes, logsRes] = await Promise.all([
+        supabase.from("squads").select("*").eq("id", squadId).maybeSingle(),
+        supabase.from("squad_members").select("*").eq("squad_id", squadId).order("joined_at"),
+        supabase.from("squad_challenges").select("*").eq("squad_id", squadId).order("created_at", { ascending: false }),
+        supabase.from("squad_activity_logs").select("*").eq("squad_id", squadId).order("created_at", { ascending: false }),
+      ]);
+      if (squadRes.error) throw squadRes.error;
+      if (membersRes.error) throw membersRes.error;
+      if (challengesRes.error) throw challengesRes.error;
+      if (logsRes.error) throw logsRes.error;
+
+      const memberRows: any[] = membersRes.data || [];
+      const profilesMap: Record<string, { full_name: string | null; avatar_url: string | null }> = {};
+      const userIds = [...new Set(memberRows.map((m) => m.user_id as string))];
+      if (userIds.length > 0) {
+        const { data: profiles, error: profErr } = await supabase
+          .from("profiles")
+          .select("user_id, full_name, avatar_url")
+          .in("user_id", userIds);
+        if (profErr) console.error("Error fetching profiles:", profErr);
+        (profiles || []).forEach((p: any) => { profilesMap[p.user_id] = p; });
+      }
+
+      const enrichedMembers = memberRows.map((m) => ({ ...m, profile: profilesMap[m.user_id] || undefined }));
+      const enrichedLogs = ((logsRes.data as any[]) || []).map((l) => ({ ...l, profile: profilesMap[l.user_id] || undefined }));
+
+      const challengeRows: any[] = challengesRes.data || [];
+      const contribs: Record<string, MemberContribution[]> = {};
+      const withProgress = await Promise.all(
+        challengeRows.map(async (c) => {
+          const [progressRes, contribRes] = await Promise.all([
+            supabase.rpc("get_challenge_progress", { challenge_id: c.id }),
+            supabase.rpc("get_member_contributions", {
+              p_squad_id: squadId,
+              p_unit: c.unit,
+              p_since: c.created_at,
+            }),
+          ]);
+          if (progressRes.error) console.error("Error fetching challenge progress:", progressRes.error);
+          if (contribRes.error) console.error("Error fetching contributions:", contribRes.error);
+          contribs[c.id] = ((contribRes.data as any[]) || []).map((d: any) => ({
+            ...d,
+            profile: profilesMap[d.user_id] || undefined,
+          }));
+          return { ...c, live_progress: Number(progressRes.data) || 0 };
+        })
+      );
+
+      if (reqId !== requestRef.current) return;
+      setSquad((squadRes.data as any) ?? null);
+      setMembers(enrichedMembers);
+      setIsLeader(enrichedMembers.some((m: any) => m.user_id === user.id && m.role === "leader"));
+      setActivityLogs(enrichedLogs);
+      setChallenges(withProgress);
+      setContributions(contribs);
+    } catch (e) {
+      if (reqId !== requestRef.current) return;
+      console.error("Error fetching squad detail:", e);
+      setError(errText(e));
+    } finally {
+      if (reqId === requestRef.current) setLoading(false);
+    }
+  }, [squadId, user, isReady]);
+
+  useEffect(() => {
+    fetchDetail();
+    return () => { requestRef.current++; };
+  }, [fetchDetail]);
+
+  const createChallenge = async (title: string, description: string, targetValue: number, unit: string): Promise<boolean> => {
+    if (!user || !squadId) return false;
+    if (!Number.isFinite(targetValue) || targetValue <= 0) {
+      toast({ title: "Target must be greater than 0", variant: "destructive" });
+      return false;
+    }
+    const { error: insErr } = await supabase.from("squad_challenges").insert({
+      squad_id: squadId, title: title.trim(), description, target_value: targetValue, unit, created_by: user.id,
+    });
+    if (insErr) {
+      toast({ title: "Error creating challenge", description: insErr.message, variant: "destructive" });
+      return false;
     }
     toast({ title: "Challenge created! 💪" });
-    fetchDetail();
+    await fetchDetail();
+    return true;
   };
 
-  const submitActivity = async (challengeId: string, description: string, value: number) => {
-    if (!user || !squadId) return;
-    const { error } = await supabase.from("squad_activity_logs").insert({
-      squad_id: squadId, challenge_id: challengeId, user_id: user.id, description, value,
+  const submitActivity = async (challengeId: string, description: string, value: number): Promise<boolean> => {
+    if (!user || !squadId) return false;
+    if (!Number.isFinite(value) || value <= 0) {
+      toast({ title: "Amount must be greater than 0", variant: "destructive" });
+      return false;
+    }
+    const { error: insErr } = await supabase.from("squad_activity_logs").insert({
+      squad_id: squadId, challenge_id: challengeId, user_id: user.id, description: description.trim(), value,
     });
-    if (error) {
-      toast({ title: "Error submitting activity", variant: "destructive" });
-      return;
+    if (insErr) {
+      toast({ title: "Error submitting activity", description: insErr.message, variant: "destructive" });
+      return false;
     }
     toast({ title: "Activity submitted for approval ✅" });
-    fetchDetail();
+    await fetchDetail();
+    return true;
   };
 
-  const reviewActivity = async (logId: string, approve: boolean) => {
-    if (!user) return;
-    const { error } = await supabase
+  const reviewActivity = async (logId: string, approve: boolean): Promise<boolean> => {
+    if (!user) return false;
+    const { error: upErr } = await supabase
       .from("squad_activity_logs")
       .update({ status: approve ? "approved" : "rejected", reviewed_by: user.id, reviewed_at: new Date().toISOString() })
       .eq("id", logId);
-    if (error) {
-      toast({ title: "Error reviewing activity", variant: "destructive" });
-      return;
+    if (upErr) {
+      toast({ title: "Error reviewing activity", description: upErr.message, variant: "destructive" });
+      return false;
     }
     toast({ title: approve ? "Activity approved! ✅" : "Activity rejected" });
-    fetchDetail();
+    await fetchDetail();
+    return true;
   };
 
-  return { squad, members, challenges, contributions, activityLogs, isLeader, loading, createChallenge, submitActivity, reviewActivity, refetch: fetchDetail };
+  return { squad, members, challenges, contributions, activityLogs, isLeader, loading, error, createChallenge, submitActivity, reviewActivity, refetch: fetchDetail };
 }

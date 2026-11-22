@@ -6,6 +6,9 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: "jsdom",
+    pool: "forks",
+    poolOptions: { forks: { singleFork: true } },
+    testTimeout: 15000,
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],

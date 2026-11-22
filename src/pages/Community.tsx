@@ -82,7 +82,7 @@ const Community = () => {
          );
        })
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "community_posts" }, (payload) => {
-        queryClient.setQueryData(['communityPosts'], (oldPosts = []) =>
+        queryClient.setQueryData<Post[]>(['communityPosts'], (oldPosts = []) =>
           oldPosts.filter((p) => p.id !== (payload.old as any).id)
         );
       })
@@ -128,7 +128,7 @@ const Community = () => {
       toast({ title: "Error", description: "Failed to update post.", variant: "destructive" });
     } else {
       // Update the query data to reflect the change
-      queryClient.setQueryData(['communityPosts'], (oldPosts = []) =>
+      queryClient.setQueryData<Post[]>(['communityPosts'], (oldPosts = []) =>
         oldPosts.map((p) => p.id === postId ? { ...p, content: parsed.data } : p)
       );
       setEditingPostId(null);
@@ -146,7 +146,7 @@ const Community = () => {
       toast({ title: "Error", description: "Failed to delete post.", variant: "destructive" });
     } else {
       // Remove the post from the query data
-      queryClient.setQueryData(['communityPosts'], (oldPosts = []) =>
+      queryClient.setQueryData<Post[]>(['communityPosts'], (oldPosts = []) =>
         oldPosts.filter((p) => p.id !== postId)
       );
     }

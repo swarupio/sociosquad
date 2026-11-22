@@ -16,7 +16,9 @@ import {
   Building2, 
   CheckCircle, 
   Loader2, 
-  Eye 
+  Eye,
+  Bookmark,
+  Navigation
 } from "lucide-react";
 
 import Navbar from "@/components/Navbar";
@@ -35,6 +37,10 @@ import {
 } from "@/lib/staticRegistrationFallback";
 import AsyncStateCard from "@/components/AsyncStateCard";
 import VolunteeringMap from "@/components/VolunteeringMap";
+import { useSavedOpportunities } from "@/hooks/useSavedOpportunities";
+import { formatDistance, haversineKm, isValidCoordinate, type LatLng } from "@/lib/geo";
+
+const PAGE_SIZE = 12;
 
 const categories = ["All", "Environment", "Education", "Healthcare", "General", "Community", "Health"];
 const timeFilters = [
@@ -61,6 +67,38 @@ const Opportunities = () => {
   const [staticRegistrationLoading, setStaticRegistrationLoading] = useState(false);
   const [staticRegistrationError, setStaticRegistrationError] = useState<string | null>(null);
   const [activeActionId, setActiveActionId] = useState<string | null>(null);
+  const { saved, isSaved, toggle: toggleSaved } = useSavedOpportunities();
+  const [savedOnly, setSavedOnly] = useState(false);
+  const [userLocation, setUserLocation] = useState<LatLng | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  const handleNearMe = () => {
+    if (userLocation) {
+      setUserLocation(null);
+      return;
+    }
+    if (!("geolocation" in navigator)) {
+      toast({ title: "Location is not supported on this device", variant: "destructive" });
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLocation({ latitude: pos.coords.latitude, longitude: pos.coords.longitude });
+        setLocating(false);
+      },
+      () => {
+        setLocating(false);
+        toast({
+          title: "Couldn't get your location",
+          description: "Allow location access in your browser to sort by distance.",
+          variant: "destructive",
+        });
+      },
+      { enableHighAccuracy: false, timeout: 10_000, maximumAge: 5 * 60_000 }
+    );
+  };
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 250);
@@ -157,13 +195,34 @@ const Opportunities = () => {
   const filtered = useMemo(() => {
     const q = debouncedSearch.trim().toLowerCase();
     const activeTimeFilter = timeFilters.find((f) => f.label === timeFilter) ?? timeFilters[0];
-    return [...realOpps, ...staticOpps].filter((o) => {
-      const matchesSearch = !q || (o.title ?? "").toLowerCase().includes(q) || (o.org ?? "").toLowerCase().includes(q);
-      const matchesCat = category === "All" || o.category === category;
-      const matchesTime = timeFilter === "All" || (o.timeHours >= activeTimeFilter.min && o.timeHours <= activeTimeFilter.max);
-      return matchesSearch && matchesCat && matchesTime;
-    });
-  }, [realOpps, staticOpps, debouncedSearch, category, timeFilter]);
+    const savedSet = new Set(saved);
+    const result = [...realOpps, ...staticOpps]
+      .filter((o) => {
+        const matchesSearch = !q || (o.title ?? "").toLowerCase().includes(q) || (o.org ?? "").toLowerCase().includes(q);
+        const matchesCat = category === "All" || o.category === category;
+        const matchesTime = timeFilter === "All" || (o.timeHours >= activeTimeFilter.min && o.timeHours <= activeTimeFilter.max);
+        const matchesSaved = !savedOnly || savedSet.has(o.id);
+        return matchesSearch && matchesCat && matchesTime && matchesSaved;
+      })
+      .map((o) => ({
+        ...o,
+        distanceKm:
+          userLocation && isValidCoordinate(o.latitude, o.longitude)
+            ? haversineKm(userLocation, { latitude: o.latitude as number, longitude: o.longitude as number })
+            : null,
+      }));
+    if (userLocation) {
+      // Nearest first; opportunities without coordinates keep their order after the located ones.
+      result.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
+    }
+    return result;
+  }, [realOpps, staticOpps, debouncedSearch, category, timeFilter, savedOnly, saved, userLocation]);
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [debouncedSearch, category, timeFilter, savedOnly, userLocation]);
+
+  const visible = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
 
   const mapOpps = useMemo(
     () =>
@@ -322,6 +381,25 @@ const Opportunities = () => {
                     {tf.label}
                   </button>
                 ))}
+                <span className="mx-1 h-5 w-px self-center bg-border" aria-hidden="true" />
+                <button
+                  type="button"
+                  aria-pressed={!!userLocation}
+                  onClick={handleNearMe}
+                  disabled={locating}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors inline-flex items-center gap-1.5 ${userLocation ? "bg-accent text-accent-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+                >
+                  {locating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Navigation className="w-3.5 h-3.5" />}
+                  {userLocation ? "Sorted by distance" : "Near me"}
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={savedOnly}
+                  onClick={() => setSavedOnly((v) => !v)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors inline-flex items-center gap-1.5 ${savedOnly ? "bg-accent text-accent-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+                >
+                  <Bookmark className="w-3.5 h-3.5" /> Saved{saved.length > 0 ? ` (${saved.length})` : ""}
+                </button>
               </div>
             </div>
           </ScrollReveal>
@@ -344,13 +422,22 @@ const Opportunities = () => {
           ) : filtered.length === 0 ? (
             <div className="glass-card p-16 text-center">
               <p className="text-muted-foreground text-lg">No opportunities match your filters.</p>
-              <button type="button" onClick={() => { setSearch(""); setDebouncedSearch(""); setCategory("All"); setTimeFilter("All"); }} className="text-primary text-sm mt-2 hover:underline">Clear all filters</button>
+              <button type="button" onClick={() => { setSearch(""); setDebouncedSearch(""); setCategory("All"); setTimeFilter("All"); setSavedOnly(false); }} className="text-primary text-sm mt-2 hover:underline">Clear all filters</button>
             </div>
           ) : (
             <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
-              {filtered.map((opp, i) => (
-                <ScrollReveal key={opp.id} delay={i * 0.06}>
+              {visible.map((opp, i) => (
+                <ScrollReveal key={opp.id} delay={Math.min(i % PAGE_SIZE, 8) * 0.06}>
                   <motion.div whileHover={{ y: -3 }} className="glass-card-hover p-6 h-full flex flex-col relative">
+                    <button
+                      type="button"
+                      onClick={() => toggleSaved(opp.id)}
+                      aria-pressed={isSaved(opp.id)}
+                      aria-label={isSaved(opp.id) ? `Remove ${opp.title} from saved` : `Save ${opp.title}`}
+                      className="absolute bottom-3 right-3 z-10 rounded-full p-1.5 text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <Bookmark className={`w-4 h-4 ${isSaved(opp.id) ? "fill-primary text-primary" : ""}`} />
+                    </button>
                     {opp.isReal && <span className="absolute top-3 right-3 px-2 py-0.5 text-[9px] font-bold rounded-full bg-primary/10 text-primary">VERIFIED NGO</span>}
                     <div className="flex items-start justify-between mb-3">
                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${opp.urgency === "High" ? "bg-destructive/20 text-destructive" : "bg-amber-500/20 text-amber-600"}`}>
@@ -363,7 +450,7 @@ const Opportunities = () => {
                     <h3 className="font-bold text-foreground mb-1">{opp.title}</h3>
                     <p className="text-sm text-muted-foreground mb-4">{opp.org}</p>
                     <div className="space-y-2 mb-5 flex-1">
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground"><MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden="true" /> {opp.location || "Location not specified"}</div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground"><MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden="true" /> {opp.location || "Location not specified"}{opp.distanceKm !== null && <span className="ml-1 font-medium text-primary">· {formatDistance(opp.distanceKm)}</span>}</div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground"><Clock className="w-3.5 h-3.5 shrink-0" /> {opp.date || "Date TBD"}{opp.start_time ? ` • ${opp.start_time}${opp.end_time ? `–${opp.end_time}` : ""}` : ""}</div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground"><Users className="w-3.5 h-3.5 shrink-0" /> {opp.spots > 0 ? `${opp.spots} spots left` : "Full"}</div>
                     </div>
@@ -383,6 +470,13 @@ const Opportunities = () => {
                   </motion.div>
                 </ScrollReveal>
               ))}
+            </div>
+          )}
+          {viewMode !== "map" && !loading && filtered.length > visibleCount && (
+            <div className="mt-8 text-center">
+              <Button variant="outline" className="rounded-xl" onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}>
+                Show more ({filtered.length - visibleCount} remaining)
+              </Button>
             </div>
           )}
         </div>

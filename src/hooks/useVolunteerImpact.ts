@@ -142,7 +142,8 @@ export function useVolunteerImpact(userId: string | undefined, enabled = true) {
     };
   }, [enabled, userId, queryClient]);
 
-  const registrations = registrationsQuery.data ?? [];
+  const registrationsData = registrationsQuery.data;
+  const registrations = useMemo(() => registrationsData ?? [], [registrationsData]);
   const rawStats = statsQuery.data;
 
   const summary = useMemo(() => {

@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import { usePublicOpportunities } from "./useOrganization";
+
+const createWrapper = () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return ({ children }: { children: ReactNode }) => <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+};
 
 let mockUser: { id: string; email: string } | null = { id: "user-1", email: "test@example.com" };
 
@@ -70,7 +77,7 @@ describe("usePublicOpportunities register/unregister reliability", () => {
   it("returns success=false when register fails", async () => {
     mockInsertRegistration.mockResolvedValue({ error: { message: "duplicate registration" } });
 
-    const { result } = renderHook(() => usePublicOpportunities());
+    const { result } = renderHook(() => usePublicOpportunities(), { wrapper: createWrapper() });
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
@@ -85,7 +92,7 @@ describe("usePublicOpportunities register/unregister reliability", () => {
   it("returns success=true when register succeeds", async () => {
     mockInsertRegistration.mockResolvedValue({ error: null });
 
-    const { result } = renderHook(() => usePublicOpportunities());
+    const { result } = renderHook(() => usePublicOpportunities(), { wrapper: createWrapper() });
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
@@ -100,7 +107,7 @@ describe("usePublicOpportunities register/unregister reliability", () => {
   it("returns success=false when unregister fails", async () => {
     mockDeleteRegistration.mockResolvedValue({ error: { message: "delete failed" } });
 
-    const { result } = renderHook(() => usePublicOpportunities());
+    const { result } = renderHook(() => usePublicOpportunities(), { wrapper: createWrapper() });
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
@@ -130,7 +137,7 @@ describe("usePublicOpportunities error handling", () => {
       },
     }));
     const mod = await import("./useOrganization");
-    const { result } = renderHook(() => mod.usePublicOpportunities());
+    const { result } = renderHook(() => mod.usePublicOpportunities(), { wrapper: createWrapper() });
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.error).toBe("boom");
     vi.doUnmock("@/lib/supabaseClient");

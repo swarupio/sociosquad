@@ -26,7 +26,12 @@ const normalizeRange = (startTime: string, endTime: string): { startTime: string
   return { startTime, endTime };
 };
 
-type OpportunityWithOrg = Tables<"opportunities"> & { organization?: { name: string } | null };
+type OpportunityWithOrg = Pick<
+  Tables<"opportunities">,
+  "id" | "org_id" | "title" | "description" | "category" | "date" | "start_time" | "end_time" | "location" | "city" | "max_volunteers" | "time_commitment"
+> & { organization?: { name: string } | null };
+
+const EVENT_COLUMNS = "id, title, start_time, end_time, color, bg, border, icon_name, badge, category, description, registered";
 
 const mapDbEvent = (e: Tables<"user_events">): RawEvent => ({
   id: e.id,
@@ -42,7 +47,7 @@ const mapDbEvent = (e: Tables<"user_events">): RawEvent => ({
   registered: e.registered ?? false,
 });
 
-const groupTasks = (rows: Tables<"user_tasks">[]): Record<Period, Task[]> => {
+const groupTasks = (rows: Pick<Tables<"user_tasks">, "id" | "text" | "done" | "period">[]): Record<Period, Task[]> => {
   const today: Task[] = [];
   const tomorrow: Task[] = [];
   rows.forEach((t) => {
@@ -144,8 +149,9 @@ export function useScheduleData() {
     const fetchOpportunities = async () => {
       const { data: opps, error: oppErr } = await supabase
         .from("opportunities")
-        .select("*")
+        .select("id, org_id, title, description, category, date, start_time, end_time, location, city, max_volunteers, time_commitment")
         .eq("status", "open")
+        .gte("date", new Date(Date.now() - 60 * 86_400_000).toISOString().split("T")[0])
         .order("date", { ascending: true });
       if (ignore) return;
       if (oppErr) {
@@ -252,7 +258,7 @@ export function useScheduleData() {
       try {
         const { data: evData, error: evErr } = await supabase
           .from("user_events")
-          .select("*")
+          .select(EVENT_COLUMNS)
           .eq("user_id", userId)
           .order("created_at", { ascending: true });
         if (ignore) return;
@@ -268,7 +274,7 @@ export function useScheduleData() {
 
         const { data: taskData, error: taskErr } = await supabase
           .from("user_tasks")
-          .select("*")
+          .select("id, text, done, period")
           .eq("user_id", userId)
           .order("created_at", { ascending: true });
         if (ignore) return;

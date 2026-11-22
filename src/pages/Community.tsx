@@ -36,8 +36,9 @@ function timeAgo(dateStr: string) {
 const fetchPosts = async () => {
   const { data, error } = await supabase
     .from("community_posts")
-    .select("*")
-    .order("created_at", { ascending: false });
+    .select("id, user_id, author_name, author_initials, content, created_at")
+    .order("created_at", { ascending: false })
+    .limit(100);
   if (error) throw error;
   return data;
 };

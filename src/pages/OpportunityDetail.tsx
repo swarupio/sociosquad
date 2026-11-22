@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, MapPin, Clock, Users, Calendar, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowLeft, MapPin, Clock, Users, Calendar, CalendarPlus, CheckCircle2, Loader2, Share2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ScrollReveal from "@/components/ScrollReveal";
@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { downloadIcs } from "@/lib/calendar";
 import {
   isStaticOpportunityRegistered,
   removeStaticRegistration,
@@ -23,6 +24,8 @@ interface OppDisplay {
   category: string;
   spots: number;
   dateLabel: string;
+  /** ISO date (YYYY-MM-DD) when known; enables add-to-calendar. */
+  date?: string;
   startTime?: string;
   endTime?: string;
   timeLabel: string;
@@ -80,15 +83,28 @@ const OpportunityDetail = () => {
     // Then check DB
     const fetchFromDb = async () => {
       try {
-        const { data: row, error } = await supabase
-          .from("opportunities")
-          .select("*, organizations(name)")
-          .eq("id", id)
-          .maybeSingle();
+        const [{ data: row, error }, regResult] = await Promise.all([
+          supabase
+            .from("opportunities")
+            .select("id, title, description, category, skills_needed, date, start_time, end_time, location, city, max_volunteers, time_commitment, organizations(name)")
+            .eq("id", id)
+            .maybeSingle(),
+          userId
+            ? supabase
+                .from("volunteer_registrations")
+                .select("id")
+                .eq("opportunity_id", id)
+                .eq("user_id", userId)
+                .maybeSingle()
+            : Promise.resolve({ data: null, error: null }),
+        ]);
 
         if (cancelled) return;
         if (error) {
           throw error;
+        }
+        if (regResult.error) {
+          throw regResult.error;
         }
 
         if (!row) {
@@ -106,21 +122,7 @@ const OpportunityDetail = () => {
           .join(", ");
         const maxVolunteers: number = data.max_volunteers ?? 0;
 
-        let isJoined = false;
-        if (userId) {
-          const { data: reg, error: registrationError } = await supabase
-            .from("volunteer_registrations")
-            .select("id")
-            .eq("opportunity_id", data.id)
-            .eq("user_id", userId)
-            .maybeSingle();
-
-          if (cancelled) return;
-          if (registrationError) {
-            throw registrationError;
-          }
-          isJoined = !!reg;
-        }
+        const isJoined = !!regResult.data;
 
         setDbOppId(data.id);
         setIsDbOpp(true);
@@ -130,6 +132,7 @@ const OpportunityDetail = () => {
           location: locationLabel || "Location not specified",
           category: data.category ?? "General",
           spots: maxVolunteers,
+          date: data.date || undefined,
           dateLabel: data.date ? new Date(data.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "Date TBD",
           startTime: data.start_time || undefined,
           endTime: data.end_time || undefined,
@@ -149,6 +152,42 @@ const OpportunityDetail = () => {
     fetchFromDb();
     return () => { cancelled = true; };
   }, [id, userId]);
+
+  const handleAddToCalendar = () => {
+    if (!opp?.date) return;
+    try {
+      downloadIcs({
+        id: id ?? opp.title,
+        title: opp.title,
+        date: opp.date,
+        startTime: opp.startTime,
+        endTime: opp.endTime,
+        location: opp.location,
+        description: opp.description,
+        organizer: opp.org,
+        url: window.location.href,
+      });
+    } catch {
+      toast({ title: "Couldn't create calendar file", variant: "destructive" });
+    }
+  };
+
+  const handleShare = async () => {
+    if (!opp) return;
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: opp.title, text: `Volunteer with ${opp.org}: ${opp.title}`, url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      toast({ title: "Link copied to clipboard" });
+    } catch (err) {
+      // The user dismissing the native share sheet is not an error.
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      toast({ title: "Couldn't share this opportunity", variant: "destructive" });
+    }
+  };
 
   const handleToggleRegistration = async () => {
     if (!user) {
@@ -332,6 +371,25 @@ const OpportunityDetail = () => {
                   "Join This Opportunity"
                 )}
               </motion.button>
+
+              <div className="mt-3 flex gap-3">
+                {opp.date && (
+                  <button
+                    type="button"
+                    onClick={handleAddToCalendar}
+                    className="flex-1 py-3 rounded-xl text-sm font-medium border border-border text-foreground hover:bg-secondary flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <CalendarPlus className="w-4 h-4" aria-hidden="true" /> Add to calendar
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  className="flex-1 py-3 rounded-xl text-sm font-medium border border-border text-foreground hover:bg-secondary flex items-center justify-center gap-2 transition-colors"
+                >
+                  <Share2 className="w-4 h-4" aria-hidden="true" /> Share
+                </button>
+              </div>
             </div>
           </ScrollReveal>
         </div>

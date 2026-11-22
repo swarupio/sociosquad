@@ -53,6 +53,8 @@ export interface SquadChallenge {
   ends_at: string | null;
 }
 
+const SQUAD_COLUMNS = "id, name, description, invite_code, avatar_emoji, created_by, created_at";
+
 const errText = (e: unknown): string =>
   e && typeof e === "object" && "message" in e ? String((e as { message: unknown }).message) : "Something went wrong";
 
@@ -74,6 +76,7 @@ export function useSquads() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const requestRef = useRef(0);
+  const cancelPending = useCallback(() => { requestRef.current++; }, []); // request counter, not a DOM node
 
   const fetchSquads = useCallback(async () => {
     const reqId = ++requestRef.current;
@@ -102,7 +105,7 @@ export function useSquads() {
       }
 
       const [squadsRes, countsRes] = await Promise.all([
-        supabase.from("squads").select("*").in("id", squadIds).order("created_at", { ascending: false }),
+        supabase.from("squads").select(SQUAD_COLUMNS).in("id", squadIds).order("created_at", { ascending: false }),
         supabase.from("squad_members").select("squad_id").in("squad_id", squadIds),
       ]);
       if (squadsRes.error) throw squadsRes.error;
@@ -130,8 +133,8 @@ export function useSquads() {
 
   useEffect(() => {
     fetchSquads();
-    return () => { requestRef.current++; };
-  }, [fetchSquads]);
+    return cancelPending;
+  }, [fetchSquads, cancelPending]);
 
   const createSquad = async (name: string, description: string, emoji: string): Promise<boolean> => {
     if (!user) return false;
@@ -274,6 +277,7 @@ export function useSquadDetail(squadId: string | undefined) {
   const [error, setError] = useState<string | null>(null);
   const [isLeader, setIsLeader] = useState(false);
   const requestRef = useRef(0);
+  const cancelPending = useCallback(() => { requestRef.current++; }, []); // request counter, not a DOM node
 
   const fetchDetail = useCallback(async () => {
     const reqId = ++requestRef.current;
@@ -287,10 +291,10 @@ export function useSquadDetail(squadId: string | undefined) {
 
     try {
       const [squadRes, membersRes, challengesRes, logsRes] = await Promise.all([
-        supabase.from("squads").select("*").eq("id", squadId).maybeSingle(),
-        supabase.from("squad_members").select("*").eq("squad_id", squadId).order("joined_at"),
-        supabase.from("squad_challenges").select("*").eq("squad_id", squadId).order("created_at", { ascending: false }),
-        supabase.from("squad_activity_logs").select("*").eq("squad_id", squadId).order("created_at", { ascending: false }),
+        supabase.from("squads").select(SQUAD_COLUMNS).eq("id", squadId).maybeSingle(),
+        supabase.from("squad_members").select("id, squad_id, user_id, role, joined_at").eq("squad_id", squadId).order("joined_at"),
+        supabase.from("squad_challenges").select("id, squad_id, title, description, category, target_value, current_value, unit, status, created_by, created_at, ends_at").eq("squad_id", squadId).order("created_at", { ascending: false }),
+        supabase.from("squad_activity_logs").select("id, squad_id, challenge_id, user_id, description, value, status, reviewed_by, reviewed_at, created_at").eq("squad_id", squadId).order("created_at", { ascending: false }),
       ]);
       if (squadRes.error) throw squadRes.error;
       if (membersRes.error) throw membersRes.error;
@@ -313,26 +317,27 @@ export function useSquadDetail(squadId: string | undefined) {
       const enrichedLogs = (logsRes.data || []).map((l) => ({ ...l, profile: profilesMap[l.user_id] || undefined }));
 
       const challengeRows: Tables<"squad_challenges">[] = challengesRes.data || [];
+      // Progress and per-member contributions are derived from the logs already fetched above,
+      // replacing two RPC round-trips per challenge.
+      const approvedByChallenge = new Map<string, Map<string, number>>();
+      (logsRes.data || []).forEach((l) => {
+        if (l.status !== "approved" || !l.challenge_id) return;
+        const perMember = approvedByChallenge.get(l.challenge_id) ?? new Map<string, number>();
+        perMember.set(l.user_id, (perMember.get(l.user_id) ?? 0) + Number(l.value || 0));
+        approvedByChallenge.set(l.challenge_id, perMember);
+      });
       const contribs: Record<string, MemberContribution[]> = {};
-      const withProgress = await Promise.all(
-        challengeRows.map(async (c) => {
-          const [progressRes, contribRes] = await Promise.all([
-            supabase.rpc("get_challenge_progress", { challenge_id: c.id }),
-            supabase.rpc("get_member_contributions", {
-              p_squad_id: squadId,
-              p_unit: c.unit,
-              p_since: c.created_at,
-            }),
-          ]);
-          if (progressRes.error) console.error("Error fetching challenge progress:", progressRes.error);
-          if (contribRes.error) console.error("Error fetching contributions:", contribRes.error);
-          contribs[c.id] = (contribRes.data || []).map((d) => ({
-            ...d,
-            profile: profilesMap[d.user_id] || undefined,
-          }));
-          return { ...c, live_progress: Number(progressRes.data) || 0 };
-        })
-      );
+      const withProgress = challengeRows.map((c) => {
+        const perMember = approvedByChallenge.get(c.id) ?? new Map<string, number>();
+        let total = 0;
+        perMember.forEach((v) => { total += v; });
+        contribs[c.id] = memberRows.map((m) => ({
+          user_id: m.user_id,
+          contribution: perMember.get(m.user_id) ?? 0,
+          profile: profilesMap[m.user_id] || undefined,
+        }));
+        return { ...c, live_progress: total };
+      });
 
       if (reqId !== requestRef.current) return;
       setSquad((squadRes.data as Squad | null) ?? null);
@@ -352,8 +357,8 @@ export function useSquadDetail(squadId: string | undefined) {
 
   useEffect(() => {
     fetchDetail();
-    return () => { requestRef.current++; };
-  }, [fetchDetail]);
+    return cancelPending;
+  }, [fetchDetail, cancelPending]);
 
   const createChallenge = async (title: string, description: string, targetValue: number, unit: string): Promise<boolean> => {
     if (!user || !squadId) return false;

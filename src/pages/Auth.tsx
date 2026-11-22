@@ -16,6 +16,9 @@ const getSafeNext = (next: string | null): string | null => {
   return next;
 };
 
+const errMessage = (err: unknown): string | undefined =>
+  err instanceof Error ? err.message : (err as { message?: string } | null)?.message;
+
 const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -47,7 +50,7 @@ const Auth = () => {
     let isOrg = false;
     try {
       const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
-      isOrg = (roles || []).some((r: any) => r.role === "organization");
+      isOrg = (roles || []).some((r) => r.role === "organization");
     } catch {
       /* fall through to default route */
     }
@@ -73,9 +76,9 @@ const Auth = () => {
        if (data?.url) {
          window.location.href = data.url;
        }
-     } catch (err: any) {
-       setAuthError(err.message || "An error occurred during Google sign-in.");
-       toast.error(err.message || "An error occurred during Google sign-in.");
+     } catch (err: unknown) {
+       setAuthError(errMessage(err) || "An error occurred during Google sign-in.");
+       toast.error(errMessage(err) || "An error occurred during Google sign-in.");
      } finally {
        setGoogleLoading(false);
      }
@@ -95,9 +98,9 @@ const Auth = () => {
        if (data?.url) {
          window.location.href = data.url;
        }
-     } catch (err: any) {
-       setAuthError(err.message || "An error occurred during GitHub sign-in.");
-       toast.error(err.message || "An error occurred during GitHub sign-in.");
+     } catch (err: unknown) {
+       setAuthError(errMessage(err) || "An error occurred during GitHub sign-in.");
+       toast.error(errMessage(err) || "An error occurred during GitHub sign-in.");
      } finally {
        setGitHubLoading(false);
      }
@@ -128,8 +131,8 @@ const Auth = () => {
       const signedInUserId = data?.user?.id ?? (await supabase.auth.getUser()).data?.user?.id;
       if (signedInUserId) await redirectAfterLogin(signedInUserId);
       else navigate(nextParam || "/dashboard", { replace: true });
-    } catch (err: any) {
-      const message = err?.message || "Sign in failed. Please try again.";
+    } catch (err: unknown) {
+      const message = errMessage(err) || "Sign in failed. Please try again.";
       setSignInApiError(message);
       toast.error(message);
     } finally {
@@ -150,8 +153,8 @@ const Auth = () => {
       });
       if (error) throw error;
       toast.success("Password reset email sent. Check your inbox.");
-    } catch (err: any) {
-      toast.error(err?.message || "Could not send reset email.");
+    } catch (err: unknown) {
+      toast.error(errMessage(err) || "Could not send reset email.");
     } finally {
       setResetLoading(false);
     }
@@ -194,7 +197,7 @@ const Auth = () => {
       if (signUpRole === "organization") {
         // Best-effort fallback only; a DB trigger assigns the role from signup metadata.
         try {
-          await supabase.from("user_roles").insert({ user_id: data.session.user.id, role: "organization" as any });
+          await supabase.from("user_roles").insert({ user_id: data.session.user.id, role: "organization" });
         } catch {
           /* ignore */
         }
@@ -202,8 +205,8 @@ const Auth = () => {
       } else {
         navigate(nextParam || "/dashboard", { replace: true });
       }
-    } catch (err: any) {
-      const message = err?.message || "Sign up failed. Please try again.";
+    } catch (err: unknown) {
+      const message = errMessage(err) || "Sign up failed. Please try again.";
       setSignUpApiError(message);
       toast.error(message);
     } finally {

@@ -4,7 +4,7 @@ import { Building2, Plus, Users, Calendar, MapPin, Clock, Trash2, CheckCircle, X
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/hooks/useAuth";
-import { useMyOrganization, useOrgOpportunities, useOpportunityVolunteers } from "@/hooks/useOrganization";
+import { useMyOrganization, useOrgOpportunities, useOpportunityVolunteers, type Opportunity } from "@/hooks/useOrganization";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,7 +15,7 @@ import { Navigate, Link } from "react-router-dom";
 const CATEGORIES = ["Environment", "Education", "Health", "Community", "Animals", "Disaster Relief", "Elderly Care", "General"];
 const SKILLS = ["Teaching", "Medical", "Driving", "Cooking", "Photography", "Counseling", "Tech", "Manual Labor", "Leadership", "Languages"];
 
-function PostOpportunityModal({ open, onClose, onCreate }: { open: boolean; onClose: () => void; onCreate: (d: any) => Promise<boolean> }) {
+function PostOpportunityModal({ open, onClose, onCreate }: { open: boolean; onClose: () => void; onCreate: (d: Partial<Opportunity>) => Promise<boolean> }) {
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     title: "", description: "", category: "General", location: "", city: "Mumbai",
@@ -23,7 +23,7 @@ function PostOpportunityModal({ open, onClose, onCreate }: { open: boolean; onCl
     max_volunteers: 50, time_commitment: "Half Day", skills_needed: [] as string[],
   });
 
-  const set = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }));
+  const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) => setForm(p => ({ ...p, [k]: v }));
   const toggleSkill = (s: string) => set("skills_needed", form.skills_needed.includes(s) ? form.skills_needed.filter(x => x !== s) : [...form.skills_needed, s]);
 
   if (!open) return null;

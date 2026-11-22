@@ -60,6 +60,15 @@ interface MutationResult {
   message?: string;
 }
 
+function getErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "object" && err !== null && "message" in err) {
+    const message = (err as { message?: unknown }).message;
+    if (typeof message === "string" && message) return message;
+  }
+  return fallback;
+}
+
 async function fetchRegistrationCounts(opportunityIds: string[]): Promise<Record<string, number>> {
   const counts: Record<string, number> = {};
   if (opportunityIds.length === 0) return counts;
@@ -68,7 +77,7 @@ async function fetchRegistrationCounts(opportunityIds: string[]): Promise<Record
     .select("opportunity_id")
     .in("opportunity_id", opportunityIds);
   if (error) throw error;
-  (data || []).forEach((r: any) => {
+  (data || []).forEach((r) => {
     counts[r.opportunity_id] = (counts[r.opportunity_id] || 0) + 1;
   });
   return counts;
@@ -92,7 +101,7 @@ export function useUserRole() {
           .eq("user_id", user.id);
         if (cancelled) return;
         if (roleError) throw roleError;
-        setIsOrg((data || []).some((r: any) => r.role === "organization"));
+        setIsOrg((data || []).some((r) => r.role === "organization"));
         setError(null);
       } catch (err) {
         if (cancelled) return;
@@ -130,7 +139,7 @@ export function useMyOrganization() {
       setOrg((data as unknown as Organization) ?? null);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : (err as any)?.message || "Failed to load organization");
+      setError(getErrorMessage(err, "Failed to load organization"));
     } finally {
       setLoading(false);
     }
@@ -143,7 +152,7 @@ export function useMyOrganization() {
 
     // Best-effort role fallback (a DB trigger is the source of truth); failure is ignored.
     try {
-      await supabase.from("user_roles").insert({ user_id: user.id, role: "organization" as any });
+      await supabase.from("user_roles").insert({ user_id: user.id, role: "organization" });
     } catch {
       /* ignore */
     }
@@ -164,7 +173,7 @@ export function useMyOrganization() {
       .single();
 
     if (insertError) {
-      if ((insertError as any).code === "23505") {
+      if (insertError.code === "23505") {
         toast({ title: "Organization already registered", description: "Your account already has an organization." });
         await fetchOrg();
         return null;
@@ -201,11 +210,11 @@ export function useOrgOpportunities(orgId: string | undefined) {
       if (oppsError) throw oppsError;
 
       const opps = data || [];
-      const counts = await fetchRegistrationCounts(opps.map((o: any) => o.id));
-      setOpportunities(opps.map((o: any) => ({ ...o, registration_count: counts[o.id] || 0 })) as any);
+      const counts = await fetchRegistrationCounts(opps.map((o) => o.id));
+      setOpportunities(opps.map((o) => ({ ...o, registration_count: counts[o.id] || 0 })) as unknown as Opportunity[]);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : (err as any)?.message || "Failed to load opportunities");
+      setError(getErrorMessage(err, "Failed to load opportunities"));
       setOpportunities([]);
     } finally {
       setLoading(false);
@@ -286,8 +295,8 @@ export function useOpportunityVolunteers(opportunityId: string | undefined) {
         .order("created_at");
       if (regError) throw regError;
 
-      const userIds = (data || []).map((v: any) => v.user_id);
-      let profiles: any[] = [];
+      const userIds = (data || []).map((v) => v.user_id);
+      let profiles: { user_id: string; full_name: string | null; avatar_url: string | null }[] = [];
       if (userIds.length > 0) {
         const { data: p, error: profileError } = await supabase.from("profiles").select("user_id, full_name, avatar_url").in("user_id", userIds);
         if (profileError) throw profileError;
@@ -295,14 +304,14 @@ export function useOpportunityVolunteers(opportunityId: string | undefined) {
       }
 
       setVolunteers(
-        (data || []).map((v: any) => ({
+        (data || []).map((v) => ({
           ...v,
-          profile: profiles.find((p: any) => p.user_id === v.user_id) || null,
-        }))
+          profile: profiles.find((p) => p.user_id === v.user_id) || null,
+        })) as unknown as VolunteerRegistration[]
       );
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : (err as any)?.message || "Failed to load volunteers");
+      setError(getErrorMessage(err, "Failed to load volunteers"));
       setVolunteers([]);
     } finally {
       setLoading(false);
@@ -360,14 +369,14 @@ export function usePublicOpportunities() {
         return;
       }
 
-      const orgIds = [...new Set((data || []).map((o: any) => o.org_id))];
+      const orgIds = [...new Set((data || []).map((o) => o.org_id))];
       const { data: orgs, error: orgsError } = await supabase.from("organizations").select("*").in("id", orgIds);
 
       if (orgsError) {
         throw orgsError;
       }
 
-      const ids = data.map((o: any) => o.id);
+      const ids = data.map((o) => o.id);
       const counts = await fetchRegistrationCounts(ids);
 
       const registeredIds = new Set<string>();
@@ -378,19 +387,19 @@ export function usePublicOpportunities() {
           .eq("user_id", user.id)
           .in("opportunity_id", ids);
         if (registrationError) throw registrationError;
-        (mine || []).forEach((r: any) => registeredIds.add(r.opportunity_id));
+        (mine || []).forEach((r) => registeredIds.add(r.opportunity_id));
       }
 
-      const enriched = data.map((o: any) => ({
+      const enriched = data.map((o) => ({
         ...o,
-        organization: (orgs || []).find((org: any) => org.id === o.org_id) || null,
+        organization: (orgs || []).find((org) => org.id === o.org_id) || null,
         registration_count: counts[o.id] || 0,
         is_registered: registeredIds.has(o.id),
       }));
 
-      setOpportunities(enriched as any);
+      setOpportunities(enriched as unknown as Opportunity[]);
     } catch (err) {
-      const message = err instanceof Error ? err.message : (err as any)?.message || "Failed to load opportunities";
+      const message = getErrorMessage(err, "Failed to load opportunities");
       setError(message);
       setOpportunities([]);
     } finally {

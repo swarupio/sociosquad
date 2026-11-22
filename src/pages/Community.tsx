@@ -83,7 +83,7 @@ const Community = () => {
        })
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "community_posts" }, (payload) => {
         queryClient.setQueryData<Post[]>(['communityPosts'], (oldPosts = []) =>
-          oldPosts.filter((p) => p.id !== (payload.old as any).id)
+          oldPosts.filter((p) => p.id !== (payload.old as Partial<Post>).id)
         );
       })
       .subscribe();

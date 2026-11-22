@@ -4,7 +4,7 @@ import { Users, Plus, Hash, ArrowRight, Trophy, Target, Copy, LogOut, Crown, Swo
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/hooks/useAuth";
-import { useSquads, useSquadDetail } from "@/hooks/useSquads";
+import { useSquads, useSquadDetail, type Squad, type SquadChallenge } from "@/hooks/useSquads";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -257,7 +257,7 @@ function CreateChallengeModal({ open, onClose, onCreate }: { open: boolean; onCl
   );
 }
 
-function SquadCard({ squad }: { squad: any }) {
+function SquadCard({ squad }: { squad: Squad }) {
   const { toast } = useToast();
 
   return (
@@ -316,7 +316,7 @@ function SquadCard({ squad }: { squad: any }) {
   );
 }
 
-function SubmitActivityModal({ open, onClose, challenges, onSubmit }: { open: boolean; onClose: () => void; challenges: any[]; onSubmit: (challengeId: string, desc: string, value: number) => Promise<boolean> }) {
+function SubmitActivityModal({ open, onClose, challenges, onSubmit }: { open: boolean; onClose: () => void; challenges: SquadChallenge[]; onSubmit: (challengeId: string, desc: string, value: number) => Promise<boolean> }) {
   const [challengeId, setChallengeId] = useState(challenges[0]?.id || "");
   const [desc, setDesc] = useState("");
   const [value, setValue] = useState("1");
@@ -324,13 +324,13 @@ function SubmitActivityModal({ open, onClose, challenges, onSubmit }: { open: bo
 
   // Challenges load asynchronously; fall back to the first one if nothing valid is selected
   useEffect(() => {
-    if (challenges.length > 0 && !challenges.some((c: any) => c.id === challengeId)) {
+    if (challenges.length > 0 && !challenges.some((c) => c.id === challengeId)) {
       setChallengeId(challenges[0].id);
     }
   }, [challenges, challengeId]);
 
   if (!open) return null;
-  const selectedChallenge = challenges.find((c: any) => c.id === challengeId);
+  const selectedChallenge = challenges.find((c) => c.id === challengeId);
 
   const submit = async () => {
     if (!desc.trim() || !challengeId || busy) return;
@@ -351,7 +351,7 @@ function SubmitActivityModal({ open, onClose, challenges, onSubmit }: { open: bo
         <p className="text-xs text-muted-foreground mb-4">Your activity will be submitted for leader approval before counting toward progress.</p>
         
         <select value={challengeId} onChange={(e) => setChallengeId(e.target.value)} className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm mb-3">
-          {challenges.map((c: any) => <option key={c.id} value={c.id}>{c.title}</option>)}
+          {challenges.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
         </select>
         <Input placeholder="What did you do?" value={desc} onChange={(e) => setDesc(e.target.value)} className="mb-3 rounded-xl" />
         <div className="flex items-center gap-2 mb-6">

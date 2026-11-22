@@ -42,7 +42,7 @@ export function useMyRegistrations(userId: string | undefined, options?: UseMyRe
       if (error) throw error;
 
       const registrationRows = regs ?? [];
-      const registrationIds = new Set(registrationRows.map((reg: any) => reg.opportunity_id));
+      const registrationIds = new Set(registrationRows.map((reg) => reg.opportunity_id));
       const fallbackStaticRegistrations = staticOpportunities
         .filter((opportunity) => persistedStaticIds.has(opportunity.id) && !registrationIds.has(opportunity.id))
         .map((opportunity) => ({
@@ -60,8 +60,8 @@ export function useMyRegistrations(userId: string | undefined, options?: UseMyRe
       const dbOpportunityIds = [
         ...new Set(
           mergedRegistrations
-            .map((reg: any) => reg.opportunity_id)
-            .filter((opportunityId: string) => opportunityId && !staticOpportunityMap.has(opportunityId))
+            .map((reg) => reg.opportunity_id)
+            .filter((opportunityId) => opportunityId && !staticOpportunityMap.has(opportunityId))
         ),
       ];
 
@@ -74,9 +74,9 @@ export function useMyRegistrations(userId: string | undefined, options?: UseMyRe
 
       if (opportunitiesError) throw opportunitiesError;
 
-      const opportunitiesMap = new Map((dbOpportunities || []).map((opp: any) => [opp.id, opp]));
+      const opportunitiesMap = new Map((dbOpportunities || []).map((opp) => [opp.id, opp]));
       const orgIds = [
-        ...new Set((dbOpportunities || []).map((opp: any) => opp.org_id).filter(Boolean)),
+        ...new Set((dbOpportunities || []).map((opp) => opp.org_id).filter(Boolean)),
       ];
 
       const { data: orgs, error: orgsError } = orgIds.length > 0
@@ -85,9 +85,9 @@ export function useMyRegistrations(userId: string | undefined, options?: UseMyRe
 
       if (orgsError) throw orgsError;
 
-      const orgMap = new Map((orgs || []).map((org: any) => [org.id, org.name]));
+      const orgMap = new Map((orgs || []).map((org) => [org.id, org.name]));
 
-      return mergedRegistrations.map((reg: any) => {
+      return mergedRegistrations.map((reg) => {
         const staticOpportunity = staticOpportunityMap.get(reg.opportunity_id);
         if (staticOpportunity) {
           return {
@@ -122,7 +122,7 @@ export function useMyRegistrations(userId: string | undefined, options?: UseMyRe
           location: opportunity?.location ?? "Location TBA",
           start_time: opportunity?.start_time ?? null,
           end_time: opportunity?.end_time ?? null,
-          org_name: orgMap.get(opportunity?.org_id) ?? "NGO",
+          org_name: (opportunity ? orgMap.get(opportunity.org_id) : undefined) ?? "NGO",
           source: "database" as const,
         };
       });

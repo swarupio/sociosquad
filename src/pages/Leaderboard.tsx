@@ -20,7 +20,25 @@ interface LeaderEntry {
 
 const LEADERBOARD_LIMIT = 50;
 
-const toEntry = (row: any, i: number, myId?: string): LeaderEntry => ({
+interface LeaderRow {
+  user_id?: string;
+  display_name?: string | null;
+  full_name?: string | null;
+  name?: string | null;
+  city?: string | null;
+  avatar_url?: string | null;
+  xp?: number | null;
+  total_hours?: number | null;
+  hours?: number | null;
+  level?: number | null;
+  is_me?: boolean | null;
+}
+
+interface UntypedRpcClient {
+  rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
+}
+
+const toEntry = (row: LeaderRow, i: number, myId?: string): LeaderEntry => ({
   rank: i + 1,
   name: row.display_name || row.full_name || row.name || "Volunteer",
   city: row.city || "",
@@ -32,9 +50,9 @@ const toEntry = (row: any, i: number, myId?: string): LeaderEntry => ({
 
 async function loadLeaders(myId?: string): Promise<LeaderEntry[]> {
   // Preferred: server-side RPC (joins profiles safely). Falls back to direct query.
-  const rpc = await (supabase as any).rpc("get_leaderboard", { p_limit: LEADERBOARD_LIMIT });
+  const rpc = await (supabase as unknown as UntypedRpcClient).rpc("get_leaderboard", { p_limit: LEADERBOARD_LIMIT });
   if (!rpc.error && Array.isArray(rpc.data)) {
-    return rpc.data.map((r: any, i: number) => toEntry(r, i, myId));
+    return (rpc.data as LeaderRow[]).map((r, i) => toEntry(r, i, myId));
   }
 
   const { data: statsData, error } = await supabase
@@ -45,14 +63,14 @@ async function loadLeaders(myId?: string): Promise<LeaderEntry[]> {
   if (error) throw error;
   if (!statsData || statsData.length === 0) return [];
 
-  const userIds = statsData.map((s: any) => s.user_id);
+  const userIds = statsData.map((s) => s.user_id);
   const { data: profiles, error: pErr } = await supabase
     .from("profiles")
     .select("user_id, full_name")
     .in("user_id", userIds);
   if (pErr) throw pErr;
-  const profileMap = new Map((profiles || []).map((p: any) => [p.user_id, p.full_name]));
-  return statsData.map((s: any, i: number) => toEntry({ ...s, full_name: profileMap.get(s.user_id) }, i, myId));
+  const profileMap = new Map((profiles || []).map((p) => [p.user_id, p.full_name]));
+  return statsData.map((s, i) => toEntry({ ...s, full_name: profileMap.get(s.user_id) }, i, myId));
 }
 
 const Leaderboard = () => {
@@ -69,7 +87,9 @@ const Leaderboard = () => {
     setError(null);
     loadLeaders(user?.id)
       .then((l) => { if (!cancelled) setRealLeaders(l); })
-      .catch((e) => { if (!cancelled) setError(e?.message || "Could not load the leaderboard."); })
+      .catch((e: unknown) => {
+        if (!cancelled) setError((e instanceof Error && e.message) || (e as { message?: string } | null)?.message || "Could not load the leaderboard.");
+      })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [isReady, user, attempt]);

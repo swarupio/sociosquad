@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import type { Tables, TablesInsert } from "@/integrations/supabase/types";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import type { CalendarCategory, Task } from "@/components/schedule/types";
@@ -25,7 +26,9 @@ const normalizeRange = (startTime: string, endTime: string): { startTime: string
   return { startTime, endTime };
 };
 
-const mapDbEvent = (e: any): RawEvent => ({
+type OpportunityWithOrg = Tables<"opportunities"> & { organization?: { name: string } | null };
+
+const mapDbEvent = (e: Tables<"user_events">): RawEvent => ({
   id: e.id,
   title: e.title,
   ...normalizeRange(e.start_time, e.end_time),
@@ -39,7 +42,7 @@ const mapDbEvent = (e: any): RawEvent => ({
   registered: e.registered ?? false,
 });
 
-const groupTasks = (rows: any[]): Record<Period, Task[]> => {
+const groupTasks = (rows: Tables<"user_tasks">[]): Record<Period, Task[]> => {
   const today: Task[] = [];
   const tomorrow: Task[] = [];
   rows.forEach((t) => {
@@ -57,7 +60,7 @@ const notifyError = (title: string, e: unknown) =>
   toast({ title, description: errMsg(e), variant: "destructive" });
 
 /** Convert an NGO opportunity into a RawEvent for the calendar */
-const mapOpportunityToEvent = (opp: any, isRegistered: boolean): RawEvent => {
+const mapOpportunityToEvent = (opp: OpportunityWithOrg, isRegistered: boolean): RawEvent => {
   const range = normalizeRange(
     `${opp.date}T${opp.start_time || "09:00:00"}`,
     `${opp.date}T${opp.end_time || "17:00:00"}`
@@ -100,7 +103,7 @@ export function useScheduleData() {
   const [tasks, setTasks] = useState<Record<Period, Task[]>>({ today: [], tomorrow: [] });
 
   // One in-flight seed per (kind,user) so effect re-runs never double-seed.
-  const seedRefs = useRef<Map<string, Promise<any[]>>>(new Map());
+  const seedRefs = useRef<Map<string, Promise<unknown[]>>>(new Map());
 
   useEffect(() => {
     let ignore = false;
@@ -155,7 +158,7 @@ export function useScheduleData() {
         return;
       }
 
-      const orgIds = [...new Set(opps.map((o: any) => o.org_id))];
+      const orgIds = [...new Set(opps.map((o) => o.org_id))];
       const { data: orgs, error: orgErr } = await supabase.from("organizations").select("id, name").in("id", orgIds);
       if (ignore) return;
       if (orgErr) console.error("Error fetching organizations:", orgErr);
@@ -163,7 +166,7 @@ export function useScheduleData() {
       // Batch fetch registrations instead of N+1 queries
       let registeredOppIds = new Set<string>();
       if (userId) {
-        const oppIds = opps.map((o: any) => o.id);
+        const oppIds = opps.map((o) => o.id);
         const { data: regs, error: regErr } = await supabase
           .from("volunteer_registrations")
           .select("opportunity_id")
@@ -172,13 +175,13 @@ export function useScheduleData() {
         if (ignore) return;
         if (regErr) console.error("Error fetching registrations:", regErr);
         if (regs) {
-          registeredOppIds = new Set(regs.map((r: any) => r.opportunity_id));
+          registeredOppIds = new Set(regs.map((r) => r.opportunity_id));
         }
       }
 
-      const orgMap = new Map<string, any>((orgs || []).map((o: any) => [o.id, o]));
+      const orgMap = new Map<string, { id: string; name: string }>((orgs || []).map((o) => [o.id, o]));
       setOppEvents(
-        opps.map((o: any) =>
+        opps.map((o) =>
           mapOpportunityToEvent({ ...o, organization: orgMap.get(o.org_id) }, registeredOppIds.has(o.id))
         )
       );
@@ -189,7 +192,7 @@ export function useScheduleData() {
   }, [userId, authChecked]);
 
   // Run a seed at most once per key even if the effect re-runs concurrently.
-  const seedOnce = useCallback((key: string, run: () => Promise<any[]>) => {
+  const seedOnce = useCallback((key: string, run: () => Promise<unknown[]>) => {
     let p = seedRefs.current.get(key);
     if (!p) {
       p = run().catch((e) => {
@@ -214,7 +217,7 @@ export function useScheduleData() {
     let ignore = false;
 
     const seedEvents = async (uid: string) => {
-      const rows = initialEvents.map((e) => ({
+      const rows: TablesInsert<"user_events">[] = initialEvents.map((e) => ({
         user_id: uid,
         title: e.title,
         start_time: e.startTime,
@@ -228,17 +231,17 @@ export function useScheduleData() {
         description: e.description,
         registered: e.registered,
       }));
-      const { data, error: insErr } = await supabase.from("user_events").insert(rows as any).select();
+      const { data, error: insErr } = await supabase.from("user_events").insert(rows).select();
       if (insErr) throw insErr;
       return data || [];
     };
 
     const seedTasks = async (uid: string) => {
-      const rows = [
+      const rows: TablesInsert<"user_tasks">[] = [
         ...initialTasks.today.map((t) => ({ user_id: uid, text: t.text, done: t.done, period: "today" })),
         ...initialTasks.tomorrow.map((t) => ({ user_id: uid, text: t.text, done: t.done, period: "tomorrow" })),
       ];
-      const { data, error: insErr } = await supabase.from("user_tasks").insert(rows as any).select();
+      const { data, error: insErr } = await supabase.from("user_tasks").insert(rows).select();
       if (insErr) throw insErr;
       return data || [];
     };
@@ -260,7 +263,7 @@ export function useScheduleData() {
         } else {
           const seeded = await seedOnce(`events:${userId}`, () => seedEvents(userId));
           if (ignore) return;
-          setRawEvents(seeded.map(mapDbEvent));
+          setRawEvents((seeded as Tables<"user_events">[]).map(mapDbEvent));
         }
 
         const { data: taskData, error: taskErr } = await supabase
@@ -276,7 +279,7 @@ export function useScheduleData() {
         } else {
           const seeded = await seedOnce(`tasks:${userId}`, () => seedTasks(userId));
           if (ignore) return;
-          setTasks(groupTasks(seeded));
+          setTasks(groupTasks(seeded as Tables<"user_tasks">[]));
         }
       } catch (e) {
         if (ignore) return;

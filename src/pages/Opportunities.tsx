@@ -351,7 +351,7 @@ const Opportunities = () => {
               {filtered.map((opp, i) => (
                 <ScrollReveal key={opp.id} delay={i * 0.06}>
                   <motion.div whileHover={{ y: -3 }} className="glass-card-hover p-6 h-full flex flex-col relative">
-                    {(opp as any).isReal && <span className="absolute top-3 right-3 px-2 py-0.5 text-[9px] font-bold rounded-full bg-primary/10 text-primary">VERIFIED NGO</span>}
+                    {opp.isReal && <span className="absolute top-3 right-3 px-2 py-0.5 text-[9px] font-bold rounded-full bg-primary/10 text-primary">VERIFIED NGO</span>}
                     <div className="flex items-start justify-between mb-3">
                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${opp.urgency === "High" ? "bg-destructive/20 text-destructive" : "bg-amber-500/20 text-amber-600"}`}>
                         {opp.urgency === "High" ? "Filling Fast" : opp.category}
@@ -376,8 +376,8 @@ const Opportunities = () => {
                       <Button asChild variant="outline" className="flex-1 rounded-xl text-sm border-primary/30 text-primary hover:bg-primary/10 hover:text-primary">
                         <Link to={`/opportunities/${opp.id}`} aria-label={`View details for ${opp.title}`}><Eye className="w-4 h-4 mr-1.5" /> View Details</Link>
                       </Button>
-                      <Button onClick={() => handleRegister(opp.id, !!(opp as any).is_registered, !!(opp as any).isReal)} disabled={activeActionId === opp.id} variant={(opp as any).is_registered ? "secondary" : "default"} className="flex-1 rounded-xl text-sm">
-                        {activeActionId === opp.id ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Updating...</> : (opp as any).is_registered ? <><CheckCircle className="w-4 h-4 mr-1.5" /> Registered</> : <>Join <ArrowRight className="w-4 h-4 ml-1.5" /></>}
+                      <Button onClick={() => handleRegister(opp.id, !!opp.is_registered, !!opp.isReal)} disabled={activeActionId === opp.id} variant={opp.is_registered ? "secondary" : "default"} className="flex-1 rounded-xl text-sm">
+                        {activeActionId === opp.id ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Updating...</> : opp.is_registered ? <><CheckCircle className="w-4 h-4 mr-1.5" /> Registered</> : <>Join <ArrowRight className="w-4 h-4 ml-1.5" /></>}
                       </Button>
                     </div>
                   </motion.div>

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
+import type { Tables } from "@/integrations/supabase/types";
 
 export interface Squad {
   id: string;
@@ -58,6 +59,14 @@ const errText = (e: unknown): string =>
 const isMissingFunction = (e: { code?: string; message?: string } | null | undefined) =>
   !!e && (e.code === "PGRST202" || (e.message ?? "").includes("Could not find the function"));
 
+type RpcError = { code?: string; message?: string } | null;
+
+/** Typed wrapper for RPCs not present in the generated types. */
+const callRpc = (name: string, args: Record<string, unknown>): Promise<{ error: RpcError }> =>
+  (supabase as unknown as {
+    rpc: (n: string, a: Record<string, unknown>) => Promise<{ error: RpcError }>;
+  }).rpc(name, args);
+
 export function useSquads() {
   const { user, isReady } = useAuth();
   const { toast } = useToast();
@@ -84,7 +93,7 @@ export function useSquads() {
         .select("squad_id")
         .eq("user_id", user.id);
       if (mineErr) throw mineErr;
-      const squadIds = [...new Set((mine || []).map((m: any) => m.squad_id as string))];
+      const squadIds = [...new Set((mine || []).map((m) => m.squad_id))];
 
       if (squadIds.length === 0) {
         if (reqId !== requestRef.current) return;
@@ -100,11 +109,11 @@ export function useSquads() {
       if (countsRes.error) throw countsRes.error;
 
       const counts: Record<string, number> = {};
-      (countsRes.data || []).forEach((m: any) => { counts[m.squad_id] = (counts[m.squad_id] || 0) + 1; });
+      (countsRes.data || []).forEach((m) => { counts[m.squad_id] = (counts[m.squad_id] || 0) + 1; });
 
       if (reqId !== requestRef.current) return;
       setSquads(
-        (squadsRes.data || []).map((s: any) => ({
+        (squadsRes.data || []).map((s) => ({
           ...s,
           member_count: counts[s.id] || 1,
           is_member: true,
@@ -170,7 +179,7 @@ export function useSquads() {
     };
 
     // Preferred: server-side RPC
-    const { error: rpcErr } = await (supabase as any).rpc("join_squad_by_code", { p_code: cleaned });
+    const { error: rpcErr } = await callRpc("join_squad_by_code", { p_code: cleaned });
     if (!rpcErr) {
       toast({ title: "Joined squad! 🚀" });
       await fetchSquads();
@@ -288,7 +297,7 @@ export function useSquadDetail(squadId: string | undefined) {
       if (challengesRes.error) throw challengesRes.error;
       if (logsRes.error) throw logsRes.error;
 
-      const memberRows: any[] = membersRes.data || [];
+      const memberRows: Tables<"squad_members">[] = membersRes.data || [];
       const profilesMap: Record<string, { full_name: string | null; avatar_url: string | null }> = {};
       const userIds = [...new Set(memberRows.map((m) => m.user_id as string))];
       if (userIds.length > 0) {
@@ -297,13 +306,13 @@ export function useSquadDetail(squadId: string | undefined) {
           .select("user_id, full_name, avatar_url")
           .in("user_id", userIds);
         if (profErr) console.error("Error fetching profiles:", profErr);
-        (profiles || []).forEach((p: any) => { profilesMap[p.user_id] = p; });
+        (profiles || []).forEach((p) => { profilesMap[p.user_id] = p; });
       }
 
       const enrichedMembers = memberRows.map((m) => ({ ...m, profile: profilesMap[m.user_id] || undefined }));
-      const enrichedLogs = ((logsRes.data as any[]) || []).map((l) => ({ ...l, profile: profilesMap[l.user_id] || undefined }));
+      const enrichedLogs = (logsRes.data || []).map((l) => ({ ...l, profile: profilesMap[l.user_id] || undefined }));
 
-      const challengeRows: any[] = challengesRes.data || [];
+      const challengeRows: Tables<"squad_challenges">[] = challengesRes.data || [];
       const contribs: Record<string, MemberContribution[]> = {};
       const withProgress = await Promise.all(
         challengeRows.map(async (c) => {
@@ -317,7 +326,7 @@ export function useSquadDetail(squadId: string | undefined) {
           ]);
           if (progressRes.error) console.error("Error fetching challenge progress:", progressRes.error);
           if (contribRes.error) console.error("Error fetching contributions:", contribRes.error);
-          contribs[c.id] = ((contribRes.data as any[]) || []).map((d: any) => ({
+          contribs[c.id] = (contribRes.data || []).map((d) => ({
             ...d,
             profile: profilesMap[d.user_id] || undefined,
           }));
@@ -326,9 +335,9 @@ export function useSquadDetail(squadId: string | undefined) {
       );
 
       if (reqId !== requestRef.current) return;
-      setSquad((squadRes.data as any) ?? null);
+      setSquad((squadRes.data as Squad | null) ?? null);
       setMembers(enrichedMembers);
-      setIsLeader(enrichedMembers.some((m: any) => m.user_id === user.id && m.role === "leader"));
+      setIsLeader(enrichedMembers.some((m) => m.user_id === user.id && m.role === "leader"));
       setActivityLogs(enrichedLogs);
       setChallenges(withProgress);
       setContributions(contribs);

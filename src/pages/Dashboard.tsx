@@ -10,6 +10,38 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { useVolunteerImpact } from "@/hooks/useVolunteerImpact";
+import StreakCard from "@/components/badges/StreakCard";
+import BadgeGrid from "@/components/badges/BadgeGrid";
+import AnnouncementFeed from "@/components/announcements/AnnouncementFeed";
+import VolunteerCheckin from "@/components/checkin/VolunteerCheckin";
+import { useEventReminders, requestReminderPermission, reminderPermission } from "@/hooks/useEventReminders";
+import { useBadges } from "@/hooks/useBadges";
+import { usePageMeta } from "@/hooks/usePageMeta";
+import { useEffect } from "react";
+import type { ReminderEvent } from "@/lib/notifications";
+
+/** Schedules browser reminders for upcoming registered events and backfills badges once per visit. */
+function DashboardExtras({ events }: { events: ReminderEvent[] }) {
+  useEventReminders(events);
+  const { evaluate, notEnabled } = useBadges();
+  useEffect(() => {
+    if (!notEnabled) evaluate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notEnabled]);
+  const canAsk = typeof Notification !== "undefined" && reminderPermission() === "default";
+  return canAsk ? (
+    <div className="rounded-2xl border border-border bg-card p-4 flex items-center justify-between gap-4">
+      <p className="text-sm text-muted-foreground">Get a reminder before your events start.</p>
+      <button
+        type="button"
+        onClick={() => requestReminderPermission()}
+        className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium"
+      >
+        Enable reminders
+      </button>
+    </div>
+  ) : null;
+}
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -23,6 +55,7 @@ const parseLocalDate = (dateStr: string) => new Date(`${dateStr}T00:00:00`);
 const Dashboard = () => {
   const { user, isReady } = useAuth();
   const location = useLocation();
+  usePageMeta({ title: "Your dashboard", noindex: true });
 
   const {
     registrations,
@@ -369,6 +402,31 @@ const Dashboard = () => {
               )}
             </div>
           </ScrollReveal>
+          <div className="mt-8 space-y-6">
+            <DashboardExtras
+              events={upcomingRegistrations.map((r) => ({
+                id: r.opportunity_id,
+                title: r.title,
+                date: r.date,
+                start_time: r.start_time,
+              }))}
+            />
+            <div className="grid gap-6 lg:grid-cols-2">
+              <StreakCard />
+              <div className="rounded-2xl border border-border bg-card p-5">
+                <h2 className="text-lg font-bold text-foreground mb-3">Your badges</h2>
+                <BadgeGrid compact />
+              </div>
+            </div>
+            <div className="rounded-2xl border border-border bg-card p-5">
+              <h2 className="text-lg font-bold text-foreground mb-3">Updates from your events</h2>
+              <AnnouncementFeed />
+            </div>
+            <div className="rounded-2xl border border-border bg-card p-5">
+              <h2 className="text-lg font-bold text-foreground mb-3">Event check-in</h2>
+              <VolunteerCheckin />
+            </div>
+          </div>
         </div>
       </main>
       <Footer />

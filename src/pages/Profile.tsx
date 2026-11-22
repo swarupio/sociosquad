@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import PreferencesForm from "@/components/matching/PreferencesForm";
 
 const badges = [
   { name: "First Responder", icon: Shield, earned: false },
@@ -385,6 +386,12 @@ const Profile = () => {
               </div>
             </div>
           </ScrollReveal>
+
+          <div className="mt-8 rounded-2xl border border-border bg-card p-6">
+            <h2 className="text-lg font-bold text-foreground mb-1">Personalise your matches</h2>
+            <p className="text-sm text-muted-foreground mb-4">Tell us your skills, causes and availability to get a "For you" ranking on Explore.</p>
+            <PreferencesForm />
+          </div>
         </div>
       </main>
       <Footer />

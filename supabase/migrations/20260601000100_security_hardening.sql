@@ -197,11 +197,11 @@ CREATE POLICY "Org owners can verify attendance" ON public.volunteer_registratio
   FOR UPDATE TO authenticated
   USING (EXISTS (
     SELECT 1 FROM public.opportunities op JOIN public.organizations o ON o.id = op.org_id
-    WHERE op.id::text = volunteer_registrations.opportunity_id AND o.user_id = auth.uid()))
+    WHERE op.id::text = volunteer_registrations.opportunity_id::text AND o.user_id = auth.uid()))
   WITH CHECK (
     EXISTS (
       SELECT 1 FROM public.opportunities op JOIN public.organizations o ON o.id = op.org_id
-      WHERE op.id::text = volunteer_registrations.opportunity_id AND o.user_id = auth.uid())
+      WHERE op.id::text = volunteer_registrations.opportunity_id::text AND o.user_id = auth.uid())
     AND COALESCE(hours_credited, 0) BETWEEN 0 AND 24
     AND (verified_by IS NULL OR verified_by = auth.uid())
   );

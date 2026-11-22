@@ -21,8 +21,31 @@ import { toast } from "@/hooks/use-toast";
 const ImpactCertificate = lazy(() => import("@/components/portfolio/ImpactCertificate"));
 import { useVolunteerImpact } from "@/hooks/useVolunteerImpact";
 import { Loader2 } from "lucide-react";
+import IssueCertificateCard from "@/components/certificates/IssueCertificateCard";
+import StreakCard from "@/components/badges/StreakCard";
+import BadgeGrid from "@/components/badges/BadgeGrid";
+import EndorsementCard from "@/components/feedback/EndorsementCard";
+import { useMyEndorsements } from "@/hooks/useFeedback";
+import { usePageMeta } from "@/hooks/usePageMeta";
+
+function PortfolioEndorsements() {
+  const { data } = useMyEndorsements();
+  const items = Array.isArray(data) ? data : [];
+  if (items.length === 0) return null;
+  return (
+    <section aria-labelledby="endorsements-heading" className="mt-8">
+      <h2 id="endorsements-heading" className="text-lg font-bold text-foreground mb-4">Endorsements from NGOs</h2>
+      <div className="grid gap-4 md:grid-cols-2">
+        {items.map((e) => (
+          <EndorsementCard key={e.id} endorsement={e} />
+        ))}
+      </div>
+    </section>
+  );
+}
 
 const Portfolio = () => {
+  usePageMeta({ title: "Impact portfolio", noindex: true });
   const { user, isReady } = useAuth();
   const location = useLocation();
   const [copied, setCopied] = useState(false);
@@ -544,6 +567,23 @@ const Portfolio = () => {
                 </motion.button>
               </div>
             </div>
+          </ScrollReveal>
+
+          <ScrollReveal>
+            <div className="mt-8 grid gap-6 lg:grid-cols-2">
+              <div className="rounded-2xl border border-border bg-card p-6">
+                <h2 className="text-lg font-bold text-foreground mb-4">Verified certificate</h2>
+                <IssueCertificateCard />
+              </div>
+              <div className="rounded-2xl border border-border bg-card p-6">
+                <h2 className="text-lg font-bold text-foreground mb-4">Streak &amp; achievements</h2>
+                <div className="space-y-4">
+                  <StreakCard />
+                  <BadgeGrid />
+                </div>
+              </div>
+            </div>
+            <PortfolioEndorsements />
           </ScrollReveal>
         </div>
       </main>

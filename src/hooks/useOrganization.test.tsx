@@ -28,6 +28,7 @@ vi.mock("./use-toast", () => ({
 
 vi.mock("@/lib/supabaseClient", () => ({
   supabase: {
+    rpc: () => Promise.resolve({ data: null, error: { code: "PGRST202", message: "Could not find the function" } }),
     from: (table: string) => {
       if (table === "opportunities") {
         return {

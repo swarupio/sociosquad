@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
+import { db, isMissingMigration } from "@/lib/db";
 import { geocodeLocation } from "@/lib/nominatimGeocode";
 import { useAuth } from "./useAuth";
 import { useToast } from "./use-toast";
@@ -59,6 +60,9 @@ export interface VolunteerRegistration {
 interface MutationResult {
   success: boolean;
   message?: string;
+  /** Set when registration went through the capacity-aware RPC. */
+  status?: "registered" | "waitlisted";
+  position?: number | null;
 }
 
 function getErrorMessage(err: unknown, fallback: string): string {
@@ -401,6 +405,21 @@ export function usePublicOpportunities() {
       return { success: false, message: "Please sign in to register" };
     }
 
+    // Capacity-aware path: server enforces max_volunteers and offers a waitlist.
+    const rpc = await db.rpc<{ status?: string; position?: number | null }>("register_for_opportunity", {
+      p_opportunity_id: opportunityId,
+    });
+    if (!rpc.error) {
+      invalidate();
+      queryClient.invalidateQueries({ queryKey: ["waitlist"] });
+      const status = rpc.data?.status === "waitlisted" ? "waitlisted" : "registered";
+      return { success: true, status, position: rpc.data?.position ?? null };
+    }
+    if (!isMissingMigration(rpc.error)) {
+      return { success: false, message: rpc.error.message };
+    }
+
+    // Migration not applied yet: fall back to the plain insert.
     const { error } = await supabase
       .from("volunteer_registrations")
       .insert({ opportunity_id: opportunityId, user_id: user.id });

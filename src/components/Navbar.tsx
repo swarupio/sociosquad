@@ -1,10 +1,11 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Menu, X, User as UserIcon, LogOut, LayoutDashboard, ShieldCheck, Award, Users, Building2 } from "lucide-react";
+import { ArrowRight, Menu, X, User as UserIcon, LogOut, LayoutDashboard, ShieldCheck, Award, Users, Building2, QrCode } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useOrganization";
 import { useIsAdmin } from "@/hooks/useAdmin";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 const volunteerNavLinks = [
   { label: "Explore", to: "/opportunities" },
@@ -83,6 +84,7 @@ const Navbar = () => {
         </div>
 
         <div className="hidden md:flex items-center gap-3">
+          {isReady && user && <NotificationBell />}
           {isReady && user ? (
             <div className="relative" ref={dropdownRef}>
               <button
@@ -125,6 +127,13 @@ const Navbar = () => {
                           className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors"
                         >
                           <LayoutDashboard className="w-4 h-4 text-muted-foreground" /> Dashboard
+                        </Link>
+                        <Link
+                          to="/check-in"
+                          onClick={() => setDropdownOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-secondary transition-colors"
+                        >
+                          <QrCode className="w-4 h-4 text-muted-foreground" /> Event Check-in
                         </Link>
                         <Link
                           to="/portfolio"
@@ -210,6 +219,14 @@ const Navbar = () => {
               {isAdmin && (
                 <Link to="/admin" onClick={() => setOpen(false)} className="block text-foreground font-body font-semibold">
                   Admin
+                </Link>
+              )}
+              <Link to="/notifications" onClick={() => setOpen(false)} className="block text-foreground font-body font-semibold">
+                Notifications
+              </Link>
+              {!isOrg && (
+                <Link to="/check-in" onClick={() => setOpen(false)} className="block text-foreground font-body font-semibold">
+                  Event Check-in
                 </Link>
               )}
               <Link to="/profile" onClick={() => setOpen(false)} className="block text-foreground font-body font-semibold">

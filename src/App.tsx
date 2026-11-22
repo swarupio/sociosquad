@@ -12,7 +12,12 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import { AuthProvider } from "@/hooks/useAuth";
 import { isClientError } from "@/lib/api";
+import OfflineBanner from "@/components/pwa/OfflineBanner";
+import InstallPrompt from "@/components/pwa/InstallPrompt";
 
+const CheckIn = lazy(() => import("./pages/CheckIn"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const VerifyCertificate = lazy(() => import("./pages/VerifyCertificate"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 
 const Auth = lazy(() => import("./pages/Auth"));
@@ -66,6 +71,8 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <ScrollToTopOnRouteChange />
+        <OfflineBanner />
+        <InstallPrompt />
         <ErrorBoundary>
           <AuthProvider>
             <Suspense fallback={<PageSpinner />}>
@@ -85,6 +92,9 @@ const App = () => (
                 <Route path="/squads/:id" element={<Squads />} />
                 <Route path="/ngo/register" element={<ProtectedRoute><NGORegister /></ProtectedRoute>} />
                 <Route path="/ngo/dashboard" element={<ProtectedRoute><NGODashboard /></ProtectedRoute>} />
+                <Route path="/check-in" element={<ProtectedRoute><CheckIn /></ProtectedRoute>} />
+                <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+                <Route path="/verify/:code" element={<VerifyCertificate />} />
                 <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
                 <Route path="/admin/:section" element={<AdminRoute><Admin /></AdminRoute>} />
                 <Route path="*" element={<NotFound />} />

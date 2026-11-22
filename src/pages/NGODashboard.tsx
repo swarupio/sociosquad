@@ -11,12 +11,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import AsyncStateCard from "@/components/AsyncStateCard";
 import { Navigate, Link } from "react-router-dom";
+import { geocodeLocation } from "@/lib/nominatimGeocode";
+import RecurrenceFields, { type RecurrenceValue } from "@/components/recurrence/RecurrenceFields";
+import { DEFAULT_RECURRENCE } from "@/lib/recurrence";
+import { useCreateSeries } from "@/hooks/useRecurringOpportunities";
+import OrgAnalyticsPanel from "@/components/analytics/OrgAnalyticsPanel";
+import OrgCheckinPanel from "@/components/checkin/OrgCheckinPanel";
+import AnnouncementComposer from "@/components/announcements/AnnouncementComposer";
+import { usePageMeta } from "@/hooks/usePageMeta";
 
 const CATEGORIES = ["Environment", "Education", "Health", "Community", "Animals", "Disaster Relief", "Elderly Care", "General"];
 const SKILLS = ["Teaching", "Medical", "Driving", "Cooking", "Photography", "Counseling", "Tech", "Manual Labor", "Leadership", "Languages"];
 
-function PostOpportunityModal({ open, onClose, onCreate }: { open: boolean; onClose: () => void; onCreate: (d: Partial<Opportunity>) => Promise<boolean> }) {
+function PostOpportunityModal({ open, onClose, onCreate }: { open: boolean; onClose: () => void; onCreate: (d: Partial<Opportunity>, rec: RecurrenceValue) => Promise<boolean> }) {
   const [submitting, setSubmitting] = useState(false);
+  const [rec, setRec] = useState<RecurrenceValue>(DEFAULT_RECURRENCE);
   const [form, setForm] = useState({
     title: "", description: "", category: "General", location: "", city: "Mumbai",
     date: new Date().toISOString().split("T")[0], start_time: "09:00", end_time: "17:00",
@@ -56,6 +65,10 @@ function PostOpportunityModal({ open, onClose, onCreate }: { open: boolean; onCl
           <Input type="time" value={form.end_time} onChange={e => set("end_time", e.target.value)} className="rounded-xl" />
         </div>
 
+        <div className="mb-4">
+          <RecurrenceFields value={rec} onChange={setRec} startDate={form.date} />
+        </div>
+
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Max Volunteers</label>
@@ -87,7 +100,7 @@ function PostOpportunityModal({ open, onClose, onCreate }: { open: boolean; onCl
               if (!form.title.trim() || !form.location.trim() || submitting) return;
               setSubmitting(true);
               try {
-                const ok = await onCreate(form);
+                const ok = await onCreate(form, rec);
                 if (ok) onClose();
               } finally {
                 setSubmitting(false);
@@ -167,6 +180,39 @@ export default function NGODashboard() {
   const { opportunities, loading: oppsLoading, error: oppsError, refetch: refetchOpps, createOpportunity, deleteOpportunity } = useOrgOpportunities(org?.id);
   const [showPost, setShowPost] = useState(false);
   const [expandedOpp, setExpandedOpp] = useState<string | null>(null);
+  const [tab, setTab] = useState<"opportunities" | "analytics">("opportunities");
+  const createSeries = useCreateSeries(org?.id);
+
+  usePageMeta({ title: "NGO dashboard", noindex: true });
+
+  const handleCreate = async (d: Partial<Opportunity>, rec: RecurrenceValue): Promise<boolean> => {
+    if (rec.rule === "none") return createOpportunity(d);
+    const { latitude, longitude } = await geocodeLocation(d.location || "", d.city || "Mumbai", { existing: d });
+    try {
+      await createSeries.mutateAsync({
+        template: {
+          title: d.title || "",
+          description: d.description || "",
+          category: d.category || "General",
+          skills_needed: d.skills_needed || [],
+          start_time: d.start_time || "09:00",
+          end_time: d.end_time || "17:00",
+          location: d.location || "",
+          city: d.city || "Mumbai",
+          max_volunteers: d.max_volunteers || 50,
+          time_commitment: d.time_commitment || "Recurring",
+          latitude,
+          longitude,
+        },
+        rule: rec.rule,
+        startsOn: d.date || new Date().toISOString().split("T")[0],
+        occurrences: rec.occurrences,
+      });
+      return true;
+    } catch {
+      return false; // useCreateSeries already surfaced the error
+    }
+  };
 
   if (isReady && !user) return <Navigate to="/auth" replace />;
   if (isReady && user && !orgLoading && !orgError && !org) return <Navigate to="/ngo/register" replace />;
@@ -216,6 +262,25 @@ export default function NGODashboard() {
               </div>
             </div>
 
+            <div role="tablist" aria-label="Dashboard sections" className="flex gap-2 mb-6">
+              {(["opportunities", "analytics"] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === t}
+                  onClick={() => setTab(t)}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium capitalize transition-colors ${tab === t ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            {tab === "analytics" && <OrgAnalyticsPanel orgId={org.id} orgName={org.name} />}
+
+            {tab === "opportunities" && (
+            <>
             {/* Actions */}
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-display font-bold text-foreground">Your Opportunities</h2>
@@ -293,17 +358,23 @@ export default function NGODashboard() {
                     {expandedOpp === opp.id && (
                       <div className="border-t border-border p-5 bg-secondary/20">
                         <VolunteerManager opportunityId={opp.id} opportunityTitle={opp.title} startTime={opp.start_time} endTime={opp.end_time} />
+                        <div className="mt-6 grid gap-6 md:grid-cols-2">
+                          <OrgCheckinPanel opportunityId={opp.id} opportunityTitle={opp.title} />
+                          <AnnouncementComposer opportunityId={opp.id} orgId={org.id} registeredCount={opp.registration_count} />
+                        </div>
                       </div>
                     )}
                   </motion.div>
                 ))}
               </div>
             )}
+            </>
+            )}
           </>
         )}
       </div>
       <Footer />
-      <PostOpportunityModal open={showPost} onClose={() => setShowPost(false)} onCreate={createOpportunity} />
+      <PostOpportunityModal open={showPost} onClose={() => setShowPost(false)} onCreate={handleCreate} />
     </div>
   );
 }

@@ -11,6 +11,15 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { downloadIcs } from "@/lib/calendar";
+import { db, isMissingMigration } from "@/lib/db";
+import { useMyOrganization } from "@/hooks/useOrganization";
+import { usePageMeta } from "@/hooks/usePageMeta";
+import JsonLd from "@/components/seo/JsonLd";
+import { volunteerOpportunityJsonLd, type OpportunityLike } from "@/lib/structuredData";
+import AnnouncementFeed from "@/components/announcements/AnnouncementFeed";
+import AnnouncementComposer from "@/components/announcements/AnnouncementComposer";
+import ReviewList from "@/components/feedback/ReviewList";
+import FeedbackForm from "@/components/feedback/FeedbackForm";
 import {
   isStaticOpportunityRegistered,
   removeStaticRegistration,
@@ -46,8 +55,16 @@ const OpportunityDetail = () => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isDbOpp, setIsDbOpp] = useState(false);
   const [dbOppId, setDbOppId] = useState<string | null>(null);
+  const [dbInfo, setDbInfo] = useState<{ orgId: string; attended: boolean; ld: OpportunityLike } | null>(null);
+  const { org: myOrg } = useMyOrganization();
 
   const userId = user?.id ?? null;
+
+  usePageMeta({
+    title: opp?.title ?? "Volunteering opportunity",
+    description: opp ? `${opp.title} with ${opp.org}. ${opp.description}` : "Volunteer with verified NGOs on SocioSquad.",
+    path: id ? `/opportunities/${id}` : undefined,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -86,13 +103,13 @@ const OpportunityDetail = () => {
         const [{ data: row, error }, regResult] = await Promise.all([
           supabase
             .from("opportunities")
-            .select("id, title, description, category, skills_needed, date, start_time, end_time, location, city, max_volunteers, time_commitment, organizations(name)")
+            .select("id, org_id, title, description, category, skills_needed, date, start_time, end_time, location, city, max_volunteers, time_commitment, organizations(name)")
             .eq("id", id)
             .maybeSingle(),
           userId
             ? supabase
                 .from("volunteer_registrations")
-                .select("id")
+                .select("id, attended")
                 .eq("opportunity_id", id)
                 .eq("user_id", userId)
                 .maybeSingle()
@@ -142,6 +159,24 @@ const OpportunityDetail = () => {
           description: data.description ?? "",
         });
         setJoined(isJoined);
+        setDbInfo({
+          orgId: data.org_id,
+          attended: regResult.data?.attended === true,
+          ld: {
+            id: data.id,
+            title: data.title ?? "Untitled opportunity",
+            description: data.description,
+            date: data.date,
+            start_time: data.start_time,
+            end_time: data.end_time,
+            location: data.location,
+            city: data.city,
+            latitude: data.latitude ?? null,
+            longitude: data.longitude ?? null,
+            organization_name: data.organizations?.name,
+            organization_id: data.org_id,
+          },
+        });
       } catch (err) {
         if (!cancelled) setLoadError(err instanceof Error ? err.message : "Failed to load opportunity details");
       } finally {
@@ -218,12 +253,24 @@ const OpportunityDetail = () => {
         toast({ title: "Registration cancelled" });
       } else {
         if (isDbOpp) {
-          const { error } = await supabase
-            .from("volunteer_registrations")
-            .insert({ opportunity_id: oppId, user_id: user.id });
-
-          if (error) {
-            throw error;
+          // Capacity-aware RPC (enforces max volunteers, supports a waitlist); falls back
+          // to a plain insert until the migration is applied.
+          const rpc = await db.rpc<{ status?: string; position?: number | null }>("register_for_opportunity", {
+            p_opportunity_id: oppId,
+          });
+          if (rpc.error && !isMissingMigration(rpc.error)) throw new Error(rpc.error.message);
+          if (rpc.error) {
+            const { error } = await supabase
+              .from("volunteer_registrations")
+              .insert({ opportunity_id: oppId, user_id: user.id });
+            if (error) throw error;
+          } else if (rpc.data?.status === "waitlisted") {
+            toast({
+              title: "You're on the waitlist",
+              description: "We'll register you automatically if a spot opens.",
+            });
+            queryClient.invalidateQueries({ queryKey: ["waitlist"] });
+            return;
           }
         } else {
           await upsertStaticRegistration(user.id, oppId);
@@ -390,6 +437,35 @@ const OpportunityDetail = () => {
                   <Share2 className="w-4 h-4" aria-hidden="true" /> Share
                 </button>
               </div>
+
+              {dbInfo && isDbOpp && (
+                <div className="mt-10 space-y-8">
+                  <section aria-labelledby="updates-heading">
+                    <h2 id="updates-heading" className="text-lg font-bold text-foreground mb-3">Updates from the organiser</h2>
+                    {myOrg?.id === dbInfo.orgId && (
+                      <div className="mb-4">
+                        <AnnouncementComposer opportunityId={dbInfo.ld.id} orgId={dbInfo.orgId} />
+                      </div>
+                    )}
+                    {(joined || myOrg?.id === dbInfo.orgId) && (
+                      <AnnouncementFeed opportunityId={dbInfo.ld.id} canManage={myOrg?.id === dbInfo.orgId} />
+                    )}
+                    {!joined && myOrg?.id !== dbInfo.orgId && (
+                      <p className="text-sm text-muted-foreground">Register to see updates from the organiser.</p>
+                    )}
+                  </section>
+                  <section aria-labelledby="reviews-heading">
+                    <h2 id="reviews-heading" className="text-lg font-bold text-foreground mb-3">Reviews</h2>
+                    {dbInfo.attended && (
+                      <div className="mb-4">
+                        <FeedbackForm opportunityId={dbInfo.ld.id} />
+                      </div>
+                    )}
+                    <ReviewList opportunityId={dbInfo.ld.id} />
+                  </section>
+                  <JsonLd data={volunteerOpportunityJsonLd(dbInfo.ld, window.location.origin)} />
+                </div>
+              )}
             </div>
           </ScrollReveal>
         </div>

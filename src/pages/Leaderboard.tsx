@@ -7,6 +7,7 @@ import Footer from "@/components/Footer";
 import ScrollReveal from "@/components/ScrollReveal";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
+import { usePageMeta } from "@/hooks/usePageMeta";
 
 interface LeaderEntry {
   rank: number;
@@ -74,6 +75,7 @@ async function loadLeaders(myId?: string): Promise<LeaderEntry[]> {
 }
 
 const Leaderboard = () => {
+  usePageMeta({ title: "Volunteer leaderboard", description: "See the top volunteers on SocioSquad ranked by verified impact and XP.", path: "/leaderboard" });
   const { user, isReady } = useAuth();
   const [realLeaders, setRealLeaders] = useState<LeaderEntry[]>([]);
   const [loading, setLoading] = useState(true);

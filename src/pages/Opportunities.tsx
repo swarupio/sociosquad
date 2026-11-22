@@ -18,7 +18,8 @@ import {
   Loader2, 
   Eye,
   Bookmark,
-  Navigation
+  Navigation,
+  Sparkles
 } from "lucide-react";
 
 import Navbar from "@/components/Navbar";
@@ -39,6 +40,15 @@ import AsyncStateCard from "@/components/AsyncStateCard";
 import VolunteeringMap from "@/components/VolunteeringMap";
 import { useSavedOpportunities } from "@/hooks/useSavedOpportunities";
 import { formatDistance, haversineKm, isValidCoordinate, type LatLng } from "@/lib/geo";
+
+import { useVolunteerPreferences } from "@/hooks/useVolunteerPreferences";
+import { scoreOpportunity } from "@/lib/matching";
+import MatchBadge from "@/components/matching/MatchBadge";
+import PreferencesForm from "@/components/matching/PreferencesForm";
+import { CapacityMeter } from "@/components/waitlist/CapacityMeter";
+import SeriesBadge from "@/components/recurrence/SeriesBadge";
+import { usePageMeta } from "@/hooks/usePageMeta";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const PAGE_SIZE = 12;
 
@@ -72,6 +82,15 @@ const Opportunities = () => {
   const [userLocation, setUserLocation] = useState<LatLng | null>(null);
   const [locating, setLocating] = useState(false);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [forYou, setForYou] = useState(false);
+  const [prefsOpen, setPrefsOpen] = useState(false);
+  const { prefs } = useVolunteerPreferences();
+
+  usePageMeta({
+    title: "Explore volunteering opportunities",
+    description: "Find verified NGO volunteering opportunities near you. Filter by cause, time commitment and distance, and join in one tap.",
+    path: "/opportunities",
+  });
 
   const handleNearMe = () => {
     if (userLocation) {
@@ -160,9 +179,21 @@ const Opportunities = () => {
           end_time: o.end_time,
           latitude: o.latitude ?? null,
           longitude: o.longitude ?? null,
+          series_id: (o as { series_id?: string | null }).series_id ?? null,
+          match: scoreOpportunity(prefs, {
+            id: o.id,
+            category: o.category,
+            skills_needed: o.skills_needed || [],
+            latitude: o.latitude ?? null,
+            longitude: o.longitude ?? null,
+            date: o.date,
+            start_time: o.start_time,
+            max_volunteers: maxVol,
+            registered_count: o.registration_count || 0,
+          }),
         };
       }),
-    [dbOpps]
+    [dbOpps, prefs]
   );
 
   const staticOpps = useMemo(
@@ -188,6 +219,8 @@ const Opportunities = () => {
         end_time: o.endTime,
         latitude: null as number | null,
         longitude: null as number | null,
+        series_id: null as string | null,
+        match: null as ReturnType<typeof scoreOpportunity> | null,
       })),
     [staticRegisteredIds]
   );
@@ -211,12 +244,15 @@ const Opportunities = () => {
             ? haversineKm(userLocation, { latitude: o.latitude as number, longitude: o.longitude as number })
             : null,
       }));
+    if (forYou && !userLocation) {
+      result.sort((a, b) => (b.match?.score ?? -1) - (a.match?.score ?? -1));
+    }
     if (userLocation) {
       // Nearest first; opportunities without coordinates keep their order after the located ones.
       result.sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
     }
     return result;
-  }, [realOpps, staticOpps, debouncedSearch, category, timeFilter, savedOnly, saved, userLocation]);
+  }, [realOpps, staticOpps, debouncedSearch, category, timeFilter, savedOnly, saved, userLocation, forYou]);
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
@@ -253,7 +289,14 @@ const Opportunities = () => {
         } else {
           const result = await register(oppId);
           if (!result.success) throw new Error(result.message || "Failed to register for opportunity");
-          toast({ title: "Registered! 🎉" });
+          if (result.status === "waitlisted") {
+            toast({
+              title: "You're on the waitlist",
+              description: result.position ? `Position #${result.position}. We'll register you automatically if a spot opens.` : "We'll register you automatically if a spot opens.",
+            });
+          } else {
+            toast({ title: "Registered! 🎉" });
+          }
         }
       } else {
         const nextIds = new Set(staticRegisteredIds);
@@ -400,6 +443,25 @@ const Opportunities = () => {
                 >
                   <Bookmark className="w-3.5 h-3.5" /> Saved{saved.length > 0 ? ` (${saved.length})` : ""}
                 </button>
+                {user && (
+                  <>
+                    <button
+                      type="button"
+                      aria-pressed={forYou}
+                      onClick={() => setForYou((v) => !v)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors inline-flex items-center gap-1.5 ${forYou ? "bg-accent text-accent-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+                    >
+                      <Sparkles className="w-3.5 h-3.5" /> For you
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPrefsOpen(true)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Personalise
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </ScrollReveal>
@@ -447,12 +509,21 @@ const Opportunities = () => {
                         <Timer className="w-3 h-3" /> {opp.timeLabel}
                       </span>
                     </div>
+                    {(opp.match?.score != null || opp.series_id) && (
+                      <div className="flex items-center gap-2 mb-2">
+                        {opp.match?.score != null && <MatchBadge score={opp.match.score} reasons={opp.match.reasons} />}
+                        {opp.series_id && <SeriesBadge seriesId={opp.series_id} />}
+                      </div>
+                    )}
                     <h3 className="font-bold text-foreground mb-1">{opp.title}</h3>
                     <p className="text-sm text-muted-foreground mb-4">{opp.org}</p>
                     <div className="space-y-2 mb-5 flex-1">
                       <div className="flex items-center gap-2 text-xs text-muted-foreground"><MapPin className="w-3.5 h-3.5 shrink-0" aria-hidden="true" /> {opp.location || "Location not specified"}{opp.distanceKm !== null && <span className="ml-1 font-medium text-primary">· {formatDistance(opp.distanceKm)}</span>}</div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground"><Clock className="w-3.5 h-3.5 shrink-0" /> {opp.date || "Date TBD"}{opp.start_time ? ` • ${opp.start_time}${opp.end_time ? `–${opp.end_time}` : ""}` : ""}</div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground"><Users className="w-3.5 h-3.5 shrink-0" /> {opp.spots > 0 ? `${opp.spots} spots left` : "Full"}</div>
+                      {opp.isReal && opp.max_volunteers > 0 && (
+                        <CapacityMeter registered={opp.registration_count || 0} max={opp.max_volunteers} />
+                      )}
                     </div>
                     {opp.tags && opp.tags.length > 0 && (
                       <div className="flex gap-1.5 flex-wrap mb-4">
@@ -464,7 +535,7 @@ const Opportunities = () => {
                         <Link to={`/opportunities/${opp.id}`} aria-label={`View details for ${opp.title}`}><Eye className="w-4 h-4 mr-1.5" /> View Details</Link>
                       </Button>
                       <Button onClick={() => handleRegister(opp.id, !!opp.is_registered, !!opp.isReal)} disabled={activeActionId === opp.id} variant={opp.is_registered ? "secondary" : "default"} className="flex-1 rounded-xl text-sm">
-                        {activeActionId === opp.id ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Updating...</> : opp.is_registered ? <><CheckCircle className="w-4 h-4 mr-1.5" /> Registered</> : <>Join <ArrowRight className="w-4 h-4 ml-1.5" /></>}
+                        {activeActionId === opp.id ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Updating...</> : opp.is_registered ? <><CheckCircle className="w-4 h-4 mr-1.5" /> Registered</> : <>{opp.isReal && opp.spots <= 0 ? "Join waitlist" : "Join"} <ArrowRight className="w-4 h-4 ml-1.5" /></>}
                       </Button>
                     </div>
                   </motion.div>
@@ -482,6 +553,14 @@ const Opportunities = () => {
         </div>
       </main>
       <Footer />
+      <Dialog open={prefsOpen} onOpenChange={setPrefsOpen}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Personalise your matches</DialogTitle>
+          </DialogHeader>
+          <PreferencesForm onSaved={() => setPrefsOpen(false)} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

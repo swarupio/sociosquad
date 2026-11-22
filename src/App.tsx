@@ -5,7 +5,14 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { useEffect, Suspense, lazy } from "react";
+import { Loader2 } from "lucide-react";
 import Index from "./pages/Index";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import { AuthProvider } from "@/hooks/useAuth";
+import { isClientError } from "@/lib/api";
+
+const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 
 const Auth = lazy(() => import("./pages/Auth"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -21,7 +28,24 @@ const NGORegister = lazy(() => import("./pages/NGORegister"));
 const NGODashboard = lazy(() => import("./pages/NGODashboard"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000,
+      refetchOnWindowFocus: false,
+      retry: (failureCount, error) => {
+        if (isClientError(error)) return false;
+        return failureCount < 2;
+      },
+    },
+  },
+});
+
+const PageSpinner = () => (
+  <div className="flex min-h-screen items-center justify-center bg-background">
+    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+  </div>
+);
 
 const ScrollToTopOnRouteChange = () => {
   const location = useLocation();
@@ -40,25 +64,30 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <ScrollToTopOnRouteChange />
-        <Suspense fallback={<div>Loading...</div>}>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/community" element={<Community />} />
-            <Route path="/opportunities" element={<Opportunities />} />
-            <Route path="/opportunities/:id" element={<OpportunityDetail />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/portfolio" element={<Portfolio />} />
-            <Route path="/leaderboard" element={<Leaderboard />} />
-            <Route path="/schedule" element={<Schedule />} />
-            <Route path="/squads" element={<Squads />} />
-            <Route path="/squads/:id" element={<Squads />} />
-            <Route path="/ngo/register" element={<NGORegister />} />
-            <Route path="/ngo/dashboard" element={<NGODashboard />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
+        <ErrorBoundary>
+          <AuthProvider>
+            <Suspense fallback={<PageSpinner />}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
+                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/community" element={<Community />} />
+                <Route path="/opportunities" element={<Opportunities />} />
+                <Route path="/opportunities/:id" element={<OpportunityDetail />} />
+                <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                <Route path="/portfolio" element={<ProtectedRoute><Portfolio /></ProtectedRoute>} />
+                <Route path="/leaderboard" element={<Leaderboard />} />
+                <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
+                <Route path="/squads" element={<Squads />} />
+                <Route path="/squads/:id" element={<Squads />} />
+                <Route path="/ngo/register" element={<ProtectedRoute><NGORegister /></ProtectedRoute>} />
+                <Route path="/ngo/dashboard" element={<ProtectedRoute><NGODashboard /></ProtectedRoute>} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </AuthProvider>
+        </ErrorBoundary>
       </BrowserRouter>
       {/* Placing Analytics here ensures it tracks every route 
           defined in your BrowserRouter above. 

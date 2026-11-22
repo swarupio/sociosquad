@@ -67,7 +67,7 @@ describe('Auth Page OAuth Functionality', () => {
     renderAuth('/auth?next=//evil.com');
     fireEvent.click(screen.getByRole('button', { name: /continue with google/i }));
     const { supabase } = await import('@/lib/supabaseClient');
-    const call = (supabase.auth.signInWithOAuth as any).mock.calls[0][0];
+    const call = vi.mocked(supabase.auth.signInWithOAuth).mock.calls[0][0];
     expect(call.options.redirectTo).not.toContain('evil.com');
   });
 
@@ -75,7 +75,7 @@ describe('Auth Page OAuth Functionality', () => {
     renderAuth('/auth?next=/profile');
     fireEvent.click(screen.getByRole('button', { name: /continue with google/i }));
     const { supabase } = await import('@/lib/supabaseClient');
-    const call = (supabase.auth.signInWithOAuth as any).mock.calls[0][0];
+    const call = vi.mocked(supabase.auth.signInWithOAuth).mock.calls[0][0];
     expect(call.options.redirectTo).toContain('next=%2Fprofile');
   });
 

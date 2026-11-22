@@ -1,0 +1,60 @@
+{
+  "nav": {
+    "links": {
+      "explore": "অন্বেষণ",
+      "schedule": "সূচি",
+      "leaderboard": "লিডারবোর্ড",
+      "community": "সম্প্রদায়",
+      "squads": "স্কোয়াড"
+    },
+    "dashboard": "ড্যাশবোর্ড",
+    "impactPortfolio": "প্রভাব পোর্টফোলিও",
+    "profile": "প্রোফাইল",
+    "ngoDashboard": "এনজিও ড্যাশবোর্ড",
+    "signIn": "সাইন ইন",
+    "signUp": "সাইন আপ",
+    "signOut": "সাইন আউট",
+    "myProfile": "আমার প্রোফাইল",
+    "openMenu": "মেনু খুলুন",
+    "language": {
+      "buttonAria": "ভাষা",
+      "current": "ভাষা: {{label}}",
+      "en": "English",
+      "hi": "हिन्दी",
+      "mr": "मराठी",
+      "ta": "தமிழ்",
+      "bn": "বাংলা"
+    }
+  },
+  "explore": {
+    "title": "স্বেচ্ছাসেবার সুযোগ অন্বেষণ করুন",
+    "subtitle": "{{count}}টি সুযোগ উপলব্ধ",
+    "postAsNgo": "এনজিও হিসেবে পোস্ট করুন",
+    "viewModeGroupAria": "দৃশ্য মোড",
+    "gridView": "গ্রিড দৃশ্য",
+    "listView": "তালিকা দৃশ্য",
+    "mapView": "মানচিত্র দৃশ্য",
+    "searchPlaceholder": "সুযোগ খুঁজুন…",
+    "categories": {
+      "All": "সব",
+      "Environment": "পরিবেশ",
+      "Education": "শিক্ষা",
+      "Healthcare": "স্বাস্থ্যসেবা",
+      "General": "সাধারণ",
+      "Community": "সম্প্রদায়",
+      "Health": "স্বাস্থ্য"
+    },
+    "time": {
+      "all": "সব",
+      "quick": "দ্রুত প্রভাব (< ১ ঘণ্টা)",
+      "half": "অর্ধ দিন (১–৪ ঘণ্টা)",
+      "full": "পূর্ণ দিন (৪+ ঘণ্টা)"
+    },
+    "loading": "সুযোগগুলো লোড হচ্ছে…",
+    "errorTitle": "সুযোগ লোড করা যায়নি",
+    "errorFallback": "অনুগ্রহ করে আবার চেষ্টা করুন",
+    "retry": "আবার চেষ্টা করুন",
+    "empty": "আপনার ফিল্টারের সাথে মিলে এমন কোনো সুযোগ নেই।",
+    "clearFilters": "সব ফিল্টার মুছুন"
+  }
+}

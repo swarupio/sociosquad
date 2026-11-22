@@ -1,0 +1,60 @@
+{
+  "nav": {
+    "links": {
+      "explore": "Explore",
+      "schedule": "Schedule",
+      "leaderboard": "Leaderboard",
+      "community": "Community",
+      "squads": "Squads"
+    },
+    "dashboard": "Dashboard",
+    "impactPortfolio": "Impact Portfolio",
+    "profile": "Profile",
+    "ngoDashboard": "NGO Dashboard",
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "signOut": "Sign Out",
+    "myProfile": "My Profile",
+    "openMenu": "Open menu",
+    "language": {
+      "buttonAria": "Language",
+      "current": "Language: {{label}}",
+      "en": "English",
+      "hi": "हिन्दी",
+      "mr": "मराठी",
+      "ta": "தமிழ்",
+      "bn": "বাংলা"
+    }
+  },
+  "explore": {
+    "title": "Explore Opportunities",
+    "subtitle": "{{count}} opportunities available",
+    "postAsNgo": "Post as NGO",
+    "viewModeGroupAria": "View mode",
+    "gridView": "Grid view",
+    "listView": "List view",
+    "mapView": "Map view",
+    "searchPlaceholder": "Search opportunities…",
+    "categories": {
+      "All": "All",
+      "Environment": "Environment",
+      "Education": "Education",
+      "Healthcare": "Healthcare",
+      "General": "General",
+      "Community": "Community",
+      "Health": "Health"
+    },
+    "time": {
+      "all": "All",
+      "quick": "Quick Impact (< 1 hr)",
+      "half": "Half Day (1–4 hrs)",
+      "full": "Full Day (4+ hrs)"
+    },
+    "loading": "Loading opportunities…",
+    "errorTitle": "Could not load opportunities",
+    "errorFallback": "Please try again",
+    "retry": "Retry",
+    "empty": "No opportunities match your filters.",
+    "clearFilters": "Clear all filters"
+  }
+}

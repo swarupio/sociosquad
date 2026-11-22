@@ -174,9 +174,12 @@ export function useOrgOpportunities(orgId: string | undefined) {
       });
     }
 
+    const opportunityId = crypto.randomUUID();
+
     const { error } = await supabase
       .from("opportunities")
       .insert({
+        id: opportunityId,
         title: opp.title || "",
         description: opp.description || "",
         category: opp.category || "General",

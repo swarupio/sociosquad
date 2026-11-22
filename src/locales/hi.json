@@ -1,0 +1,60 @@
+{
+  "nav": {
+    "links": {
+      "explore": "अन्वेषण",
+      "schedule": "अनुसूची",
+      "leaderboard": "लीडरबोर्ड",
+      "community": "समुदाय",
+      "squads": "स्क्वाड"
+    },
+    "dashboard": "डैशबोर्ड",
+    "impactPortfolio": "प्रभाव पोर्टफोलियो",
+    "profile": "प्रोफ़ाइल",
+    "ngoDashboard": "एनजीओ डैशबोर्ड",
+    "signIn": "साइन इन",
+    "signUp": "साइन अप",
+    "signOut": "साइन आउट",
+    "myProfile": "मेरी प्रोफ़ाइल",
+    "openMenu": "मेनू खोलें",
+    "language": {
+      "buttonAria": "भाषा",
+      "current": "भाषा: {{label}}",
+      "en": "English",
+      "hi": "हिन्दी",
+      "mr": "मराठी",
+      "ta": "தமிழ்",
+      "bn": "বাংলা"
+    }
+  },
+  "explore": {
+    "title": "सेवा के अवसर खोजें",
+    "subtitle": "{{count}} अवसर उपलब्ध हैं",
+    "postAsNgo": "एनजीओ के रूप में पोस्ट करें",
+    "viewModeGroupAria": "दृश्य मोड",
+    "gridView": "ग्रिड दृश्य",
+    "listView": "सूची दृश्य",
+    "mapView": "मानचित्र दृश्य",
+    "searchPlaceholder": "अवसर खोजें…",
+    "categories": {
+      "All": "सभी",
+      "Environment": "पर्यावरण",
+      "Education": "शिक्षा",
+      "Healthcare": "स्वास्थ्य सेवा",
+      "General": "सामान्य",
+      "Community": "समुदाय",
+      "Health": "स्वास्थ्य"
+    },
+    "time": {
+      "all": "सभी",
+      "quick": "त्वरित प्रभाव (< 1 घं.)",
+      "half": "आधा दिन (1–4 घं.)",
+      "full": "पूरा दिन (4+ घं.)"
+    },
+    "loading": "अवसर लोड हो रहे हैं…",
+    "errorTitle": "अवसर लोड नहीं हो सके",
+    "errorFallback": "कृपया पुनः प्रयास करें",
+    "retry": "पुनः प्रयास करें",
+    "empty": "कोई अवसर आपके फ़िल्टर से मेल नहीं खाता।",
+    "clearFilters": "सभी फ़िल्टर साफ़ करें"
+  }
+}
